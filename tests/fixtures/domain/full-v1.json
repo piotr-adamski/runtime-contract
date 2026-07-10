@@ -1,0 +1,61 @@
+{
+  "config_keys": [
+    {
+      "allow_literal": false,
+      "component": "api",
+      "id": "key-30a8303cdfe281736b0927b4dee9f98109eacf9099b1ab783c0c49f480a191b6",
+      "name": "API_KEY",
+      "secret": true,
+      "secret_source": "heuristic",
+      "severity_override": null
+    }
+  ],
+  "consumers": [
+    {
+      "access_kind": "python_os_getenv",
+      "component": "api",
+      "config_key_id": "key-30a8303cdfe281736b0927b4dee9f98109eacf9099b1ab783c0c49f480a191b6",
+      "has_literal_fallback": false,
+      "id": "consumer-3aadd74a513c283c02e0bc5a67b5428094a2f43431dad6170d818f52b9d01420",
+      "location": {
+        "end_column": 11,
+        "end_line": 3,
+        "path": "src/settings.py",
+        "start_column": 5,
+        "start_line": 3
+      },
+      "phase": "runtime",
+      "required": true,
+      "requirement_source": "detected_default"
+    }
+  ],
+  "environments": [
+    {
+      "component": "api",
+      "id": "env-4019e293f29e90f4298ec4c216e8f0faf982f7fa763ac714e6b2de39619a2716",
+      "kind": "compose_service",
+      "profile": "prod",
+      "target": "web"
+    }
+  ],
+  "providers": [
+    {
+      "component": "api",
+      "config_key_id": "key-30a8303cdfe281736b0927b4dee9f98109eacf9099b1ab783c0c49f480a191b6",
+      "environment_id": "env-4019e293f29e90f4298ec4c216e8f0faf982f7fa763ac714e6b2de39619a2716",
+      "evidence_kind": "explicit_key",
+      "id": "provider-194ddcf84c2acbd17851083b42e02d1b2ea5e096ad2291bc455f83e6b90d15c7",
+      "location": {
+        "end_column": null,
+        "end_line": null,
+        "path": "compose.yaml",
+        "start_column": null,
+        "start_line": 8
+      },
+      "mechanism": "compose_environment",
+      "phase": "runtime",
+      "role": "delivery"
+    }
+  ],
+  "schema_id": "runtime-contract/contract/v1"
+}
