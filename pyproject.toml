@@ -13,7 +13,9 @@ license-files = ["LICENSE"]
 authors = [{ name = "Piotr Adamski" }]
 maintainers = [{ name = "Piotr Adamski" }]
 dependencies = [
+    "pathspec>=1.0.4,<2",
     "pydantic>=2.13.4,<3",
+    "pyyaml>=6.0.3,<7",
     "typer>=0.26.8,<1",
 ]
 
@@ -27,6 +29,7 @@ dev = [
     "pytest>=9.1.1,<10",
     "pytest-cov>=7.1,<8",
     "ruff>=0.15.21,<0.16",
+    "types-pyyaml>=6.0.12.20250915,<7",
 ]
 
 [tool.coverage.run]
