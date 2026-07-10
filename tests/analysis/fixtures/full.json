@@ -1,0 +1,96 @@
+{
+  "completeness": "partial",
+  "diagnostics": [
+    {
+      "code": "unsupported_construct",
+      "id": "diagnostic-61db5d64b60111fa6a5b557cd0cc7cccbcc8504f62376e8895d75c672a433e47",
+      "parameters": [["construct", "computed_access"]],
+      "primary_location": {
+        "end_column": null,
+        "end_line": null,
+        "path": "src/app.py",
+        "start_column": null,
+        "start_line": 9
+      },
+      "related_locations": [
+        {
+          "end_column": null,
+          "end_line": null,
+          "path": "compose.yaml",
+          "start_column": null,
+          "start_line": 3
+        }
+      ],
+      "severity": "warning"
+    }
+  ],
+  "observations": [
+    {
+      "confidence": "exact",
+      "fact": {
+        "allow_literal": false,
+        "component": "api",
+        "id": "key-30a8303cdfe281736b0927b4dee9f98109eacf9099b1ab783c0c49f480a191b6",
+        "name": "API_KEY",
+        "secret": true,
+        "secret_source": "heuristic",
+        "severity_override": null
+      },
+      "fact_kind": "config_key"
+    },
+    {
+      "confidence": "inferred",
+      "fact": {
+        "access_kind": "python_os_getenv",
+        "component": "api",
+        "config_key_id": "key-30a8303cdfe281736b0927b4dee9f98109eacf9099b1ab783c0c49f480a191b6",
+        "has_literal_fallback": false,
+        "id": "consumer-9d50d67ed352006ebd9d4ac028f57a6e0ca2624b27458785b0c9ca6458d892f0",
+        "location": {
+          "end_column": null,
+          "end_line": null,
+          "path": "src/app.py",
+          "start_column": null,
+          "start_line": 2
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      "fact_kind": "consumer"
+    },
+    {
+      "confidence": "exact",
+      "fact": {
+        "component": "api",
+        "id": "env-4019e293f29e90f4298ec4c216e8f0faf982f7fa763ac714e6b2de39619a2716",
+        "kind": "compose_service",
+        "profile": "prod",
+        "target": "web"
+      },
+      "fact_kind": "environment"
+    },
+    {
+      "confidence": "exact",
+      "fact": {
+        "component": "api",
+        "config_key_id": "key-30a8303cdfe281736b0927b4dee9f98109eacf9099b1ab783c0c49f480a191b6",
+        "environment_id": "env-4019e293f29e90f4298ec4c216e8f0faf982f7fa763ac714e6b2de39619a2716",
+        "evidence_kind": "explicit_key",
+        "id": "provider-f518b0aeb056bd43f92429d66e12c70175a86b5fd69eccb3d325e7554b7757ef",
+        "location": {
+          "end_column": null,
+          "end_line": null,
+          "path": "compose.yaml",
+          "start_column": null,
+          "start_line": 3
+        },
+        "mechanism": "compose_environment",
+        "phase": "runtime",
+        "role": "delivery"
+      },
+      "fact_kind": "provider"
+    }
+  ],
+  "schema_id": "runtime-contract/analysis-result/v1"
+}

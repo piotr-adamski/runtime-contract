@@ -173,6 +173,7 @@ jobs:
             PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" "$command" --help >/dev/null
           done
           PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.config.schema import schema_bytes; assert schema_bytes()'
+          PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver'
 
       - name: Smoke-test the sdist on Python 3.14
         if: matrix.python == '3.14'
@@ -191,6 +192,7 @@ jobs:
             PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" "$command" --help >/dev/null
           done
           PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.config.schema import schema_bytes; assert schema_bytes()'
+          PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver'
 
   quality:
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)

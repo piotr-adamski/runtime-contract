@@ -11,7 +11,10 @@ import zipfile
 from pathlib import Path
 
 EXPECTED_VERSION = "0.1.0.dev0"
-SCHEMA = Path("schemas/runtime-contract.schema.json")
+SCHEMAS = (
+    Path("schemas/runtime-contract.schema.json"),
+    Path("schemas/runtime-contract-analysis-result-v1.schema.json"),
+)
 
 
 def distribution_version(path: Path) -> str:
@@ -56,10 +59,10 @@ def validate_distributions(directory: Path) -> tuple[Path, Path]:
     return wheels[0], sdists[0]
 
 
-def distribution_schema(path: Path) -> bytes:
+def distribution_schema(path: Path, schema: Path = SCHEMAS[0]) -> bytes:
     """Read the package schema from a wheel or sdist without extraction."""
 
-    suffix = "runtime_contract/schemas/runtime-contract.schema.json"
+    suffix = f"runtime_contract/schemas/{schema.name}"
     if path.suffix == ".whl":
         with zipfile.ZipFile(path) as archive:
             names = [name for name in archive.namelist() if name.endswith(suffix)]
@@ -80,11 +83,29 @@ def distribution_schema(path: Path) -> bytes:
     raise ValueError(f"unsupported distribution: {path.name}")
 
 
+def distribution_names(path: Path) -> tuple[str, ...]:
+    if path.suffix == ".whl":
+        with zipfile.ZipFile(path) as archive:
+            return tuple(archive.namelist())
+    if path.name.endswith(".tar.gz"):
+        with tarfile.open(path, "r:gz") as archive:
+            return tuple(member.name for member in archive.getmembers())
+    raise ValueError(f"unsupported distribution: {path.name}")
+
+
 def validate_schemas(distributions: tuple[Path, Path]) -> None:
-    expected = SCHEMA.read_bytes()
+    for schema in SCHEMAS:
+        expected = schema.read_bytes()
+        for distribution in distributions:
+            if distribution_schema(distribution, schema) != expected:
+                raise ValueError(f"{schema.name} differs in {distribution.name}")
+
+
+def validate_no_test_doubles(distributions: tuple[Path, Path]) -> None:
     for distribution in distributions:
-        if distribution_schema(distribution) != expected:
-            raise ValueError(f"configuration schema differs in {distribution.name}")
+        forbidden = [name for name in distribution_names(distribution) if "tests/analysis" in name]
+        if forbidden:
+            raise ValueError(f"test doubles leaked into {distribution.name}")
 
 
 def write_manifest(directory: Path, distributions: tuple[Path, Path]) -> Path:
@@ -109,6 +130,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         distributions = validate_distributions(args.directory)
         validate_schemas(distributions)
+        validate_no_test_doubles(distributions)
         manifest = write_manifest(args.directory, distributions)
     except (OSError, ValueError, tarfile.TarError, zipfile.BadZipFile) as exc:
         print(f"Artifacts: ERROR: {exc}", file=sys.stderr)
