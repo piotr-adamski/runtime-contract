@@ -1,0 +1,78 @@
+version: 1
+include:
+  - "**/*.py"
+  - "**/*.yaml"
+exclude:
+  - "**/generated/**"
+roots:
+  api:
+    path: apps/api
+    include:
+      - "src/**"
+    exclude:
+      - "tests/fixtures/**"
+  deploy: deploy
+  test_app: tests/app
+environments:
+  production:
+    roots:
+      - api
+      - deploy
+    sources:
+      - root: deploy
+        type: compose
+        path: compose.yaml
+        provides:
+          - DATABASE_URL
+  development:
+    roots:
+      - api
+      - test_app
+    sources:
+      - root: test_app
+        type: auto
+        path: manifests/app.yaml
+        provides:
+          - LOCAL_TEST_TOKEN
+classifications:
+  variables:
+    DATABASE_URL:
+      secret: true
+      required: true
+    LOCAL_TEST_TOKEN:
+      - secret: true
+        required: false
+        environments:
+          - development
+      - allow_literal: true
+        reason: Non-production test fixture
+        roots:
+          - test_app
+        environments:
+          - development
+  patterns:
+    - pattern: "*_CREDENTIAL"
+      secret: true
+      required: true
+    - pattern: "OPTIONAL_*_CREDENTIAL"
+      required: false
+severity_overrides:
+  - rule: RTC001
+    severity: warning
+    roots:
+      - test_app
+suppressions:
+  - id: test-generated-token
+    rule: RTC002
+    reason: Generated test fixture is reviewed separately
+    path: "tests/fixtures/**"
+    roots:
+      - test_app
+    environments:
+      - development
+    expires: 2099-12-31
+execution:
+  environment: production
+  format: text
+  fail_on: error
+  report: reports/runtime-contract.json
