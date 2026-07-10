@@ -1,0 +1,403 @@
+{
+  "$defs": {
+    "ConfigKey": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_literal": {
+          "title": "Allow Literal",
+          "type": "boolean"
+        },
+        "component": {
+          "title": "Component",
+          "type": "string"
+        },
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "secret": {
+          "title": "Secret",
+          "type": "boolean"
+        },
+        "secret_source": {
+          "$ref": "#/$defs/SecretSource"
+        },
+        "severity_override": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "component",
+        "secret",
+        "secret_source",
+        "allow_literal"
+      ],
+      "title": "ConfigKey",
+      "type": "object"
+    },
+    "Consumer": {
+      "additionalProperties": false,
+      "properties": {
+        "access_kind": {
+          "$ref": "#/$defs/ConsumerAccessKind"
+        },
+        "component": {
+          "title": "Component",
+          "type": "string"
+        },
+        "config_key_id": {
+          "title": "Config Key Id",
+          "type": "string"
+        },
+        "has_literal_fallback": {
+          "title": "Has Literal Fallback",
+          "type": "boolean"
+        },
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "phase": {
+          "$ref": "#/$defs/Phase"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "requirement_source": {
+          "$ref": "#/$defs/RequirementSource"
+        }
+      },
+      "required": [
+        "config_key_id",
+        "component",
+        "phase",
+        "required",
+        "requirement_source",
+        "access_kind",
+        "location",
+        "has_literal_fallback"
+      ],
+      "title": "Consumer",
+      "type": "object"
+    },
+    "ConsumerAccessKind": {
+      "enum": [
+        "python_os_environ",
+        "python_os_environ_get",
+        "python_os_getenv",
+        "pydantic_settings",
+        "node_process_env",
+        "vite_import_meta_env"
+      ],
+      "title": "ConsumerAccessKind",
+      "type": "string"
+    },
+    "Environment": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "title": "Component",
+          "type": "string"
+        },
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/EnvironmentKind"
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "component",
+        "target",
+        "kind",
+        "profile"
+      ],
+      "title": "Environment",
+      "type": "object"
+    },
+    "EnvironmentKind": {
+      "enum": [
+        "implicit",
+        "compose_service",
+        "kubernetes_workload"
+      ],
+      "title": "EnvironmentKind",
+      "type": "string"
+    },
+    "EvidenceKind": {
+      "enum": [
+        "explicit_key",
+        "resolved_bulk",
+        "unresolved_bulk"
+      ],
+      "title": "EvidenceKind",
+      "type": "string"
+    },
+    "Phase": {
+      "enum": [
+        "build",
+        "runtime",
+        "not_applicable"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "Profile": {
+      "enum": [
+        "default",
+        "dev",
+        "staging",
+        "prod"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "Provider": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "title": "Component",
+          "type": "string"
+        },
+        "config_key_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Key Id"
+        },
+        "environment_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment Id"
+        },
+        "evidence_kind": {
+          "$ref": "#/$defs/EvidenceKind"
+        },
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "location": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "mechanism": {
+          "$ref": "#/$defs/ProviderMechanism"
+        },
+        "phase": {
+          "$ref": "#/$defs/Phase"
+        },
+        "role": {
+          "$ref": "#/$defs/ProviderRole"
+        }
+      },
+      "required": [
+        "component",
+        "role",
+        "phase",
+        "mechanism",
+        "evidence_kind",
+        "location"
+      ],
+      "title": "Provider",
+      "type": "object"
+    },
+    "ProviderMechanism": {
+      "enum": [
+        "env_example",
+        "dockerfile_arg",
+        "dockerfile_env",
+        "compose_build_args",
+        "compose_environment",
+        "compose_env_file",
+        "kubernetes_env",
+        "kubernetes_env_from"
+      ],
+      "title": "ProviderMechanism",
+      "type": "string"
+    },
+    "ProviderRole": {
+      "enum": [
+        "declaration",
+        "delivery"
+      ],
+      "title": "ProviderRole",
+      "type": "string"
+    },
+    "RequirementSource": {
+      "enum": [
+        "detected_default",
+        "literal_fallback",
+        "config_override"
+      ],
+      "title": "RequirementSource",
+      "type": "string"
+    },
+    "SecretSource": {
+      "enum": [
+        "heuristic",
+        "config_override",
+        "not_secret"
+      ],
+      "title": "SecretSource",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "end_column": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Column"
+        },
+        "end_line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Line"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "start_column": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Column"
+        },
+        "start_line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Line"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    }
+  },
+  "$id": "urn:runtime-contract:contract:v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "config_keys": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ConfigKey"
+      },
+      "title": "Config Keys",
+      "type": "array"
+    },
+    "consumers": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Consumer"
+      },
+      "title": "Consumers",
+      "type": "array"
+    },
+    "environments": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Environment"
+      },
+      "title": "Environments",
+      "type": "array"
+    },
+    "providers": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Provider"
+      },
+      "title": "Providers",
+      "type": "array"
+    },
+    "schema_id": {
+      "const": "runtime-contract/contract/v1",
+      "default": "runtime-contract/contract/v1",
+      "title": "Schema Id",
+      "type": "string"
+    }
+  },
+  "title": "Contract",
+  "type": "object"
+}
