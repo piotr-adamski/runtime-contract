@@ -330,8 +330,9 @@ def test_revalidation_detects_symlink_target_and_inode_changes(tmp_path: Path) -
     assert target_error.value.code is DiscoveryErrorCode.FILESYSTEM_MUTATION
 
     direct = next(item for item in discover(tmp_path).candidates if item.path == "first.py")
-    first.unlink()
-    write(first)
+    replacement = write(tmp_path / "replacement.py")
+    assert replacement.stat().st_ino != first.stat().st_ino
+    os.replace(replacement, first)
     with pytest.raises(DiscoveryError) as inode_error:
         direct.revalidate(tmp_path.resolve())
     assert inode_error.value.code is DiscoveryErrorCode.FILESYSTEM_MUTATION
