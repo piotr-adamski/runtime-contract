@@ -10,6 +10,8 @@ from typing import Annotated, Any, ClassVar, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from runtime_contract.rules import RuleId
+
 
 class Phase(StrEnum):
     BUILD = "build"
@@ -57,21 +59,6 @@ class SecretSource(StrEnum):
     HEURISTIC = "heuristic"
     CONFIG_OVERRIDE = "config_override"
     NOT_SECRET = "not_secret"
-
-
-class RuleId(StrEnum):
-    RTC001 = "RTC001"
-    RTC002 = "RTC002"
-    RTC003 = "RTC003"
-    RTC004 = "RTC004"
-    RTC005 = "RTC005"
-    RTC006 = "RTC006"
-    RTC007 = "RTC007"
-    RTC008 = "RTC008"
-    RTC009 = "RTC009"
-    RTC010 = "RTC010"
-    RTC011 = "RTC011"
-    RTC012 = "RTC012"
 
 
 class ConsumerAccessKind(StrEnum):
