@@ -1,13 +1,51 @@
 """Tests for the installable CLI skeleton."""
 
+import importlib
 import importlib.metadata
+import runpy
+import sys
 
 import pytest
 from typer.testing import CliRunner
 
+from runtime_contract import cli
 from runtime_contract.cli import app
 
 runner = CliRunner()
+
+
+def test_main_invokes_typer_application(monkeypatch: pytest.MonkeyPatch) -> None:
+    invoked = False
+
+    def fake_app() -> None:
+        nonlocal invoked
+        invoked = True
+
+    monkeypatch.setattr(cli, "app", fake_app)
+
+    cli.main()
+
+    assert invoked
+
+
+def test_module_entrypoint_invokes_main_only_when_executed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    invocations = 0
+
+    def fake_main() -> None:
+        nonlocal invocations
+        invocations += 1
+
+    monkeypatch.setattr(cli, "main", fake_main)
+    module = importlib.import_module("runtime_contract.__main__")
+    importlib.reload(module)
+    assert invocations == 0
+    monkeypatch.delitem(sys.modules, "runtime_contract.__main__")
+
+    runpy.run_module("runtime_contract.__main__", run_name="__main__")
+
+    assert invocations == 1
 
 
 def test_root_help_lists_commands() -> None:
