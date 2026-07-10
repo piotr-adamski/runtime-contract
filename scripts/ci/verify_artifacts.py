@@ -11,6 +11,7 @@ import zipfile
 from pathlib import Path
 
 EXPECTED_VERSION = "0.1.0.dev0"
+SCHEMA = Path("schemas/runtime-contract.schema.json")
 
 
 def distribution_version(path: Path) -> str:
@@ -55,6 +56,37 @@ def validate_distributions(directory: Path) -> tuple[Path, Path]:
     return wheels[0], sdists[0]
 
 
+def distribution_schema(path: Path) -> bytes:
+    """Read the package schema from a wheel or sdist without extraction."""
+
+    suffix = "runtime_contract/schemas/runtime-contract.schema.json"
+    if path.suffix == ".whl":
+        with zipfile.ZipFile(path) as archive:
+            names = [name for name in archive.namelist() if name.endswith(suffix)]
+            if len(names) != 1:
+                raise ValueError(
+                    f"wheel must contain exactly one configuration schema: {path.name}"
+                )
+            return archive.read(names[0])
+    if path.name.endswith(".tar.gz"):
+        with tarfile.open(path, "r:gz") as archive:
+            members = [member for member in archive.getmembers() if member.name.endswith(suffix)]
+            if len(members) != 1:
+                raise ValueError(f"sdist must contain exactly one package schema: {path.name}")
+            extracted = archive.extractfile(members[0])
+            if extracted is None:
+                raise ValueError(f"cannot read configuration schema: {path.name}")
+            return extracted.read()
+    raise ValueError(f"unsupported distribution: {path.name}")
+
+
+def validate_schemas(distributions: tuple[Path, Path]) -> None:
+    expected = SCHEMA.read_bytes()
+    for distribution in distributions:
+        if distribution_schema(distribution) != expected:
+            raise ValueError(f"configuration schema differs in {distribution.name}")
+
+
 def write_manifest(directory: Path, distributions: tuple[Path, Path]) -> Path:
     manifest = directory / "SHA256SUMS"
     lines = []
@@ -76,6 +108,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         distributions = validate_distributions(args.directory)
+        validate_schemas(distributions)
         manifest = write_manifest(args.directory, distributions)
     except (OSError, ValueError, tarfile.TarError, zipfile.BadZipFile) as exc:
         print(f"Artifacts: ERROR: {exc}", file=sys.stderr)

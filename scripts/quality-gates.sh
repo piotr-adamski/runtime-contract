@@ -110,6 +110,11 @@ uv run --python 3.14 ruff format --check .
 uv run --python 3.14 ruff check .
 uv run --python 3.14 mypy --strict src tests
 
+stage "Configuration schema and examples"
+uv run --python 3.14 python scripts/generate_config_schema.py --check
+uv run --python 3.14 runtime-contract config validate examples/minimal
+uv run --python 3.14 runtime-contract config validate examples/full --format json >/dev/null
+
 stage "Tests and product coverage"
 uv run --python 3.14 pytest \
   --cov=runtime_contract \
@@ -150,9 +155,11 @@ smoke_distribution() {
       'import importlib.metadata; import runtime_contract; assert importlib.metadata.version("runtime-contract") == "0.1.0.dev0"'
     PYTHONPATH= "$temp_dir/venv/bin/python" -m runtime_contract --version
     PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" --help >/dev/null
-    for command in scan check explain diff; do
+    for command in scan check explain diff config; do
       PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" "$command" --help >/dev/null
     done
+    PYTHONPATH= "$temp_dir/venv/bin/python" -c \
+      'from runtime_contract.config.schema import schema_bytes; assert schema_bytes()'
   )
   rm -rf "$temp_dir"
   echo "$label smoke test: PASS on Python $python_version"

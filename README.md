@@ -24,6 +24,14 @@ than producing a misleading report.
 Local-only operation without telemetry or data transmission remains a project requirement. There is
 currently no release or PyPI publication.
 
+The strict local configuration contract is documented in
+[`docs/runtime-contract-yaml.md`](docs/runtime-contract-yaml.md). Validate it without scanning:
+
+```text
+runtime-contract config validate .
+runtime-contract config validate . --format json
+```
+
 ## Development
 
 Use Python 3.11 or newer and `uv >=0.11.28,<0.12`:
