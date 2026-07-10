@@ -5,7 +5,7 @@ from typing import Annotated
 
 import typer
 
-from runtime_contract.commands import check, diff, explain, scan
+from runtime_contract.commands import check, config, diff, explain, scan
 
 app = typer.Typer(
     help="Check environment-variable delivery contracts without running project code.",
@@ -50,6 +50,7 @@ app.command()(scan.scan)
 app.command()(check.check)
 app.command()(explain.explain)
 app.command()(diff.diff)
+app.add_typer(config.app, name="config")
 
 
 def main() -> None:

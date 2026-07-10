@@ -1,0 +1,574 @@
+{
+  "$defs": {
+    "Classifications": {
+      "additionalProperties": false,
+      "properties": {
+        "patterns": {
+          "items": {
+            "$ref": "#/$defs/PatternRule"
+          },
+          "title": "Patterns",
+          "type": "array"
+        },
+        "variables": {
+          "patternProperties": {
+            "^[A-Za-z_][A-Za-z0-9_]*$": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/VariableRule"
+                },
+                {
+                  "$ref": "#/$defs/VariableRuleList"
+                }
+              ]
+            }
+          },
+          "title": "Variables",
+          "type": "object"
+        }
+      },
+      "title": "Classifications",
+      "type": "object"
+    },
+    "EnvironmentProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "roots": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Roots",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "roots"
+      ],
+      "title": "EnvironmentProfile",
+      "type": "object"
+    },
+    "Execution": {
+      "additionalProperties": false,
+      "properties": {
+        "environment": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "fail_on": {
+          "$ref": "#/$defs/FailOn",
+          "default": "error"
+        },
+        "format": {
+          "$ref": "#/$defs/OutputFormat",
+          "default": "text"
+        },
+        "report": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report"
+        }
+      },
+      "title": "Execution",
+      "type": "object"
+    },
+    "FailOn": {
+      "enum": [
+        "error",
+        "warning",
+        "info",
+        "never"
+      ],
+      "title": "FailOn",
+      "type": "string"
+    },
+    "OutputFormat": {
+      "enum": [
+        "text",
+        "json",
+        "sarif"
+      ],
+      "title": "OutputFormat",
+      "type": "string"
+    },
+    "PatternRule": {
+      "additionalProperties": false,
+      "properties": {
+        "environments": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Environments",
+          "type": "array"
+        },
+        "pattern": {
+          "minLength": 1,
+          "title": "Pattern",
+          "type": "string"
+        },
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "roots": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Roots",
+          "type": "array"
+        },
+        "secret": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Secret"
+        }
+      },
+      "required": [
+        "pattern"
+      ],
+      "title": "PatternRule",
+      "type": "object"
+    },
+    "RootTarget": {
+      "additionalProperties": false,
+      "description": "A named scan target relative to the logical project root.",
+      "properties": {
+        "exclude": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Exclude",
+          "type": "array"
+        },
+        "include": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Include",
+          "type": "array"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "RootTarget",
+      "type": "object"
+    },
+    "Roots": {
+      "description": "Named targets accepting a string shorthand or expanded object.",
+      "patternProperties": {
+        "^[A-Za-z][A-Za-z0-9_-]{0,63}$": {
+          "$ref": "#/$defs/RootTarget"
+        }
+      },
+      "title": "Roots",
+      "type": "object"
+    },
+    "RuleId": {
+      "description": "Identifiers shared by findings, configuration, and JSON Schema.",
+      "enum": [
+        "RTC001",
+        "RTC002",
+        "RTC003",
+        "RTC004",
+        "RTC005",
+        "RTC006",
+        "RTC007",
+        "RTC008",
+        "RTC009",
+        "RTC010",
+        "RTC011",
+        "RTC012"
+      ],
+      "title": "RuleId",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "SeverityOverride": {
+      "additionalProperties": false,
+      "properties": {
+        "environments": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Environments",
+          "type": "array"
+        },
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "roots": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Roots",
+          "type": "array"
+        },
+        "rule": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "secret": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Secret"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        }
+      },
+      "required": [
+        "rule",
+        "severity"
+      ],
+      "title": "SeverityOverride",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "provides": {
+          "items": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "type": "string"
+          },
+          "title": "Provides",
+          "type": "array"
+        },
+        "root": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+          "title": "Root",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/SourceType"
+        }
+      },
+      "required": [
+        "root",
+        "type",
+        "path"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "SourceType": {
+      "enum": [
+        "auto",
+        "compose",
+        "kubernetes"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    },
+    "Suppression": {
+      "additionalProperties": false,
+      "properties": {
+        "environments": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Environments",
+          "type": "array"
+        },
+        "expires": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expires"
+        },
+        "id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "roots": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Roots",
+          "type": "array"
+        },
+        "rule": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "variable": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variable"
+        }
+      },
+      "required": [
+        "id",
+        "rule",
+        "reason"
+      ],
+      "title": "Suppression",
+      "type": "object"
+    },
+    "VariableRule": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_literal": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Allow Literal"
+        },
+        "environments": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Environments",
+          "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "required": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required"
+        },
+        "roots": {
+          "items": {
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "title": "Roots",
+          "type": "array"
+        },
+        "secret": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Secret"
+        }
+      },
+      "title": "VariableRule",
+      "type": "object"
+    },
+    "VariableRuleList": {
+      "items": {
+        "$ref": "#/$defs/VariableRule"
+      },
+      "title": "VariableRuleList",
+      "type": "array"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/piotr-adamski/runtime-contract/main/schemas/runtime-contract.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Strict configuration contract for the runtime-contract CLI.",
+  "properties": {
+    "classifications": {
+      "$ref": "#/$defs/Classifications"
+    },
+    "environments": {
+      "patternProperties": {
+        "^[A-Za-z][A-Za-z0-9_-]{0,63}$": {
+          "$ref": "#/$defs/EnvironmentProfile"
+        }
+      },
+      "title": "Environments",
+      "type": "object"
+    },
+    "exclude": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Exclude",
+      "type": "array"
+    },
+    "execution": {
+      "$ref": "#/$defs/Execution"
+    },
+    "include": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Include",
+      "type": "array"
+    },
+    "roots": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Roots"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "severity_overrides": {
+      "items": {
+        "$ref": "#/$defs/SeverityOverride"
+      },
+      "title": "Severity Overrides",
+      "type": "array"
+    },
+    "suppressions": {
+      "items": {
+        "$ref": "#/$defs/Suppression"
+      },
+      "title": "Suppressions",
+      "type": "array"
+    },
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "title": "runtime-contract.yaml version 1",
+  "type": "object"
+}

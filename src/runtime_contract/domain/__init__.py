@@ -17,12 +17,12 @@ from runtime_contract.domain.models import (
     ProviderMechanism,
     ProviderRole,
     RequirementSource,
-    RuleId,
     SafeIdentifier,
     SecretSource,
     Severity,
     SourceLocation,
 )
+from runtime_contract.rules import RuleId
 
 __all__ = [
     "ConfigKey",

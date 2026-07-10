@@ -14,8 +14,10 @@ from enum import StrEnum
 from pathlib import Path, PurePosixPath
 from typing import Any, NoReturn
 
-import yaml
 from pathspec import GitIgnoreSpec
+
+from runtime_contract.config.loader import ConfigValidationError, load_config
+from runtime_contract.config.models import RuntimeContractConfig
 
 
 class DiscoveryErrorCode(StrEnum):
@@ -177,12 +179,38 @@ _CODE_SUFFIXES = {
 _WINDOWS_ABSOLUTE = re.compile(r"^[A-Za-z]:[/\\]")
 
 
-def discover(root: str | os.PathLike[str]) -> DiscoveryResult:
+def discover(root: str | os.PathLike[str], *, environment: str | None = None) -> DiscoveryResult:
     """Discover supported files under *root* without reading candidate contents."""
 
     logical_root = Path(root)
     canonical_root, root_stat = _validate_root(logical_root)
-    config_item, config = _load_root_config(logical_root, canonical_root)
+    config_item, config, contract = _load_root_config(logical_root, canonical_root)
+    effective_roots = contract.effective_roots() if contract is not None else {"default": None}
+    if environment is not None:
+        if contract is None or environment not in contract.environments:
+            raise DiscoveryError(DiscoveryErrorCode.INVALID_CONFIG, "unknown environment")
+        selected_names = contract.environments[environment].roots
+    else:
+        selected_names = list(effective_roots)
+    if contract is not None and not (
+        len(effective_roots) == 1
+        and "default" in effective_roots
+        and effective_roots["default"] is not None
+        and effective_roots["default"].path == "."
+    ):
+        return _discover_named_roots(
+            logical_root, canonical_root, config_item, contract, selected_names
+        )
+    return _discover_scope(logical_root, canonical_root, root_stat, config_item, config)
+
+
+def _discover_scope(
+    logical_root: Path,
+    canonical_root: Path,
+    root_stat: os.stat_result,
+    config_item: DiscoveryItem | None,
+    config: _Config,
+) -> DiscoveryResult:
     include = _compile_filter_patterns(config.include, "include")
     exclude = _compile_filter_patterns(config.exclude, "exclude")
 
@@ -347,6 +375,64 @@ def discover(root: str | os.PathLike[str]) -> DiscoveryResult:
     )
 
 
+def _matches_filter(patterns: Sequence[str], path: str) -> bool:
+    spec = _compile_filter_patterns(patterns, "include")
+    return spec is None or bool(spec.match_file(path))
+
+
+def _discover_named_roots(
+    logical_root: Path,
+    canonical_root: Path,
+    config_item: DiscoveryItem | None,
+    contract: RuntimeContractConfig,
+    selected_names: Sequence[str],
+) -> DiscoveryResult:
+    candidates: dict[FileIdentity, DiscoveryItem] = {}
+    stats = [0, 0, 0, 0]
+    for name in selected_names:
+        target = contract.effective_roots()[name]
+        target_logical = logical_root / target.path
+        target_canonical, target_stat = _validate_root(target_logical)
+        prefix = "" if target.path == "." else target.path.rstrip("/") + "/"
+        scoped_global_include = [
+            pattern[len(prefix) :] for pattern in contract.include if pattern.startswith(prefix)
+        ]
+        scoped_global_exclude = [
+            pattern[len(prefix) :] for pattern in contract.exclude if pattern.startswith(prefix)
+        ]
+        combined = _Config(
+            tuple([*contract.include, *scoped_global_include, *target.include]),
+            tuple([*contract.exclude, *scoped_global_exclude, *target.exclude]),
+        )
+        result = _discover_scope(target_logical, target_canonical, target_stat, None, combined)
+        for item in result.candidates:
+            if not _matches_filter(contract.include, prefix + item.path):
+                continue
+            if not _matches_filter(target.include, item.path):
+                continue
+            public = DiscoveryItem(
+                prefix + item.path,
+                item.kind,
+                item.identity,
+                item._resolved_path,
+                item._logical_path,
+            )
+            previous = candidates.get(public.identity)
+            if previous is None or _sort_key(public.path) < _sort_key(previous.path):
+                candidates[public.identity] = public
+        stats[0] += result.stats.skipped_special_files
+        stats[1] += result.stats.skipped_broken_symlinks
+        stats[2] += result.stats.deduplicated_files
+        stats[3] += result.stats.deduplicated_directories
+    return DiscoveryResult(
+        logical_root,
+        canonical_root,
+        tuple(sorted(candidates.values(), key=lambda item: _sort_key(item.path))),
+        config_item,
+        DiscoveryStats(*stats),
+    )
+
+
 def _validate_root(logical_root: Path) -> tuple[Path, os.stat_result]:
     try:
         canonical = logical_root.resolve(strict=True)
@@ -364,12 +450,12 @@ def _validate_root(logical_root: Path) -> tuple[Path, os.stat_result]:
 
 def _load_root_config(
     logical_root: Path, canonical_root: Path
-) -> tuple[DiscoveryItem | None, _Config]:
+) -> tuple[DiscoveryItem | None, _Config, RuntimeContractConfig | None]:
     path = logical_root / "runtime-contract.yaml"
     try:
         path.lstat()
     except FileNotFoundError:
-        return None, _Config()
+        return None, _Config(), None
     except OSError as error:
         _raise(DiscoveryErrorCode.INACCESSIBLE_PATH, "cannot inspect runtime-contract.yaml", error)
     try:
@@ -383,50 +469,24 @@ def _load_root_config(
             "runtime-contract.yaml must resolve to a regular file inside the analysis root",
         )
     try:
-        loaded = yaml.safe_load(resolved.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, yaml.YAMLError) as error:
-        _raise(
-            DiscoveryErrorCode.INVALID_CONFIG,
-            "runtime-contract.yaml is not valid UTF-8 YAML",
-            error,
+        document = load_config(logical_root, require=True)
+        assert document is not None
+    except ConfigValidationError as error:
+        first = error.errors[0]
+        pattern_pointer = first.pointer in {"/include", "/exclude"} or first.pointer.startswith(
+            ("/include/", "/exclude/")
         )
-    if loaded is None:
-        loaded = {}
-    if not isinstance(loaded, dict):
-        raise DiscoveryError(DiscoveryErrorCode.INVALID_CONFIG, "configuration must be a mapping")
-    version = loaded.get("version")
-    if version != 1 or isinstance(version, bool):
-        raise DiscoveryError(
-            DiscoveryErrorCode.INVALID_CONFIG, "configuration version must equal 1"
+        code = (
+            DiscoveryErrorCode.INVALID_PATTERN
+            if pattern_pointer and "valid list" not in first.message
+            else DiscoveryErrorCode.INVALID_CONFIG
         )
-    allowed = {
-        "version",
-        "include",
-        "exclude",
-        "secret_patterns",
-        "rules",
-        "profiles",
-        "components",
-    }
-    unknown = set(loaded) - allowed
-    if unknown:
-        raise DiscoveryError(
-            DiscoveryErrorCode.INVALID_CONFIG, "configuration contains unknown fields"
-        )
-    include = _string_list(loaded.get("include", []), "include")
-    exclude = _string_list(loaded.get("exclude", []), "exclude")
+        raise DiscoveryError(code, first.message) from None
+    include = tuple(document.config.include)
+    exclude = tuple(document.config.exclude)
     identity = FileIdentity.from_stat(metadata)
     item = DiscoveryItem("runtime-contract.yaml", CandidateKind.CONFIG, identity, resolved, path)
-    return item, _Config(include, exclude)
-
-
-def _string_list(value: object, field_name: str) -> tuple[str, ...]:
-    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
-        raise DiscoveryError(
-            DiscoveryErrorCode.INVALID_CONFIG,
-            f"configuration {field_name} must be a list of strings",
-        )
-    return tuple(value)
+    return item, _Config(include, exclude), document.config
 
 
 def _compile_filter_patterns(patterns: Sequence[str], field_name: str) -> GitIgnoreSpec | None:

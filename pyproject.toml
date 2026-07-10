@@ -25,10 +25,12 @@ runtime-contract = "runtime_contract.cli:main"
 [dependency-groups]
 dev = [
     "diff-cover>=10.3,<11",
+    "jsonschema>=4.26,<5",
     "mypy>=2.2,<3",
     "pytest>=9.1.1,<10",
     "pytest-cov>=7.1,<8",
     "ruff>=0.15.21,<0.16",
+    "types-jsonschema>=4.26,<5",
     "types-pyyaml>=6.0.12.20250915,<7",
 ]
 
