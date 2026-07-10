@@ -1,0 +1,45 @@
+name: Feature request
+description: Propose a change within the approved runtime-contract scope
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the user problem first. Proposals must stay within the approved scope and pre-implementation status.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What concrete problem should this proposal solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Explain the smallest change that addresses the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope alignment
+      description: Explain how the proposal fits the approved v0.1.0 planning baseline.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe other approaches and why they are less suitable.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues for duplicates.
+          required: true
+        - label: This proposal does not claim that a package, installation, or release already exists.
+          required: true

@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible problem in runtime-contract
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem. Do not disclose vulnerabilities here; use the private process in SECURITY.md.
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem
+      description: Describe what happened and why it appears incorrect.
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Affected revision
+      description: Provide the commit SHA or branch name. No release exists yet.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest reproducible sequence without secrets or private data.
+      placeholder: |
+        1. Prepare...
+        2. Run...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Include relevant sanitized logs, file types, and operating system details.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Submission checks
+      options:
+        - label: I searched existing issues for duplicates.
+          required: true
+        - label: This report does not contain a vulnerability, secret, credential, or private data.
+          required: true
