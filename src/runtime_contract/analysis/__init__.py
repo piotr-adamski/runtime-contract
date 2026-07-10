@@ -14,6 +14,7 @@ from runtime_contract.analysis.models import (
     FactObservation,
 )
 from runtime_contract.analysis.protocols import Analyzer, AnalyzerInput, ClassificationResolver
+from runtime_contract.analysis.python_ast import PythonAstAnalyzer
 from runtime_contract.analysis.registry import (
     AnalyzerExecutionError,
     AnalyzerNotRegisteredError,
@@ -52,4 +53,5 @@ __all__ = [
     "InvalidAnalyzerCallableError",
     "InvalidAnalyzerIdError",
     "InvalidSupportedKindsError",
+    "PythonAstAnalyzer",
 ]
