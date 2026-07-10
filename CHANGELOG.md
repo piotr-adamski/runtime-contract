@@ -9,3 +9,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 
 - Established the public repository and its community, contribution, conduct, and security files.
+- Added the installable Python package and fail-closed CLI skeleton for `scan`, `check`, `explain`,
+  and `diff`.

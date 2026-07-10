@@ -1,0 +1,43 @@
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "runtime-contract"
+version = "0.1.0.dev0"
+description = "Static, local CLI for checking environment-variable delivery contracts."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Piotr Adamski" }]
+maintainers = [{ name = "Piotr Adamski" }]
+dependencies = [
+    "pydantic>=2.13.4,<3",
+    "typer>=0.26.8,<1",
+]
+
+[project.scripts]
+runtime-contract = "runtime_contract.cli:main"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.2,<3",
+    "pytest>=9.1.1,<10",
+    "ruff>=0.15.21,<0.16",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+
+[tool.pytest.ini_options]
+addopts = ["--strict-config", "--strict-markers"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM", "RUF"]

@@ -1,6 +1,7 @@
 # Contributing to runtime-contract
 
-Thank you for helping improve `runtime-contract`. The project is currently in a pre-implementation phase: its scope is approved, but there is no working package or release.
+Thank you for helping improve `runtime-contract`. The project currently provides an installable CLI
+skeleton, but analysis is not implemented and there is no release.
 
 ## Before contributing
 
@@ -14,7 +15,18 @@ Thank you for helping improve `runtime-contract`. The project is currently in a 
 
 Keep each pull request focused. Explain the problem, the proposed change, and how the change was verified. Do not include secrets, credentials, real `.env` files, private infrastructure details, or private filesystem paths.
 
-The repository does not yet define an implementation test suite. For documentation-only changes, verify links, formatting, and consistency with the approved scope. When implementation and tests are added in a later milestone, their documented verification commands will apply.
+Use Python 3.11 and run the repository's validation commands before opening a pull request:
+
+```text
+uv sync --dev
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy --strict src tests
+uv run pytest
+uv build
+```
+
+For documentation-only changes, also verify links and consistency with the approved scope.
 
 ## Licensing and DCO sign-off
 
