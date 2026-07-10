@@ -1,0 +1,207 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gates:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the tested commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990
+        with:
+          version: "0.11.28"
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
+          cache-python: false
+
+      - name: Report environment and resolve exact base
+        id: base
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          uv --version
+          uv python install 3.14
+          uv run --python 3.14 python --version
+          echo "Runner image: ${ImageOS:-unknown}"
+          echo "Runner image version: ${ImageVersion:-unknown}"
+          echo "Runner image release: ${ImageRelease:-unknown}"
+          case "$EVENT_NAME" in
+            pull_request)
+              base_sha=$PR_BASE_SHA
+              ;;
+            push)
+              base_sha=$PUSH_BEFORE_SHA
+              if [[ $base_sha =~ ^0+$ ]]; then
+                echo "Push event has no credible before SHA" >&2
+                exit 1
+              fi
+              ;;
+            workflow_dispatch)
+              base_sha=$(git rev-parse --verify HEAD^)
+              ;;
+            *)
+              echo "Unsupported event: $EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac
+          git cat-file -e "${base_sha}^{commit}"
+          echo "base_sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "Exact comparison range: ${base_sha}..HEAD"
+
+      - name: Run quality gates
+        if: github.actor != 'dependabot[bot]'
+        run: ./scripts/quality-gates.sh --base-ref "${{ steps.base.outputs.base_sha }}"
+
+      - name: Run quality gates for trusted Dependabot metadata
+        if: github.actor == 'dependabot[bot]'
+        run: ./scripts/quality-gates.sh --base-ref "${{ steps.base.outputs.base_sha }}" --allow-dependabot
+
+      - name: Confirm the lockfile stayed unchanged
+        run: git diff --exit-code -- uv.lock
+
+      - name: Upload the validated distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: runtime-contract-distributions
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 1
+
+  compatibility:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: quality-gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Check out the tested commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990
+        with:
+          version: "0.11.28"
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
+          cache-python: false
+
+      - name: Download the validated distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: runtime-contract-distributions
+          path: artifact
+
+      - name: Report environment
+        env:
+          PYTHON_VERSION: ${{ matrix.python }}
+        run: |
+          set -euo pipefail
+          uv --version
+          uv python install "$PYTHON_VERSION"
+          uv run --python "$PYTHON_VERSION" python --version
+          echo "Runner image: ${ImageOS:-unknown}"
+          echo "Runner image version: ${ImageVersion:-unknown}"
+          echo "Runner image release: ${ImageRelease:-unknown}"
+
+      - name: Verify SHA-256 manifest
+        working-directory: artifact
+        run: sha256sum --check SHA256SUMS
+
+      - name: Run the complete test suite without coverage
+        env:
+          PYTHON_VERSION: ${{ matrix.python }}
+        run: |
+          set -euo pipefail
+          uv sync --locked --all-groups --python "$PYTHON_VERSION"
+          uv run --python "$PYTHON_VERSION" pytest
+          git diff --exit-code -- uv.lock
+
+      - name: Smoke-test the wheel outside the checkout
+        env:
+          PYTHON_VERSION: ${{ matrix.python }}
+        run: |
+          set -euo pipefail
+          wheel=$(find "$GITHUB_WORKSPACE/artifact" -maxdepth 1 -type f -name '*.whl' -print)
+          test "$(printf '%s\n' "$wheel" | sed '/^$/d' | wc -l)" -eq 1
+          temp_dir=$(mktemp -d)
+          uv venv --python "$PYTHON_VERSION" "$temp_dir/venv"
+          uv pip install --python "$temp_dir/venv/bin/python" "$wheel"
+          cd "$temp_dir"
+          PYTHONPATH= "$temp_dir/venv/bin/python" -c 'import importlib.metadata; import runtime_contract; assert importlib.metadata.version("runtime-contract") == "0.1.0.dev0"'
+          PYTHONPATH= "$temp_dir/venv/bin/python" -m runtime_contract --version
+          PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" --help >/dev/null
+          for command in scan check explain diff; do
+            PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" "$command" --help >/dev/null
+          done
+
+      - name: Smoke-test the sdist on Python 3.14
+        if: matrix.python == '3.14'
+        run: |
+          set -euo pipefail
+          sdist=$(find "$GITHUB_WORKSPACE/artifact" -maxdepth 1 -type f -name '*.tar.gz' -print)
+          test "$(printf '%s\n' "$sdist" | sed '/^$/d' | wc -l)" -eq 1
+          temp_dir=$(mktemp -d)
+          uv venv --python 3.14 "$temp_dir/venv"
+          uv pip install --python "$temp_dir/venv/bin/python" "$sdist"
+          cd "$temp_dir"
+          PYTHONPATH= "$temp_dir/venv/bin/python" -c 'import importlib.metadata; import runtime_contract; assert importlib.metadata.version("runtime-contract") == "0.1.0.dev0"'
+          PYTHONPATH= "$temp_dir/venv/bin/python" -m runtime_contract --version
+          PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" --help >/dev/null
+          for command in scan check explain diff; do
+            PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" "$command" --help >/dev/null
+          done
+
+  quality:
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    needs: [quality-gates, compatibility]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every preceding job to succeed
+        env:
+          QUALITY_GATES_RESULT: ${{ needs.quality-gates.result }}
+          COMPATIBILITY_RESULT: ${{ needs.compatibility.result }}
+        run: |
+          set -euo pipefail
+          test "$QUALITY_GATES_RESULT" = success
+          test "$COMPATIBILITY_RESULT" = success
+          echo "All required CI jobs succeeded."

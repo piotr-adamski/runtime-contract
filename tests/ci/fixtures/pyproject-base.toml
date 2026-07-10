@@ -1,0 +1,29 @@
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "runtime-contract"
+requires-python = ">=3.11"
+dependencies = ["typer>=0.26.8,<1"]
+
+[project.scripts]
+runtime-contract = "runtime_contract.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=9.1.1,<10"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "F"]
+
+[tool.mypy]
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true

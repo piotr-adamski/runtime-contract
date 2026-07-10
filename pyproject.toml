@@ -22,10 +22,19 @@ runtime-contract = "runtime_contract.cli:main"
 
 [dependency-groups]
 dev = [
+    "diff-cover>=10.3,<11",
     "mypy>=2.2,<3",
     "pytest>=9.1.1,<10",
+    "pytest-cov>=7.1,<8",
     "ruff>=0.15.21,<0.16",
 ]
+
+[tool.coverage.run]
+branch = true
+source = ["runtime_contract"]
+
+[tool.coverage.xml]
+output = "coverage.xml"
 
 [tool.mypy]
 python_version = "3.11"
@@ -33,6 +42,7 @@ strict = true
 
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
+pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.ruff]

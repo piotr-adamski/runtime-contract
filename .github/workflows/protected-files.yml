@@ -1,0 +1,35 @@
+name: Policy
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  protected-files:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out only the trusted base commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Evaluate PR metadata and text without executing PR code
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+          TRUSTED_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/protected_files.py \
+            --repository "$REPOSITORY" \
+            --pull-request "$PULL_REQUEST_NUMBER" \
+            --base-ref "$TRUSTED_BASE_REF"

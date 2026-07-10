@@ -13,20 +13,45 @@ skeleton, but analysis is not implemented and there is no release.
 
 ## Pull requests
 
-Keep each pull request focused. Explain the problem, the proposed change, and how the change was verified. Do not include secrets, credentials, real `.env` files, private infrastructure details, or private filesystem paths.
+Fork the repository, create a focused branch, and open a pull request against `main`. Explain the
+problem, the proposed change, and how the change was verified. Do not include secrets, credentials,
+real `.env` files, private infrastructure details, or private filesystem paths.
 
-Use Python 3.11 and run the repository's validation commands before opening a pull request:
+Use Python 3.11 or newer and `uv >=0.11.28,<0.12`. Install all locked development dependencies with:
 
 ```text
-uv sync --dev
-uv run ruff format --check .
-uv run ruff check .
-uv run mypy --strict src tests
-uv run pytest
-uv build
+uv sync --locked --all-groups
 ```
 
-For documentation-only changes, also verify links and consistency with the approved scope.
+When dependencies change, update and commit `uv.lock`, then verify it with `uv lock --check`.
+
+Run the normal local gates before pushing:
+
+```text
+./scripts/quality-gates.sh
+```
+
+Run compatibility checks on Python 3.11 through 3.14 before requesting review:
+
+```text
+./scripts/quality-gates.sh --full
+```
+
+The default comparison base is the merge base of `HEAD` and `origin/main`. Use
+`--base-ref <ref>` when a different explicit base is required. Product coverage must retain at
+least 90% branch coverage globally, and executable product lines changed in `BASE..HEAD` must have
+100% coverage. A pull request with no changed executable product lines still has to pass the global
+threshold.
+
+Every workflow run from an external fork requires manual maintainer approval. External contributors
+cannot change `.github/workflows/**`, `.github/actions/**`, `scripts/ci/**`, or
+`scripts/quality-gates.sh`. Protected build, development-tool, test, lint, typing, and coverage
+sections in `pyproject.toml` are also owner-only. Product dependencies and the corresponding
+`uv.lock` update remain open to contributors.
+
+If CI fails, reproduce the named stage locally, fix the root cause, rerun the complete local gates,
+and push a corrected commit. Do not skip or weaken a gate. For documentation-only changes, also
+verify links and consistency with the approved scope.
 
 ## Licensing and DCO sign-off
 
@@ -45,3 +70,6 @@ Signed-off-by: Your Name <your.email@example.com>
 ```
 
 If a commit is missing the trailer, amend that commit locally and update the pull request branch without altering commits that belong to other contributors.
+
+Each `Co-authored-by` trailer must have a matching `Signed-off-by` trailer using exactly the same
+name and email address. Do not add a sign-off on behalf of another contributor.

@@ -1,5 +1,7 @@
 # runtime-contract
 
+[![CI](https://github.com/piotr-adamski/runtime-contract/actions/workflows/ci.yml/badge.svg)](https://github.com/piotr-adamski/runtime-contract/actions/workflows/ci.yml)
+
 Static, local CLI for finding inconsistencies between environment variables used in application code and how they are documented and supplied at build and runtime.
 
 > **Status:** An installable package and CLI skeleton exist. Analysis is not implemented yet.
@@ -24,15 +26,11 @@ currently no release or PyPI publication.
 
 ## Development
 
-Use Python 3.11 and [uv](https://docs.astral.sh/uv/):
+Use Python 3.11 or newer and `uv >=0.11.28,<0.12`:
 
 ```text
-uv sync --dev
-uv run ruff format --check .
-uv run ruff check .
-uv run mypy --strict src tests
-uv run pytest
-uv build
+uv sync --locked --all-groups
+./scripts/quality-gates.sh
 ```
 
 ## Project information
