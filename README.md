@@ -32,6 +32,10 @@ runtime-contract config validate .
 runtime-contract config validate . --format json
 ```
 
+The public, parser-independent analyzer extension contract is documented in
+[`docs/analyzer-api.md`](docs/analyzer-api.md). D1.08 defines the API and schema only; production
+analyzers and CLI integration are intentionally not implemented.
+
 ## Development
 
 Use Python 3.11 or newer and `uv >=0.11.28,<0.12`:

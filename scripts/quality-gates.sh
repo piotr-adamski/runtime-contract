@@ -112,6 +112,7 @@ uv run --python 3.14 mypy --strict src tests
 
 stage "Configuration schema and examples"
 uv run --python 3.14 python scripts/generate_config_schema.py --check
+uv run --python 3.14 python scripts/generate_analysis_schema.py --check
 uv run --python 3.14 runtime-contract config validate examples/minimal
 uv run --python 3.14 runtime-contract config validate examples/full --format json >/dev/null
 
@@ -160,6 +161,8 @@ smoke_distribution() {
     done
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'from runtime_contract.config.schema import schema_bytes; assert schema_bytes()'
+    PYTHONPATH= "$temp_dir/venv/bin/python" -c \
+      'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver'
   )
   rm -rf "$temp_dir"
   echo "$label smoke test: PASS on Python $python_version"
