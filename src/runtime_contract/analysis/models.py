@@ -100,6 +100,15 @@ class FactObservation(AnalysisModel):
 
 DiagnosticParameter = tuple[str, str]
 
+DIAGNOSTIC_SEVERITY: dict[DiagnosticCode, Severity] = {
+    DiagnosticCode.INVALID_ENCODING: Severity.ERROR,
+    DiagnosticCode.SYNTAX_ERROR: Severity.ERROR,
+    DiagnosticCode.DYNAMIC_NAME: Severity.WARNING,
+    DiagnosticCode.UNSUPPORTED_CONSTRUCT: Severity.WARNING,
+    DiagnosticCode.PARTIAL_ANALYSIS: Severity.WARNING,
+    DiagnosticCode.ANALYZER_NOT_REGISTERED: Severity.ERROR,
+}
+
 
 class AnalysisDiagnostic(AnalysisModel):
     id: str = ""
@@ -111,6 +120,10 @@ class AnalysisDiagnostic(AnalysisModel):
 
     @model_validator(mode="after")
     def canonicalize_and_identify(self) -> Self:
+        if self.severity is not DIAGNOSTIC_SEVERITY[self.code]:
+            raise ValueError(
+                f"{self.code.value} diagnostics require {DIAGNOSTIC_SEVERITY[self.code].value} severity"
+            )
         related = tuple(sorted(self.related_locations, key=_location_key))
         if len(set(related)) != len(related):
             raise ValueError("related_locations must be unique")
