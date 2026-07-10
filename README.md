@@ -4,7 +4,7 @@
 
 Status: **scope approved, implementation pending**.
 
-`docs/SCOPE.md` jest cienkim entrypointem D-001 do tego pliku. Kanoniczna, pełna specyfikacja istnieje wyłącznie pod ścieżką `/home/piotr/REPO/0assist/Brillnet_C-Team/docs/specs/runtime-contract/runtime-contract-v0.1.0-scope.md`.
+`docs/SCOPE.md` jest cienkim entrypointem D-001 do kanonicznej specyfikacji, która istnieje wyłącznie pod ścieżką `/home/piotr/REPO/0assist/Brillnet_C-Team/docs/specs/runtime-contract/runtime-contract-v0.1.0-scope.md`.
 
 Repozytorium nie zawiera jeszcze implementacji, pakietu ani artefaktów wydania.
 
