@@ -93,11 +93,23 @@ def test_fact_kind_must_match_concrete_model(wrong_kind: FactKind) -> None:
         FactObservation(fact_kind=wrong_kind, confidence=Confidence.EXACT, fact=facts()[0])
 
 
-@pytest.mark.parametrize("code", list(DiagnosticCode))
-def test_each_diagnostic_code_has_stable_id(code: DiagnosticCode) -> None:
+@pytest.mark.parametrize(
+    ("code", "severity"),
+    [
+        (DiagnosticCode.INVALID_ENCODING, Severity.ERROR),
+        (DiagnosticCode.SYNTAX_ERROR, Severity.ERROR),
+        (DiagnosticCode.DYNAMIC_NAME, Severity.WARNING),
+        (DiagnosticCode.UNSUPPORTED_CONSTRUCT, Severity.WARNING),
+        (DiagnosticCode.PARTIAL_ANALYSIS, Severity.WARNING),
+        (DiagnosticCode.ANALYZER_NOT_REGISTERED, Severity.ERROR),
+    ],
+)
+def test_each_diagnostic_code_has_constant_severity_and_stable_id(
+    code: DiagnosticCode, severity: Severity
+) -> None:
     location = SourceLocation(path="app.py", start_line=1)
-    first = AnalysisDiagnostic(code=code, severity=Severity.WARNING, primary_location=location)
-    second = AnalysisDiagnostic(code=code, severity=Severity.ERROR, primary_location=location)
+    first = AnalysisDiagnostic(code=code, severity=severity, primary_location=location)
+    second = AnalysisDiagnostic(code=code, severity=severity, primary_location=location)
     assert first.id == second.id
     assert first.model_dump().keys() == {
         "id",
@@ -107,6 +119,9 @@ def test_each_diagnostic_code_has_stable_id(code: DiagnosticCode) -> None:
         "related_locations",
         "parameters",
     }
+    wrong = Severity.WARNING if severity is Severity.ERROR else Severity.ERROR
+    with pytest.raises(ValidationError, match="require"):
+        AnalysisDiagnostic(code=code, severity=wrong, primary_location=location)
 
 
 def test_diagnostic_canonicalizes_structural_fields() -> None:
@@ -146,6 +161,25 @@ def test_diagnostic_rejects_duplicate_related_locations_parameters_and_wrong_id(
         )
 
 
+def test_diagnostic_identity_changes_with_code_or_primary_location() -> None:
+    base = AnalysisDiagnostic(
+        code=DiagnosticCode.SYNTAX_ERROR,
+        severity=Severity.ERROR,
+        primary_location=SourceLocation(path="a.py", start_line=1),
+    )
+    other_code = AnalysisDiagnostic(
+        code=DiagnosticCode.INVALID_ENCODING,
+        severity=Severity.ERROR,
+        primary_location=base.primary_location,
+    )
+    other_location = AnalysisDiagnostic(
+        code=DiagnosticCode.SYNTAX_ERROR,
+        severity=Severity.ERROR,
+        primary_location=SourceLocation(path="a.py", start_line=2),
+    )
+    assert len({base.id, other_code.id, other_location.id}) == 3
+
+
 @pytest.mark.parametrize(
     ("completeness", "code", "valid"),
     [
@@ -164,7 +198,18 @@ def test_completeness_invariants(
         if code is None
         else (
             AnalysisDiagnostic(
-                code=code, severity=Severity.ERROR, primary_location=SourceLocation(path="a.py")
+                code=code,
+                severity=(
+                    Severity.ERROR
+                    if code
+                    in {
+                        DiagnosticCode.INVALID_ENCODING,
+                        DiagnosticCode.SYNTAX_ERROR,
+                        DiagnosticCode.ANALYZER_NOT_REGISTERED,
+                    }
+                    else Severity.WARNING
+                ),
+                primary_location=SourceLocation(path="a.py"),
             ),
         )
     )
@@ -355,6 +400,54 @@ def test_fixture_never_emits_fallback_content_or_source_snippet(
 
 def test_repeated_execution_is_byte_identical(analyzer_input: AnalyzerInput) -> None:
     assert_analyzer_contract(FixtureAnalyzer(), analyzer_input)
+
+
+def test_fixture_has_a_controlled_inferred_observation(analyzer_input: AnalyzerInput) -> None:
+    changed = analyzer_input.__class__(
+        analyzer_input.path,
+        analyzer_input.kind,
+        b"inferred",
+        analyzer_input.component,
+        analyzer_input.root,
+        analyzer_input.profile,
+        analyzer_input.resolver,
+    )
+    result = FixtureAnalyzer().analyze(changed)
+    assert result.observations
+    assert {item.confidence for item in result.observations} == {Confidence.INFERRED}
+
+
+def test_analyzer_protocol_is_not_runtime_checkable() -> None:
+    from runtime_contract.analysis import Analyzer
+
+    assert not getattr(Analyzer, "_is_runtime_protocol", False)
+    with pytest.raises(TypeError):
+        isinstance(FixtureAnalyzer(), Analyzer)  # type: ignore[misc]
+
+
+def test_config_override_wins_and_maps_to_consumer_requirement_source(
+    analyzer_input: AnalyzerInput,
+) -> None:
+    resolver = StaticResolver(
+        EffectiveClassification(
+            required=False,
+            required_source=DecisionSource.CONFIG_OVERRIDE,
+        )
+    )
+    changed = analyzer_input.__class__(
+        analyzer_input.path,
+        analyzer_input.kind,
+        b"required",
+        analyzer_input.component,
+        analyzer_input.root,
+        analyzer_input.profile,
+        resolver,
+    )
+    result = FixtureAnalyzer().analyze(changed)
+    consumers = [item.fact for item in result.observations if item.fact_kind is FactKind.CONSUMER]
+    assert len(consumers) == 1 and isinstance(consumers[0], Consumer)
+    assert consumers[0].required is False
+    assert consumers[0].requirement_source is RequirementSource.CONFIG_OVERRIDE
 
 
 @pytest.mark.parametrize("fixture", ["minimal.json", "full.json"])
