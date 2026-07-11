@@ -207,7 +207,7 @@ smoke_distribution() {
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'from runtime_contract.config.schema import schema_bytes; assert schema_bytes()'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
-      'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError, DotenvAnalyzer; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver and DotenvAnalyzer'
+      'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError, DotenvAnalyzer, DockerfileAnalyzer; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver and DotenvAnalyzer and DockerfileAnalyzer'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'from runtime_contract.normalization import NormalizationError, NormalizationErrorCode, normalize_observations; assert normalize_observations(()).model_dump_json() and NormalizationError and NormalizationErrorCode'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \

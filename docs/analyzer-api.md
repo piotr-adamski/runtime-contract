@@ -35,10 +35,14 @@ result = registry.analyze(analyzer_input)
 JSON Schema is available from `runtime_contract.analysis.schema.schema_bytes()` and as
 `schemas/runtime-contract-analysis-result-v1.schema.json`.
 
-`PythonAstAnalyzer`, `JavaScriptTypeScriptAnalyzer`, and `DotenvAnalyzer` are the built-in
+`PythonAstAnalyzer`, `JavaScriptTypeScriptAnalyzer`, `DotenvAnalyzer`, and `DockerfileAnalyzer` are
+the built-in
 implementations registered by `scan`. `DotenvAnalyzer` accepts only the `ENV_EXAMPLE` candidate
 kind produced for the exact `.env.example` filename. It inventories declaration facts without
 retaining values, expanding interpolation, evaluating command substitution, or performing I/O.
-Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry` seam without changing
+`DockerfileAnalyzer` statically inventories explicit `ARG` build delivery and `ENV` runtime
+delivery across multi-stage Dockerfiles. It tracks local-stage inheritance privately, recognizes
+line continuations and parser escape directives, and never retains values or executes Dockerfile
+content. Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry` seam without changing
 `FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin discovery and deployment-file
-analyzers remain outside v0.1.0's implemented day-one slice.
+Compose and Kubernetes analyzers remain outside v0.1.0's implemented slice.
