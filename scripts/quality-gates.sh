@@ -114,6 +114,8 @@ stage "Configuration schema and examples"
 uv run --python 3.14 python scripts/generate_config_schema.py --check
 uv run --python 3.14 python scripts/generate_analysis_schema.py --check
 uv run --python 3.14 python scripts/generate_scan_schema.py --check
+uv run --python 3.14 python -c \
+  'from runtime_contract.scan.schema import generate_schema_bytes; assert generate_schema_bytes() == generate_schema_bytes()'
 uv run --python 3.14 runtime-contract config validate examples/minimal
 uv run --python 3.14 runtime-contract config validate examples/full --format json >/dev/null
 for scan_format in text json sarif; do
@@ -128,9 +130,17 @@ scan_tmp=$(mktemp -d)
 uv run --python 3.14 runtime-contract scan examples/scan-flow --root api --format json \
   >"$scan_tmp/api.json"
 uv run --python 3.14 python -m json.tool "$scan_tmp/api.json" >/dev/null
+uv run --python 3.14 python -c \
+  'import json,sys; from jsonschema import Draft202012Validator; schema=json.load(open("schemas/runtime-contract-scan-result-v1.schema.json", encoding="utf-8")); Draft202012Validator(schema).validate(json.load(open(sys.argv[1], encoding="utf-8")))' \
+  "$scan_tmp/api.json"
 uv run --python 3.14 runtime-contract scan examples/scan-flow --format json \
   --output "$scan_tmp/scan.json"
 uv run --python 3.14 python -m json.tool "$scan_tmp/scan.json" >/dev/null
+cmp "$scan_tmp/scan.json" <(uv run --python 3.14 runtime-contract scan examples/scan-flow --format json)
+uv run --python 3.14 runtime-contract scan examples/report-fixture --format json \
+  >"$scan_tmp/golden.json"
+cmp "$scan_tmp/golden.json" examples/reports/runtime-contract-v1.json
+cmp "$scan_tmp/golden.json" <(uv run --python 3.14 runtime-contract scan examples/report-fixture --format json)
 mkdir "$scan_tmp/invalid"
 printf '\377' >"$scan_tmp/invalid/app.py"
 set +e
@@ -143,6 +153,9 @@ if [[ $scan_failed_status != 2 ]]; then
   exit 1
 fi
 uv run --python 3.14 python -m json.tool "$scan_tmp/failed.json" >/dev/null
+uv run --python 3.14 python -c \
+  'import json,sys; from jsonschema import Draft202012Validator; schema=json.load(open("schemas/runtime-contract-scan-result-v1.schema.json", encoding="utf-8")); Draft202012Validator(schema).validate(json.load(open(sys.argv[1], encoding="utf-8")))' \
+  "$scan_tmp/failed.json"
 rm -rf "$scan_tmp"
 
 stage "Tests and product coverage"

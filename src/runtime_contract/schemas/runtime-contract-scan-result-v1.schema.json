@@ -274,6 +274,95 @@
       "title": "EvidenceKind",
       "type": "string"
     },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "title": "Component",
+          "type": "string"
+        },
+        "config_key_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Key Id"
+        },
+        "environment_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment Id"
+        },
+        "evidence_locations": {
+          "items": {
+            "$ref": "#/$defs/SourceLocation"
+          },
+          "title": "Evidence Locations",
+          "type": "array"
+        },
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "parameters": {
+          "default": [],
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:/@+-]+$",
+                "type": "string"
+              },
+              {
+                "minLength": 1,
+                "pattern": "^[A-Za-z0-9_.:/@+-]+$",
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "phase": {
+          "$ref": "#/$defs/Phase"
+        },
+        "primary_location": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "rule_id": {
+          "$ref": "#/$defs/RuleId"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        }
+      },
+      "required": [
+        "rule_id",
+        "severity",
+        "component",
+        "phase",
+        "primary_location",
+        "evidence_locations"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
     "Phase": {
       "enum": [
         "build",
@@ -378,6 +467,107 @@
       "title": "ProviderRole",
       "type": "string"
     },
+    "ReportInputs": {
+      "additionalProperties": false,
+      "properties": {
+        "config": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Config"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Environment"
+        },
+        "exclude": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Exclude",
+          "type": "array"
+        },
+        "fail_on": {
+          "title": "Fail On",
+          "type": "string"
+        },
+        "include": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Include",
+          "type": "array"
+        },
+        "root": {
+          "const": ".",
+          "default": ".",
+          "title": "Root",
+          "type": "string"
+        },
+        "selected_roots": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Selected Roots",
+          "type": "array"
+        }
+      },
+      "required": [
+        "config",
+        "environment",
+        "selected_roots",
+        "include",
+        "exclude",
+        "fail_on"
+      ],
+      "title": "ReportInputs",
+      "type": "object"
+    },
+    "ReportMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "scan",
+          "default": "scan",
+          "title": "Command",
+          "type": "string"
+        },
+        "tool": {
+          "const": "runtime-contract",
+          "default": "runtime-contract",
+          "title": "Tool",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tool Version"
+        }
+      },
+      "required": [
+        "tool_version"
+      ],
+      "title": "ReportMetadata",
+      "type": "object"
+    },
     "RequirementSource": {
       "enum": [
         "detected_default",
@@ -385,6 +575,25 @@
         "config_override"
       ],
       "title": "RequirementSource",
+      "type": "string"
+    },
+    "RuleId": {
+      "description": "Identifiers shared by findings, configuration, and JSON Schema.",
+      "enum": [
+        "RTC001",
+        "RTC002",
+        "RTC003",
+        "RTC004",
+        "RTC005",
+        "RTC006",
+        "RTC007",
+        "RTC008",
+        "RTC009",
+        "RTC010",
+        "RTC011",
+        "RTC012"
+      ],
+      "title": "RuleId",
       "type": "string"
     },
     "ScanFile": {
@@ -595,12 +804,10 @@
       "type": "object"
     }
   },
+  "$id": "https://raw.githubusercontent.com/piotr-adamski/runtime-contract/main/schemas/runtime-contract-scan-result-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
-    "config": {
-      "title": "Config",
-      "type": "string"
-    },
     "contract": {
       "$ref": "#/$defs/Contract"
     },
@@ -612,39 +819,6 @@
       "title": "Diagnostics",
       "type": "array"
     },
-    "effective_exclude": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "title": "Effective Exclude",
-      "type": "array"
-    },
-    "effective_include": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "title": "Effective Include",
-      "type": "array"
-    },
-    "environment": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Environment"
-    },
-    "fail_on": {
-      "default": "error",
-      "title": "Fail On",
-      "type": "string"
-    },
     "files": {
       "default": [],
       "items": {
@@ -655,16 +829,17 @@
     },
     "findings": {
       "default": [],
-      "maxItems": 0,
-      "minItems": 0,
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
       "title": "Findings",
       "type": "array"
     },
-    "root": {
-      "const": ".",
-      "default": ".",
-      "title": "Root",
-      "type": "string"
+    "inputs": {
+      "$ref": "#/$defs/ReportInputs"
+    },
+    "metadata": {
+      "$ref": "#/$defs/ReportMetadata"
     },
     "schema_id": {
       "const": "runtime-contract/v1",
@@ -672,12 +847,11 @@
       "title": "Schema Id",
       "type": "string"
     },
-    "selected_roots": {
-      "items": {
-        "type": "string"
-      },
-      "title": "Selected Roots",
-      "type": "array"
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
     },
     "status": {
       "$ref": "#/$defs/ScanStatus"
@@ -687,9 +861,9 @@
     }
   },
   "required": [
+    "metadata",
+    "inputs",
     "status",
-    "config",
-    "selected_roots",
     "summary",
     "contract"
   ],

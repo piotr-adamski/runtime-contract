@@ -17,6 +17,7 @@ def render_json(result: ScanResult) -> str:
             ensure_ascii=False,
             sort_keys=True,
             separators=(",", ":"),
+            allow_nan=False,
         )
         + "\n"
     )
@@ -30,9 +31,9 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
         "runtime-contract scan",
         "",
         "Root: .",
-        f"Config: {result.config}",
-        f"Environment: {result.environment or '-'}",
-        f"Selected roots: {', '.join(result.selected_roots)}",
+        f"Config: {result.inputs.config or '-'}",
+        f"Environment: {result.inputs.environment or '-'}",
+        f"Selected roots: {', '.join(result.inputs.selected_roots)}",
         "",
         "Summary",
         f"  Candidates: {summary.candidates}",
@@ -79,10 +80,10 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
             [
                 "",
                 "Effective scope",
-                f"  Named roots: {', '.join(result.selected_roots)}",
-                f"  Include: {', '.join(result.effective_include) or '-'}",
-                f"  Exclude: {', '.join(result.effective_exclude) or '-'}",
-                f"  Fail on: {result.fail_on}",
+                f"  Named roots: {', '.join(result.inputs.selected_roots)}",
+                f"  Include: {', '.join(result.inputs.include) or '-'}",
+                f"  Exclude: {', '.join(result.inputs.exclude) or '-'}",
+                f"  Fail on: {result.inputs.fail_on}",
                 "  Candidate kinds: "
                 + (
                     ", ".join(
@@ -162,7 +163,7 @@ def render_sarif(result: ScanResult) -> str:
                     "schema_id": result.schema_id,
                     "status": result.status.value,
                     "summary": result.summary.model_dump(mode="json"),
-                    "selected_roots": list(result.selected_roots),
+                    "selected_roots": list(result.inputs.selected_roots),
                 },
             }
         ],
