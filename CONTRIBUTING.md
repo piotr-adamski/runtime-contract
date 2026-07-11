@@ -1,7 +1,8 @@
 # Contributing to runtime-contract
 
 Thank you for helping improve `runtime-contract`. The project currently provides an installable CLI
-skeleton, but analysis is not implemented and there is no release.
+skeleton and analyzer library APIs, but CLI analysis integration is not implemented and there is no
+release.
 
 ## Before contributing
 
