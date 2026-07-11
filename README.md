@@ -4,8 +4,9 @@
 
 Static, local CLI for finding inconsistencies between environment variables used in application code and how they are documented and supplied at build and runtime.
 
-> **Status:** An installable package and CLI skeleton exist. The Python AST analyzer is available
-> as a library API; the read-only analysis commands are not wired to analyzers yet.
+> **Status:** An installable package and CLI skeleton exist. Production Python and
+> JavaScript/TypeScript analyzers are available as library APIs; the read-only analysis commands
+> are not wired to analyzers yet.
 
 An independent open-source project maintained by Piotr Adamski.
 
@@ -40,11 +41,21 @@ static Python source analysis. It recognizes literal keys used through `os.geten
 aliases. Source is decoded according to Python coding-cookie rules and parsed with the standard
 library AST; analyzed project code is never imported or executed.
 
+`JavaScriptTypeScriptAnalyzer` uses the Python Tree-sitter bindings and distributed JavaScript,
+TypeScript, and TSX grammars for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`, and `.tsx`.
+It recognizes direct `process.env.NAME` and literal `process.env["NAME"]` reads, including optional
+chaining, TypeScript assertions/wrappers, and direct object destructuring from `process.env`.
+Lexically shadowed `process` bindings are excluded. Parser recovery preserves unambiguous reads and
+reports a partial result for damaged syntax; dynamic computed names, computed destructuring keys,
+and rest destructuring also produce partial diagnostics instead of guessed keys.
+
 Dynamic environment-variable names are not guessed and produce a partial analysis diagnostic.
 The analyzer intentionally does not follow aliases created by assignment, resolve key names from
 variables, propagate values between modules, handle mapping mutation methods such as `setdefault`
-or `update`, or detect Pydantic settings. JavaScript, deployment-file analyzers, multi-file
-aggregation, findings, and CLI integration remain future work.
+or `update`, or detect Pydantic settings. The JavaScript/TypeScript analyzer likewise does not
+follow aliases or constants and does not inspect `import.meta.env`, Deno, Bun, dotenv, bundlers, or
+framework-specific APIs. Neither analyzer imports or executes analyzed project code. Deployment-file
+analyzers, multi-file aggregation, findings, and CLI integration remain future work.
 
 ## Development
 

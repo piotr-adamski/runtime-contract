@@ -174,6 +174,8 @@ _CODE_SUFFIXES = {
     ".mjs": CandidateKind.JAVASCRIPT,
     ".cjs": CandidateKind.JAVASCRIPT,
     ".ts": CandidateKind.JAVASCRIPT,
+    ".mts": CandidateKind.JAVASCRIPT,
+    ".cts": CandidateKind.JAVASCRIPT,
     ".tsx": CandidateKind.JAVASCRIPT,
 }
 _WINDOWS_ABSOLUTE = re.compile(r"^[A-Za-z]:[/\\]")

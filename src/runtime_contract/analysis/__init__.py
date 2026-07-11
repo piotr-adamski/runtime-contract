@@ -1,5 +1,6 @@
 """Public, language-independent analyzer extension contract."""
 
+from runtime_contract.analysis.javascript_typescript import JavaScriptTypeScriptAnalyzer
 from runtime_contract.analysis.models import (
     AnalysisCompleteness,
     AnalysisDiagnostic,
@@ -53,5 +54,6 @@ __all__ = [
     "InvalidAnalyzerCallableError",
     "InvalidAnalyzerIdError",
     "InvalidSupportedKindsError",
+    "JavaScriptTypeScriptAnalyzer",
     "PythonAstAnalyzer",
 ]

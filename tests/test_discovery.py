@@ -87,6 +87,8 @@ def test_root_can_be_directory_symlink(tmp_path: Path) -> None:
         ("a.mjs", CandidateKind.JAVASCRIPT),
         ("a.cjs", CandidateKind.JAVASCRIPT),
         ("a.ts", CandidateKind.JAVASCRIPT),
+        ("a.mts", CandidateKind.JAVASCRIPT),
+        ("a.cts", CandidateKind.JAVASCRIPT),
         ("a.tsx", CandidateKind.JAVASCRIPT),
         ("Dockerfile", CandidateKind.DOCKERFILE),
         ("Dockerfile.prod", CandidateKind.DOCKERFILE),
