@@ -1,14 +1,5 @@
 {
   "$defs": {
-    "AnalysisCompleteness": {
-      "enum": [
-        "complete",
-        "partial",
-        "failed"
-      ],
-      "title": "AnalysisCompleteness",
-      "type": "string"
-    },
     "AnalysisDiagnostic": {
       "additionalProperties": false,
       "properties": {
@@ -60,14 +51,6 @@
       ],
       "title": "AnalysisDiagnostic",
       "type": "object"
-    },
-    "Confidence": {
-      "enum": [
-        "exact",
-        "inferred"
-      ],
-      "title": "Confidence",
-      "type": "string"
     },
     "ConfigKey": {
       "additionalProperties": false,
@@ -180,6 +163,51 @@
       "title": "ConsumerAccessKind",
       "type": "string"
     },
+    "Contract": {
+      "additionalProperties": false,
+      "properties": {
+        "config_keys": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConfigKey"
+          },
+          "title": "Config Keys",
+          "type": "array"
+        },
+        "consumers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Consumer"
+          },
+          "title": "Consumers",
+          "type": "array"
+        },
+        "environments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Environment"
+          },
+          "title": "Environments",
+          "type": "array"
+        },
+        "providers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Provider"
+          },
+          "title": "Providers",
+          "type": "array"
+        },
+        "schema_id": {
+          "const": "runtime-contract/contract/v1",
+          "default": "runtime-contract/contract/v1",
+          "title": "Schema Id",
+          "type": "string"
+        }
+      },
+      "title": "Contract",
+      "type": "object"
+    },
     "DiagnosticCode": {
       "enum": [
         "invalid_encoding",
@@ -245,51 +273,6 @@
       ],
       "title": "EvidenceKind",
       "type": "string"
-    },
-    "FactKind": {
-      "enum": [
-        "config_key",
-        "environment",
-        "consumer",
-        "provider"
-      ],
-      "title": "FactKind",
-      "type": "string"
-    },
-    "FactObservation": {
-      "additionalProperties": false,
-      "properties": {
-        "confidence": {
-          "$ref": "#/$defs/Confidence"
-        },
-        "fact": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ConfigKey"
-            },
-            {
-              "$ref": "#/$defs/Environment"
-            },
-            {
-              "$ref": "#/$defs/Consumer"
-            },
-            {
-              "$ref": "#/$defs/Provider"
-            }
-          ],
-          "title": "Fact"
-        },
-        "fact_kind": {
-          "$ref": "#/$defs/FactKind"
-        }
-      },
-      "required": [
-        "fact_kind",
-        "confidence",
-        "fact"
-      ],
-      "title": "FactObservation",
-      "type": "object"
     },
     "Phase": {
       "enum": [
@@ -404,6 +387,133 @@
       "title": "RequirementSource",
       "type": "string"
     },
+    "ScanFile": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "failed",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "status"
+      ],
+      "title": "ScanFile",
+      "type": "object"
+    },
+    "ScanStatus": {
+      "enum": [
+        "complete",
+        "partial",
+        "failed"
+      ],
+      "title": "ScanStatus",
+      "type": "string"
+    },
+    "ScanSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "analyzed": {
+          "default": 0,
+          "title": "Analyzed",
+          "type": "integer"
+        },
+        "candidate_kinds": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Candidate Kinds",
+          "type": "object"
+        },
+        "candidates": {
+          "default": 0,
+          "title": "Candidates",
+          "type": "integer"
+        },
+        "complete_files": {
+          "default": 0,
+          "title": "Complete Files",
+          "type": "integer"
+        },
+        "config_keys": {
+          "default": 0,
+          "title": "Config Keys",
+          "type": "integer"
+        },
+        "consumers": {
+          "default": 0,
+          "title": "Consumers",
+          "type": "integer"
+        },
+        "diagnostics": {
+          "default": 0,
+          "title": "Diagnostics",
+          "type": "integer"
+        },
+        "failed_files": {
+          "default": 0,
+          "title": "Failed Files",
+          "type": "integer"
+        },
+        "findings": {
+          "default": 0,
+          "title": "Findings",
+          "type": "integer"
+        },
+        "partial_files": {
+          "default": 0,
+          "title": "Partial Files",
+          "type": "integer"
+        },
+        "providers": {
+          "default": 0,
+          "title": "Providers",
+          "type": "integer"
+        },
+        "skipped": {
+          "default": 0,
+          "title": "Skipped",
+          "type": "integer"
+        },
+        "skipped_reasons": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Skipped Reasons",
+          "type": "object"
+        }
+      },
+      "title": "ScanSummary",
+      "type": "object"
+    },
     "SecretSource": {
       "enum": [
         "heuristic",
@@ -485,12 +595,14 @@
       "type": "object"
     }
   },
-  "$id": "urn:runtime-contract:analysis-result:v1",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
-    "completeness": {
-      "$ref": "#/$defs/AnalysisCompleteness"
+    "config": {
+      "title": "Config",
+      "type": "string"
+    },
+    "contract": {
+      "$ref": "#/$defs/Contract"
     },
     "diagnostics": {
       "default": [],
@@ -500,24 +612,87 @@
       "title": "Diagnostics",
       "type": "array"
     },
-    "observations": {
+    "effective_exclude": {
       "default": [],
       "items": {
-        "$ref": "#/$defs/FactObservation"
+        "type": "string"
       },
-      "title": "Observations",
+      "title": "Effective Exclude",
       "type": "array"
     },
+    "effective_include": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Effective Include",
+      "type": "array"
+    },
+    "environment": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Environment"
+    },
+    "fail_on": {
+      "default": "error",
+      "title": "Fail On",
+      "type": "string"
+    },
+    "files": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ScanFile"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "findings": {
+      "default": [],
+      "maxItems": 0,
+      "minItems": 0,
+      "title": "Findings",
+      "type": "array"
+    },
+    "root": {
+      "const": ".",
+      "default": ".",
+      "title": "Root",
+      "type": "string"
+    },
     "schema_id": {
-      "const": "runtime-contract/analysis-result/v1",
-      "default": "runtime-contract/analysis-result/v1",
+      "const": "runtime-contract/v1",
+      "default": "runtime-contract/v1",
       "title": "Schema Id",
       "type": "string"
+    },
+    "selected_roots": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Roots",
+      "type": "array"
+    },
+    "status": {
+      "$ref": "#/$defs/ScanStatus"
+    },
+    "summary": {
+      "$ref": "#/$defs/ScanSummary"
     }
   },
   "required": [
-    "completeness"
+    "status",
+    "config",
+    "selected_roots",
+    "summary",
+    "contract"
   ],
-  "title": "runtime-contract analysis result version 1",
+  "title": "ScanResult",
   "type": "object"
 }

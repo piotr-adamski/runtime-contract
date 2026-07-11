@@ -302,21 +302,23 @@ def _filesystem_errors(config: RuntimeContractConfig, logical_root: Path) -> lis
     return errors
 
 
-def load_config(logical_root: Path, *, require: bool = False) -> ConfigDocument | None:
+def load_config(
+    logical_root: Path, *, require: bool = False, config_path: Path | None = None
+) -> ConfigDocument | None:
     """Load and validate the sole root configuration without parent search."""
 
-    path = logical_root / "runtime-contract.yaml"
+    path = logical_root / (config_path or Path("runtime-contract.yaml"))
     try:
         metadata = path.lstat()
     except FileNotFoundError:
         if require:
             raise ConfigValidationError(
-                [ConfigError("/", "config_missing", 1, 1, "runtime-contract.yaml was not found.")]
+                [ConfigError("/", "config_missing", 1, 1, "Configuration file was not found.")]
             ) from None
         return None
     except OSError:  # pragma: no cover - platform-specific lstat failure
         raise ConfigValidationError(
-            [ConfigError("/", "config_read", 1, 1, "Cannot inspect runtime-contract.yaml.")]
+            [ConfigError("/", "config_read", 1, 1, "Cannot inspect configuration file.")]
         ) from None
     try:
         canonical_root = logical_root.resolve(strict=True)
@@ -326,7 +328,7 @@ def load_config(logical_root: Path, *, require: bool = False) -> ConfigDocument 
         raise ConfigValidationError(
             [
                 ConfigError(
-                    "/", "config_unsafe", 1, 1, "runtime-contract.yaml is not a safe regular file."
+                    "/", "config_unsafe", 1, 1, "Configuration path is not a safe regular file."
                 )
             ]
         ) from None
@@ -334,7 +336,7 @@ def load_config(logical_root: Path, *, require: bool = False) -> ConfigDocument 
         raise ConfigValidationError(
             [
                 ConfigError(
-                    "/", "config_unsafe", 1, 1, "runtime-contract.yaml is not a safe regular file."
+                    "/", "config_unsafe", 1, 1, "Configuration path is not a safe regular file."
                 )
             ]
         )
@@ -342,7 +344,7 @@ def load_config(logical_root: Path, *, require: bool = False) -> ConfigDocument 
         text = resolved.read_text(encoding="utf-8")
     except (OSError, UnicodeError):
         raise ConfigValidationError(
-            [ConfigError("/", "config_read", 1, 1, "Cannot read runtime-contract.yaml as UTF-8.")]
+            [ConfigError("/", "config_read", 1, 1, "Cannot read configuration file as UTF-8.")]
         ) from None
     loaded, locations = parse_strict_yaml(text)
     try:

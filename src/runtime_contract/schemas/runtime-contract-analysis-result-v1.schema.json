@@ -187,7 +187,11 @@
         "dynamic_name",
         "unsupported_construct",
         "partial_analysis",
-        "analyzer_not_registered"
+        "analyzer_not_registered",
+        "analyzer_contract",
+        "filesystem_mutation",
+        "normalization_error",
+        "read_error"
       ],
       "title": "DiagnosticCode",
       "type": "string"

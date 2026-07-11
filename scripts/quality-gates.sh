@@ -113,8 +113,37 @@ uv run --python 3.14 mypy --strict src tests
 stage "Configuration schema and examples"
 uv run --python 3.14 python scripts/generate_config_schema.py --check
 uv run --python 3.14 python scripts/generate_analysis_schema.py --check
+uv run --python 3.14 python scripts/generate_scan_schema.py --check
 uv run --python 3.14 runtime-contract config validate examples/minimal
 uv run --python 3.14 runtime-contract config validate examples/full --format json >/dev/null
+for scan_format in text json sarif; do
+  first=$(mktemp)
+  second=$(mktemp)
+  uv run --python 3.14 runtime-contract scan examples/scan-flow --format "$scan_format" >"$first"
+  uv run --python 3.14 runtime-contract scan examples/scan-flow --format "$scan_format" >"$second"
+  cmp "$first" "$second"
+  rm -f "$first" "$second"
+done
+scan_tmp=$(mktemp -d)
+uv run --python 3.14 runtime-contract scan examples/scan-flow --root api --format json \
+  >"$scan_tmp/api.json"
+uv run --python 3.14 python -m json.tool "$scan_tmp/api.json" >/dev/null
+uv run --python 3.14 runtime-contract scan examples/scan-flow --format json \
+  --output "$scan_tmp/scan.json"
+uv run --python 3.14 python -m json.tool "$scan_tmp/scan.json" >/dev/null
+mkdir "$scan_tmp/invalid"
+printf '\377' >"$scan_tmp/invalid/app.py"
+set +e
+uv run --python 3.14 runtime-contract scan "$scan_tmp/invalid" --format json \
+  >"$scan_tmp/failed.json"
+scan_failed_status=$?
+set -e
+if [[ $scan_failed_status != 2 ]]; then
+  echo "scan negative smoke: expected exit 2, got $scan_failed_status" >&2
+  exit 1
+fi
+uv run --python 3.14 python -m json.tool "$scan_tmp/failed.json" >/dev/null
+rm -rf "$scan_tmp"
 
 stage "Tests and product coverage"
 uv run --python 3.14 pytest \

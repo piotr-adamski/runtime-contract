@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Added the end-to-end `scan` flow with effective configuration, named-root discovery, Python and
+  JavaScript/TypeScript analysis, normalization, deterministic text/JSON/SARIF rendering, atomic
+  output, safe diagnostics, and complete/partial/failed exit-code semantics.
 - Established the public repository and its community, contribution, conduct, and security files.
 - Added the installable Python package and fail-closed CLI skeleton for `scan`, `check`, `explain`,
   and `diff`.
