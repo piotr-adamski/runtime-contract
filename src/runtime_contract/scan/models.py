@@ -92,16 +92,16 @@ class ScanFile(ScanModel):
 
 
 class ScanResult(ScanModel):
-    schema_id: Literal["runtime-contract/v1"] = "runtime-contract/v1"
-    schema_version: Literal[1] = 1
+    schema_id: Literal["runtime-contract/v1"]
+    schema_version: Literal[1]
     metadata: ReportMetadata
     inputs: ReportInputs
     status: ScanStatus
     summary: ScanSummary
     contract: Contract
-    diagnostics: tuple[AnalysisDiagnostic, ...] = ()
-    findings: tuple[Finding, ...] = ()
-    files: tuple[ScanFile, ...] = ()
+    diagnostics: tuple[AnalysisDiagnostic, ...]
+    findings: tuple[Finding, ...]
+    files: tuple[ScanFile, ...]
 
     @model_validator(mode="after")
     def canonicalize_and_validate(self) -> "ScanResult":

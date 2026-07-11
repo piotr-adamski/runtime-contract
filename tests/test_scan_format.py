@@ -25,6 +25,19 @@ from runtime_contract.scan.models import ScanFile, ScanStatus, ScanSummary
 from runtime_contract.scan.renderers import render_json
 from runtime_contract.scan.schema import generate_schema_bytes
 
+TOP_LEVEL_FIELDS = {
+    "schema_id",
+    "schema_version",
+    "metadata",
+    "inputs",
+    "status",
+    "summary",
+    "contract",
+    "diagnostics",
+    "findings",
+    "files",
+}
+
 
 def report() -> str:
     return run_scan(
@@ -100,18 +113,7 @@ def test_writer_metadata_version_fallback(monkeypatch: pytest.MonkeyPatch) -> No
 
 def test_canonical_shape_metadata_inputs_null_empty_and_no_host_data() -> None:
     value = payload()
-    assert set(value) == {
-        "schema_id",
-        "schema_version",
-        "metadata",
-        "inputs",
-        "status",
-        "summary",
-        "contract",
-        "diagnostics",
-        "findings",
-        "files",
-    }
+    assert set(value) == TOP_LEVEL_FIELDS
     assert value["schema_id"] == "runtime-contract/v1"
     assert value["schema_version"] == 1
     assert value["metadata"] == {
@@ -156,9 +158,27 @@ def test_schema_is_draft_2020_12_stable_and_validates_report() -> None:
         "https://raw.githubusercontent.com/piotr-adamski/runtime-contract/main/"
         "schemas/runtime-contract-scan-result-v1.schema.json"
     )
+    assert set(schema["required"]) == TOP_LEVEL_FIELDS
     jsonschema.Draft202012Validator.check_schema(schema)
     jsonschema.validate(payload(), schema)
     assert generate_schema_bytes() == generate_schema_bytes() == schema_bytes()
+
+
+@pytest.mark.parametrize("missing", sorted(TOP_LEVEL_FIELDS))
+def test_every_canonical_top_level_field_is_required(missing: str) -> None:
+    document = payload()
+    document.pop(missing)
+    schema = json.loads(schema_bytes())
+    with pytest.raises(jsonschema.ValidationError) as schema_error:
+        jsonschema.Draft202012Validator(schema).validate(document)
+    assert missing in schema_error.value.message
+
+    with pytest.raises(ValueError, match=r"^invalid runtime-contract JSON report$") as parser_error:
+        parse_json_report(json.dumps(document))
+    public_error = str(parser_error.value)
+    assert "Traceback" not in public_error
+    assert "SECRET_VALUE" not in public_error
+    assert "/home/" not in public_error
 
 
 def test_typed_finding_is_supported_and_summary_must_match() -> None:
@@ -233,6 +253,7 @@ def test_exact_d1_12_legacy_normalizes_and_reserializes_canonical() -> None:
     assert parsed.schema_version == 1
     assert parsed.metadata.tool_version is None
     rewritten = json.loads(render_json(parsed))
+    assert set(rewritten) == TOP_LEVEL_FIELDS
     assert "inputs" in rewritten and "root" not in rewritten
     hybrid = legacy | {"schema_version": 1}
     with pytest.raises(ValueError):
