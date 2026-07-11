@@ -5,7 +5,7 @@
 Static, local CLI for finding inconsistencies between environment variables used in application code and how they are documented and supplied at build and runtime.
 
 > **Status:** `runtime-contract scan` performs deterministic static Python,
-> JavaScript/TypeScript, and `.env.example` analysis end to end. `check`, `explain`, and `diff`
+> JavaScript/TypeScript, `.env.example`, Dockerfile, and Docker Compose analysis end to end. `check`, `explain`, and `diff`
 > remain fail-closed placeholders.
 
 An independent open-source project maintained by Piotr Adamski.
@@ -118,8 +118,19 @@ profiles, interpolation variable names, one-based locations, and redacted diagno
 supports bounded standard anchors, aliases, and mapping merges, but never expands variables,
 consults the host environment, opens referenced files, invokes Compose or Docker, or retains YAML
 values and snippets. External `include` and file-based `extends` remain inert partial diagnostics.
-Provider extraction from `environment`, `env_file`, and `build.args`, and multi-file override
-semantics are intentionally deferred.
+`ComposeAnalyzer` turns each static service into one `compose_service` environment. Static
+`environment` names are explicit runtime delivery providers, and static `build.args` names are
+explicit build delivery providers. Map, list, empty, null, and bare passthrough declarations are
+inventoried without consulting the host environment. The delivered key is always the declaration
+name; interpolation inputs and literal fallback text never become keys or leave the parser.
+
+Each safe static `env_file` reference becomes unresolved-bulk runtime evidence for its service.
+The referenced file is never opened, resolved, checked for existence, or followed through a
+symlink, and no variable names are inferred from it. Later entries retain higher declared
+precedence, while `environment` declarations override all `env_file` entries structurally,
+including empty, null, and passthrough declarations. Single-document analysis does not implement
+multi-file Compose merging, overrides, `include`, `extends`, CLI `--env-file`, project `.env`, or
+runtime value resolution; those remain later scope.
 
 Analyzer observations can be aggregated through the pure `runtime_contract.normalization` API.
 It canonicalizes relative source locations, deduplicates identical facts, rejects conflicts and

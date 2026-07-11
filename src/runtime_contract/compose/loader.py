@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import bisect
+import posixpath
 import re
+import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, TypeVar
@@ -13,8 +15,11 @@ from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 from yaml.tokens import AliasToken
 
 from runtime_contract.compose.models import (
+    ComposeBinding,
+    ComposeBindingKind,
     ComposeDiagnostic,
     ComposeDiagnosticCode,
+    ComposeEnvFile,
     ComposeInput,
     ComposeInterpolation,
     ComposeInterpolationOperator,
@@ -32,6 +37,11 @@ MAX_COMPOSE_SERVICES = 4_096
 MAX_PROFILES_PER_SERVICE = 128
 MAX_INTERPOLATIONS = 10_000
 MAX_SCALAR_BYTES = 64 * 1024
+MAX_ENVIRONMENT_ENTRIES = 4_096
+MAX_ENV_FILE_ENTRIES = 1_024
+MAX_BUILD_ARG_ENTRIES = 4_096
+MAX_BINDING_NAME_BYTES = 512
+MAX_ENV_FILE_PATH_BYTES = 4_096
 
 _NAME = re.compile(r"[_A-Za-z][_A-Za-z0-9]*")
 _SAFE_TAGS = frozenset(
@@ -385,16 +395,16 @@ def _load_services(context: _Context, node: MappingNode) -> tuple[ComposeService
                 ComposeDiagnosticCode.INVALID_SERVICE,
                 key_node,
                 "Service name must be a static string scalar.",
-                fatal=True,
             )
+            continue
         name = key_node.value
         if not name or _contains_interpolation(name):
             context.diagnostic(
                 ComposeDiagnosticCode.DYNAMIC_NAME,
                 key_node,
                 "Service name must be non-empty and static.",
-                fatal=True,
             )
+            continue
         if name in seen:
             context.diagnostic(
                 ComposeDiagnosticCode.DUPLICATE_KEY,
@@ -408,10 +418,20 @@ def _load_services(context: _Context, node: MappingNode) -> tuple[ComposeService
                 ComposeDiagnosticCode.INVALID_SERVICE,
                 value_node,
                 "Compose service definition must be a mapping.",
-                fatal=True,
             )
+            continue
         entries = _mapping_entries(context, value_node)
         profiles, locations = _load_profiles(context, entries.get("profiles"))
+        bindings = (
+            *_load_bindings(
+                context,
+                entries.get("environment"),
+                ComposeBindingKind.ENVIRONMENT,
+                MAX_ENVIRONMENT_ENTRIES,
+            ),
+            *_load_build_args(context, entries.get("build")),
+        )
+        env_files = _load_env_files(context, entries.get("env_file"))
         extends = entries.get("extends")
         if extends is not None and isinstance(extends[1], MappingNode):
             extends_entries = _mapping_entries(context, extends[1])
@@ -429,9 +449,200 @@ def _load_services(context: _Context, node: MappingNode) -> tuple[ComposeService
                 location=context.location(key_node),
                 profiles=profiles,
                 profile_locations=locations,
+                bindings=bindings,
+                env_files=env_files,
             )
         )
     return tuple(sorted(services, key=lambda item: (item.name, *_sort_location(item.location))))
+
+
+def _load_build_args(
+    context: _Context, entry: tuple[ScalarNode, Node] | None
+) -> tuple[ComposeBinding, ...]:
+    if entry is None:
+        return ()
+    node = entry[1]
+    if isinstance(node, ScalarNode):
+        return ()
+    if not isinstance(node, MappingNode):
+        context.diagnostic(
+            ComposeDiagnosticCode.UNSUPPORTED_CONSTRUCT,
+            node,
+            "Compose build must be a mapping to inspect build args.",
+        )
+        return ()
+    return _load_bindings(
+        context,
+        _mapping_entries(context, node).get("args"),
+        ComposeBindingKind.BUILD_ARG,
+        MAX_BUILD_ARG_ENTRIES,
+    )
+
+
+def _load_bindings(
+    context: _Context,
+    entry: tuple[ScalarNode, Node] | None,
+    kind: ComposeBindingKind,
+    limit: int,
+) -> tuple[ComposeBinding, ...]:
+    if entry is None:
+        return ()
+    node = entry[1]
+    raw: list[tuple[str, ScalarNode]] = []
+    if isinstance(node, MappingNode):
+        for key_node, _ in node.value:
+            if not isinstance(key_node, ScalarNode) or key_node.tag != "tag:yaml.org,2002:str":
+                context.diagnostic(
+                    ComposeDiagnosticCode.DYNAMIC_NAME,
+                    key_node,
+                    "Compose binding name must be a static string.",
+                )
+                continue
+            raw.append((key_node.value, key_node))
+    elif isinstance(node, SequenceNode):
+        for child in node.value:
+            if not isinstance(child, ScalarNode) or child.tag != "tag:yaml.org,2002:str":
+                context.diagnostic(
+                    ComposeDiagnosticCode.DYNAMIC_NAME,
+                    child,
+                    "Compose binding entry must be a static string.",
+                )
+                continue
+            raw.append((child.value.split("=", 1)[0], child))
+    else:
+        context.diagnostic(
+            ComposeDiagnosticCode.UNSUPPORTED_CONSTRUCT,
+            node,
+            "Compose bindings must use mapping or sequence syntax.",
+        )
+        return ()
+    if len(raw) > limit:
+        context.diagnostic(
+            ComposeDiagnosticCode.SAFETY_LIMIT,
+            node,
+            "Compose binding entry limit exceeded.",
+            fatal=True,
+        )
+    winners: dict[str, tuple[int, ScalarNode]] = {}
+    for priority, (name, name_node) in enumerate(raw):
+        if len(name.encode("utf-8")) > MAX_BINDING_NAME_BYTES:
+            context.diagnostic(
+                ComposeDiagnosticCode.SAFETY_LIMIT,
+                name_node,
+                "Compose binding name limit exceeded.",
+                fatal=True,
+            )
+        if not _NAME.fullmatch(name):
+            context.diagnostic(
+                ComposeDiagnosticCode.DYNAMIC_NAME,
+                name_node,
+                "Compose binding name must be static and valid.",
+            )
+            continue
+        winners[name] = (priority, name_node)
+    return tuple(
+        ComposeBinding(
+            name=name,
+            kind=kind,
+            location=context.location(name_node),
+            priority=priority,
+        )
+        for name, (priority, name_node) in sorted(
+            winners.items(), key=lambda item: (item[1][0], item[0])
+        )
+    )
+
+
+def _load_env_files(
+    context: _Context, entry: tuple[ScalarNode, Node] | None
+) -> tuple[ComposeEnvFile, ...]:
+    if entry is None:
+        return ()
+    node = entry[1]
+    items = list(node.value) if isinstance(node, SequenceNode) else [node]
+    if len(items) > MAX_ENV_FILE_ENTRIES:
+        context.diagnostic(
+            ComposeDiagnosticCode.SAFETY_LIMIT,
+            node,
+            "Compose env_file entry limit exceeded.",
+            fatal=True,
+        )
+    result: list[ComposeEnvFile] = []
+    for priority, item in enumerate(items):
+        path_node: Node | None = item
+        required = True
+        format_value: str | None = None
+        if isinstance(item, MappingNode):
+            fields = _mapping_entries(context, item)
+            pair = fields.get("path")
+            path_node = pair[1] if pair is not None else None
+            required_pair = fields.get("required")
+            if required_pair is not None:
+                required_node = required_pair[1]
+                if (
+                    isinstance(required_node, ScalarNode)
+                    and required_node.tag == "tag:yaml.org,2002:bool"
+                ):
+                    required = required_node.value.lower() == "true"
+                else:
+                    context.diagnostic(
+                        ComposeDiagnosticCode.UNSUPPORTED_CONSTRUCT,
+                        required_node,
+                        "Compose env_file required must be boolean.",
+                    )
+            format_pair = fields.get("format")
+            if format_pair is not None:
+                format_node = format_pair[1]
+                if isinstance(format_node, ScalarNode) and format_node.value == "raw":
+                    format_value = "raw"
+                else:
+                    context.diagnostic(
+                        ComposeDiagnosticCode.UNSUPPORTED_CONSTRUCT,
+                        format_node,
+                        "Unsupported Compose env_file format.",
+                    )
+        if not isinstance(path_node, ScalarNode) or path_node.tag != "tag:yaml.org,2002:str":
+            context.diagnostic(
+                ComposeDiagnosticCode.DYNAMIC_NAME,
+                item,
+                "Compose env_file path must be a static string.",
+            )
+            continue
+        path = unicodedata.normalize("NFC", path_node.value)
+        if len(path.encode("utf-8")) > MAX_ENV_FILE_PATH_BYTES:
+            context.diagnostic(
+                ComposeDiagnosticCode.SAFETY_LIMIT,
+                path_node,
+                "Compose env_file path limit exceeded.",
+                fatal=True,
+            )
+        unsafe = (
+            not path
+            or _contains_interpolation(path)
+            or "\0" in path
+            or "\\" in path
+            or path.startswith("/")
+            or bool(re.match(r"^[A-Za-z]:", path))
+            or posixpath.normpath(path) in {"", ".", ".."}
+            or posixpath.normpath(path).startswith("../")
+        )
+        if unsafe:
+            context.diagnostic(
+                ComposeDiagnosticCode.DYNAMIC_NAME,
+                path_node,
+                "Compose env_file path is dynamic or unsafe.",
+            )
+            continue
+        result.append(
+            ComposeEnvFile(
+                path=path,
+                required=required,
+                format=format_value,
+                location=context.location(path_node),
+                priority=priority,
+            )
+        )
+    return tuple(result)
 
 
 def _load_profiles(
@@ -622,8 +833,13 @@ def _append_interpolation(
 
 __all__ = [
     "MAX_ALIAS_MERGE_REFERENCES",
+    "MAX_BINDING_NAME_BYTES",
+    "MAX_BUILD_ARG_ENTRIES",
     "MAX_COMPOSE_BYTES",
     "MAX_COMPOSE_SERVICES",
+    "MAX_ENVIRONMENT_ENTRIES",
+    "MAX_ENV_FILE_ENTRIES",
+    "MAX_ENV_FILE_PATH_BYTES",
     "MAX_INTERPOLATIONS",
     "MAX_PROFILES_PER_SERVICE",
     "MAX_SCALAR_BYTES",

@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Add an end-to-end, non-executing Docker Compose analyzer for service `environment`, `env_file`,
+  and `build.args` delivery facts without reading referenced files or retaining values.
 - Add a deterministic, non-executing Dockerfile analyzer for explicit multi-stage `ARG` and `ENV`
   delivery facts, recovery diagnostics, and bounded parsing.
 

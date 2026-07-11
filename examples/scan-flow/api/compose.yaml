@@ -1,0 +1,10 @@
+services:
+  api:
+    environment:
+      DATABASE_URL: "${STAGING_DATABASE_URL:?required}"
+    env_file: config/api.env
+    build:
+      args:
+        BUILD_REVISION: "${RELEASE_TAG:-latest}"
+  worker:
+    environment: [QUEUE_URL]

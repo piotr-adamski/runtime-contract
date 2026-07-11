@@ -1,0 +1,17 @@
+services:
+  api:
+    environment:
+      DATABASE_URL: "${STAGING_DATABASE_URL:?required}"
+      EMPTY: ""
+    env_file:
+      - config/base.env
+      - path: config/api.env
+        required: false
+        format: raw
+    build:
+      args:
+        IMAGE_VERSION: "${RELEASE_TAG:-latest}"
+  worker:
+    environment:
+      - QUEUE_URL
+    env_file: config/worker.env

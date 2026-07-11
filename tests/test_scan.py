@@ -150,32 +150,66 @@ def test_invalid_encoding_is_failed_exit_two_with_safe_json(tmp_path: Path, name
     assert str(tmp_path) not in result.stdout + result.stderr
 
 
-def test_only_unsupported_candidates_are_skipped_without_diagnostic(tmp_path: Path) -> None:
+def test_empty_compose_is_analyzed_without_diagnostic(tmp_path: Path) -> None:
     write(tmp_path / "compose.yaml", "services: {}\n")
     result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["status"] == "complete"
-    assert payload["summary"]["skipped"] == 1
+    assert payload["summary"]["analyzed"] == 1
+    assert payload["summary"]["skipped"] == 0
     assert payload["diagnostics"] == []
 
 
-def test_compose_loader_is_not_registered_and_scan_never_opens_candidate(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    target = tmp_path / "compose.yaml"
-    target.write_bytes(b"services: {}\n" + b"X" * (1024 * 1024))
-
-    def forbidden_read(path: Path) -> bytes:
-        raise AssertionError(f"unregistered Compose candidate was read: {path.name}")
-
-    monkeypatch.setattr(Path, "read_bytes", forbidden_read)
+def test_unsupported_kubernetes_candidate_is_skipped_without_diagnostic(tmp_path: Path) -> None:
+    write(tmp_path / "deployment.yaml", "apiVersion: apps/v1\nkind: Deployment\n")
     result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload["summary"]["analyzed"] == 0
     assert payload["summary"]["skipped"] == 1
     assert payload["summary"]["skipped_reasons"] == {"no_registered_analyzer": 1}
+
+
+@pytest.mark.parametrize("output_format", ["text", "json", "sarif"])
+def test_compose_fixture_is_analyzed_end_to_end(output_format: str) -> None:
+    fixture = Path(__file__).parent / "fixtures" / "compose"
+    result = runner.invoke(app, ["scan", str(fixture), "--format", output_format])
+    assert result.exit_code == 0
+    for forbidden in ("STAGING_DATABASE_URL", "RELEASE_TAG", "latest"):
+        assert forbidden not in result.stdout + result.stderr
+    if output_format == "json":
+        payload = json.loads(result.stdout)
+        assert payload["summary"]["config_keys"] == 4
+        assert payload["summary"]["providers"] == 7
+        assert len(payload["contract"]["environments"]) == 2
+        golden = json.loads((fixture / "expected-facts.json").read_text(encoding="utf-8"))
+        environments = {item["id"]: item["target"] for item in payload["contract"]["environments"]}
+        keys = {item["id"]: item["name"] for item in payload["contract"]["config_keys"]}
+        actual = {
+            "environments": sorted(environments.values()),
+            "keys": sorted(keys.values()),
+            "providers": sorted(
+                [
+                    environments[item["environment_id"]],
+                    item["phase"],
+                    item["mechanism"],
+                    item["evidence_kind"],
+                ]
+                for item in payload["contract"]["providers"]
+            ),
+        }
+        assert actual == golden
+
+
+def test_compose_file_size_limit_fails_closed(tmp_path: Path) -> None:
+    target = tmp_path / "compose.yaml"
+    target.write_bytes(b"services: {}\n" + b"X" * (1024 * 1024))
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert result.exit_code == 2
+    payload = json.loads(result.stdout)
+    assert payload["summary"]["failed_files"] == 1
+    assert payload["diagnostics"][0]["code"] == "safety_limit"
 
 
 @pytest.mark.parametrize("output_format", ["text", "json", "sarif"])

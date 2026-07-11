@@ -87,12 +87,58 @@ class ComposeInterpolation(_ComposeModel):
         return value
 
 
+class ComposeBindingKind(StrEnum):
+    ENVIRONMENT = "environment"
+    BUILD_ARG = "build_arg"
+
+
+class ComposeBinding(_ComposeModel):
+    name: str
+    kind: ComposeBindingKind
+    location: SourceLocation
+    priority: int
+
+    @field_validator("name")
+    @classmethod
+    def valid_name(cls, value: str) -> str:
+        if not re.fullmatch(r"[_A-Za-z][_A-Za-z0-9]*", value):
+            raise ValueError("invalid Compose binding name")
+        return value
+
+
+class ComposeEnvFile(_ComposeModel):
+    path: str
+    required: bool = True
+    format: str | None = None
+    location: SourceLocation
+    priority: int
+
+    @field_validator("path")
+    @classmethod
+    def safe_static_path(cls, value: str) -> str:
+        value = unicodedata.normalize("NFC", value)
+        if (
+            not value
+            or "\0" in value
+            or "\\" in value
+            or value.startswith("/")
+            or re.match(r"^[A-Za-z]:", value)
+        ):
+            raise ValueError("env_file path must be a safe relative POSIX path")
+        normalized = posixpath.normpath(value)
+        if normalized in {"", ".", ".."} or normalized.startswith("../"):
+            raise ValueError("env_file path must remain within the logical root")
+        return normalized
+
+
 class ComposeService(_ComposeModel):
     name: str
     location: SourceLocation
     profiles: tuple[str, ...] = ()
     profile_locations: tuple[SourceLocation, ...] = ()
     interpolations: tuple[ComposeInterpolation, ...] = ()
+    bindings: tuple[ComposeBinding, ...] = ()
+    env_files: tuple[ComposeEnvFile, ...] = ()
 
     @model_validator(mode="after")
     def aligned_profiles(self) -> Self:
@@ -121,8 +167,11 @@ class ComposeLoadResult(_ComposeModel):
 
 
 __all__ = [
+    "ComposeBinding",
+    "ComposeBindingKind",
     "ComposeDiagnostic",
     "ComposeDiagnosticCode",
+    "ComposeEnvFile",
     "ComposeInput",
     "ComposeInterpolation",
     "ComposeInterpolationOperator",
