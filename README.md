@@ -4,9 +4,9 @@
 
 Static, local CLI for finding inconsistencies between environment variables used in application code and how they are documented and supplied at build and runtime.
 
-> **Status:** `runtime-contract scan` performs deterministic static Python and
-> JavaScript/TypeScript analysis end to end. `check`, `explain`, and `diff` remain fail-closed
-> placeholders.
+> **Status:** `runtime-contract scan` performs deterministic static Python,
+> JavaScript/TypeScript, and `.env.example` analysis end to end. `check`, `explain`, and `diff`
+> remain fail-closed placeholders.
 
 An independent open-source project maintained by Piotr Adamski.
 
@@ -78,6 +78,25 @@ static Python source analysis. It recognizes literal keys used through `os.geten
 aliases. Source is decoded according to Python coding-cookie rules and parsed with the standard
 library AST; analyzed project code is never imported or executed.
 
+`DotenvAnalyzer` inventories declarations only from files named exactly `.env.example`.
+Discovery never opens `.env`, `.env.local`, `.env.production`, `.env.development`, `.env.test`,
+or any other `.env.*` variant. Includes and file contents cannot override this boundary.
+
+The accepted syntax covers ASCII variable names matching `[A-Za-z_][A-Za-z0-9_]*`, optional
+`export`, whitespace around the first `=`, empty and unquoted values, single quotes, double quotes,
+backticks, matching escaped quotes, inline comments, LF/CRLF, a leading UTF-8 BOM, and quoted
+multiline values. Duplicate declarations remain separate declaration facts with their own source
+locations. Syntax errors produce redacted partial-analysis diagnostics while preserving other
+unambiguous declarations; invalid encoding and safety-limit failures fail closed.
+
+Values, value fragments, lengths, hashes, snippets, comments, and inferred value types never enter
+the result. `$NAME`, `${NAME}`, and the supported `:-`, `-`, `:+`, and `+` braced forms are
+recognized in unquoted and double-quoted values but are not expanded; default and alternate text is
+not recursively analyzed. Single-quoted and backtick values are literal. Escaped dollars do not
+create references, and `$(...)` is opaque text that is never executed. This is intentional static
+syntax compatibility with a common dotenv subset, not runtime compatibility with dotenv libraries
+and not an environment loader.
+
 Analyzer observations can be aggregated through the pure `runtime_contract.normalization` API.
 It canonicalizes relative source locations, deduplicates identical facts, rejects conflicts and
 invalid references with typed technical errors, and returns a deterministic facts-only `Contract`.
@@ -96,8 +115,8 @@ The analyzer intentionally does not follow aliases created by assignment, resolv
 variables, propagate values between modules, handle mapping mutation methods such as `setdefault`
 or `update`, or detect Pydantic settings. The JavaScript/TypeScript analyzer likewise does not
 follow aliases or constants and does not inspect `import.meta.env`, Deno, Bun, dotenv, bundlers, or
-framework-specific APIs. Neither analyzer imports or executes analyzed project code. Deployment-file
-analyzers and findings remain future work.
+framework-specific APIs. No analyzer imports or executes analyzed project code. Dockerfile,
+Compose, Kubernetes, and findings remain future work.
 
 ## Development
 

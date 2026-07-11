@@ -42,6 +42,7 @@ class DiagnosticCode(StrEnum):
     FILESYSTEM_MUTATION = "filesystem_mutation"
     NORMALIZATION_ERROR = "normalization_error"
     READ_ERROR = "read_error"
+    SAFETY_LIMIT = "safety_limit"
 
 
 class Confidence(StrEnum):
@@ -115,6 +116,7 @@ DIAGNOSTIC_SEVERITY: dict[DiagnosticCode, Severity] = {
     DiagnosticCode.FILESYSTEM_MUTATION: Severity.ERROR,
     DiagnosticCode.NORMALIZATION_ERROR: Severity.ERROR,
     DiagnosticCode.READ_ERROR: Severity.ERROR,
+    DiagnosticCode.SAFETY_LIMIT: Severity.ERROR,
 }
 
 

@@ -219,7 +219,8 @@
         "analyzer_contract",
         "filesystem_mutation",
         "normalization_error",
-        "read_error"
+        "read_error",
+        "safety_limit"
       ],
       "title": "DiagnosticCode",
       "type": "string"

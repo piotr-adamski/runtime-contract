@@ -35,7 +35,10 @@ result = registry.analyze(analyzer_input)
 JSON Schema is available from `runtime_contract.analysis.schema.schema_bytes()` and as
 `schemas/runtime-contract-analysis-result-v1.schema.json`.
 
-`PythonAstAnalyzer` and `JavaScriptTypeScriptAnalyzer` are the built-in implementations registered
-by `scan`. Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry` seam without
-changing `FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin discovery and
-deployment-file analyzers remain outside v0.1.0's implemented day-one slice.
+`PythonAstAnalyzer`, `JavaScriptTypeScriptAnalyzer`, and `DotenvAnalyzer` are the built-in
+implementations registered by `scan`. `DotenvAnalyzer` accepts only the `ENV_EXAMPLE` candidate
+kind produced for the exact `.env.example` filename. It inventories declaration facts without
+retaining values, expanding interpolation, evaluating command substitution, or performing I/O.
+Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry` seam without changing
+`FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin discovery and deployment-file
+analyzers remain outside v0.1.0's implemented day-one slice.
