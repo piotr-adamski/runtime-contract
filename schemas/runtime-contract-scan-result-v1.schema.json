@@ -812,7 +812,6 @@
       "$ref": "#/$defs/Contract"
     },
     "diagnostics": {
-      "default": [],
       "items": {
         "$ref": "#/$defs/AnalysisDiagnostic"
       },
@@ -820,7 +819,6 @@
       "type": "array"
     },
     "files": {
-      "default": [],
       "items": {
         "$ref": "#/$defs/ScanFile"
       },
@@ -828,7 +826,6 @@
       "type": "array"
     },
     "findings": {
-      "default": [],
       "items": {
         "$ref": "#/$defs/Finding"
       },
@@ -843,13 +840,11 @@
     },
     "schema_id": {
       "const": "runtime-contract/v1",
-      "default": "runtime-contract/v1",
       "title": "Schema Id",
       "type": "string"
     },
     "schema_version": {
       "const": 1,
-      "default": 1,
       "title": "Schema Version",
       "type": "integer"
     },
@@ -861,11 +856,16 @@
     }
   },
   "required": [
+    "schema_id",
+    "schema_version",
     "metadata",
     "inputs",
     "status",
     "summary",
-    "contract"
+    "contract",
+    "diagnostics",
+    "findings",
+    "files"
   ],
   "title": "ScanResult",
   "type": "object"

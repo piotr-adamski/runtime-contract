@@ -236,6 +236,8 @@ def run_scan(request: ScanRequest) -> ScanRun:
     except PackageNotFoundError:
         tool_version = None
     scan_result = ScanResult(
+        schema_id="runtime-contract/v1",
+        schema_version=1,
         metadata=ReportMetadata(tool_version=tool_version),
         inputs=ReportInputs(
             config=config_label,
@@ -249,6 +251,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         summary=summary,
         contract=contract,
         diagnostics=diagnostics_tuple,
+        findings=(),
         files=tuple(sorted(files, key=lambda item: item.path.encode("utf-8"))),
     )
     output_format = execution.value.format.value
