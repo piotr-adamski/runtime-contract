@@ -13,3 +13,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   and `diff`.
 - Added the strict, versioned `runtime-contract.yaml` v1 model, safe YAML diagnostics, deterministic
   Draft 2020-12 JSON Schema, packaged schema resource, validation CLI, examples, and documentation.
+- Added deterministic, language-independent normalization from analyzer observations to a
+  facts-only `Contract`, including Unicode NFC/POSIX location canonicalization, deduplication,
+  conflict detection, reference validation, and typed redacted technical errors.
