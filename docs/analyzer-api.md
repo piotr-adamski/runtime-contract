@@ -35,5 +35,7 @@ result = registry.analyze(analyzer_input)
 JSON Schema is available from `runtime_contract.analysis.schema.schema_bytes()` and as
 `schemas/runtime-contract-analysis-result-v1.schema.json`.
 
-Production Python, JavaScript, TypeScript, configuration, and infrastructure analyzers are not part
-of D1.08. Plugin discovery and CLI integration are also intentionally out of scope.
+`PythonAstAnalyzer` and `JavaScriptTypeScriptAnalyzer` are the built-in implementations registered
+by `scan`. Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry` seam without
+changing `FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin discovery and
+deployment-file analyzers remain outside v0.1.0's implemented day-one slice.

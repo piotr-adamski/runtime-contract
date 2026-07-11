@@ -19,3 +19,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added deterministic, language-independent normalization from analyzer observations to a
   facts-only `Contract`, including Unicode NFC/POSIX location canonicalization, deduplication,
   conflict detection, reference validation, and typed redacted technical errors.
+- Added the public `Analyzer`/`AnalyzerRegistry` extension contract and immutable
+  `AnalyzerInput` → `AnalysisResult` → `FactObservation` models.
+- Added the static Python AST analyzer and JavaScript/TypeScript Tree-sitter analyzer without
+  importing or executing analyzed project code.
+- Added the versioned `runtime-contract/v1` JSON report, Draft 2020-12 schema, exact D1.12 reader,
+  typed `ScanResult` findings seam, and deterministic golden documents.
+- Added cross-analyzer and day-one vertical-slice tests covering Python and JavaScript/TypeScript
+  discovery, analysis, normalization, text/JSON/SARIF rendering, schema validation, atomic output,
+  redaction, non-execution, and byte determinism.
+
+### Fixed
+
+- Stabilized the public import surface with readable exact `__all__` snapshots and installed
+  distribution import checks.
+- Extended clean wheel and sdist verification with `uv pip check`, real artifact-installed `scan`
+  smokes, packaged-schema validation, deterministic output checks, and private-artifact rejection.
+- Aligned analyzer API documentation and this changelog with the implemented D1.01–D1.15 state.
