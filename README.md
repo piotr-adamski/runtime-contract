@@ -35,9 +35,30 @@ reliable result. It never returns 1. Reports go to stdout unless `--output` (or 
 `explain`, and `diff` continue to fail closed with exit code 2.
 
 The JSON report is the versioned public automation API `runtime-contract/v1` with integer
-`schema_version: 1`. Its canonical structure, compatibility policy, deterministic serialization,
-schema location, and reference snapshot are documented in
-[`docs/json-report-v1.md`](docs/json-report-v1.md).
+`schema_version: 1`. Its required top-level fields are `schema_id`, `schema_version`, `metadata`,
+`inputs`, `status`, `summary`, `contract`, `diagnostics`, `findings`, and `files`. Consumers and
+providers remain exclusively inside the facts-only `contract`; findings have their public typed
+shape but remain empty until the rules engine is implemented.
+
+Optional scalars without a value are JSON `null`; empty sequences are `[]`, empty maps are `{}`,
+and required fields are never omitted. Paths are NFC, relative POSIX paths contained by the scan
+root; the public root is always `.`. Reports contain no timestamp, duration, UUID, hostname, user,
+process ID, current working directory, absolute host path, source snippet, or file content.
+
+Canonical serialization is UTF-8 without BOM, recursively sorted object keys, compact separators,
+no NaN or infinities, deterministic array ordering, and exactly one final LF. This is the
+runtime-contract canonical format, not an RFC 8785/JCS claim. The Draft 2020-12 schema is
+[`schemas/runtime-contract-scan-result-v1.schema.json`](schemas/runtime-contract-scan-result-v1.schema.json),
+and the golden document is
+[`examples/reports/runtime-contract-v1.json`](examples/reports/runtime-contract-v1.json).
+
+A newer v1 reader must accept older v1 documents. Public `parse_json_report(str | bytes)` accepts
+the exact flat D1.12 shape and normalizes it to D1.13; writers emit only the canonical shape. A new
+optional v1 field is permitted only with a deterministic default for older documents. Removing,
+renaming, retyping, changing meaning or requiredness, identity or sorting, `null` interpretation,
+or an enum in a way that changes automation interpretation requires `runtime-contract/v2`. Version
+2 requires a separate model, `$id`, schema file, and explicit adapter. Package and JSON format
+versions evolve independently; older readers need not read newer v1 documents.
 
 Local-only operation without telemetry or data transmission remains a project requirement. There is
 currently no release or PyPI publication.
