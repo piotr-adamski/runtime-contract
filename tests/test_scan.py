@@ -61,7 +61,7 @@ classifications:
 
 
 def test_scan_help_exposes_d1_12_options() -> None:
-    result = runner.invoke(app, ["scan", "--help"])
+    result = runner.invoke(app, ["scan", "--help"], terminal_width=200, color=False)
     assert result.exit_code == 0
     for option in (
         "--config",
