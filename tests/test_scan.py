@@ -7,6 +7,7 @@ from pathlib import Path
 
 import jsonschema
 import pytest
+from click import unstyle
 from typer.testing import CliRunner
 
 from runtime_contract.analysis import AnalyzerExecutionError, AnalyzerRegistry
@@ -63,6 +64,7 @@ classifications:
 def test_scan_help_exposes_d1_12_options() -> None:
     result = runner.invoke(app, ["scan", "--help"], terminal_width=200, color=False)
     assert result.exit_code == 0
+    help_text = unstyle(result.stdout)
     for option in (
         "--config",
         "--root",
@@ -74,8 +76,8 @@ def test_scan_help_exposes_d1_12_options() -> None:
         "--quiet",
         "--verbose",
     ):
-        assert option in result.stdout
-    assert "--report" not in result.stdout
+        assert option in help_text
+    assert "--report" not in help_text
 
 
 @pytest.mark.parametrize(
