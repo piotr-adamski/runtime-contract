@@ -102,11 +102,28 @@ def validate_schemas(distributions: tuple[Path, Path]) -> None:
                 raise ValueError(f"{schema.name} differs in {distribution.name}")
 
 
-def validate_no_test_doubles(distributions: tuple[Path, Path]) -> None:
+def validate_no_private_artifacts(distributions: tuple[Path, Path]) -> None:
+    forbidden_parts = {
+        ".git",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "__pycache__",
+        "build",
+        "dist",
+        "htmlcov",
+        "tests",
+    }
     for distribution in distributions:
-        forbidden = [name for name in distribution_names(distribution) if "tests/analysis" in name]
+        forbidden = [
+            name
+            for name in distribution_names(distribution)
+            if forbidden_parts.intersection(Path(name).parts)
+            or Path(name).name in {".coverage", "coverage.xml"}
+            or name.endswith((".pyc", ".pyo"))
+        ]
         if forbidden:
-            raise ValueError(f"test doubles leaked into {distribution.name}")
+            raise ValueError(f"private build artifacts leaked into {distribution.name}")
 
 
 def write_manifest(directory: Path, distributions: tuple[Path, Path]) -> Path:
@@ -131,7 +148,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         distributions = validate_distributions(args.directory)
         validate_schemas(distributions)
-        validate_no_test_doubles(distributions)
+        validate_no_private_artifacts(distributions)
         manifest = write_manifest(args.directory, distributions)
     except (OSError, ValueError, tarfile.TarError, zipfile.BadZipFile) as exc:
         print(f"Artifacts: ERROR: {exc}", file=sys.stderr)
