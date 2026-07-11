@@ -1,0 +1,236 @@
+{
+  "analysis": {
+    "completeness": "complete",
+    "diagnostics": [],
+    "observations": [
+      {
+        "confidence": "exact",
+        "fact": {
+          "allow_literal": true,
+          "component": "python-app",
+          "id": "key-9bbc78a02682ba23cf8980bb89d8a8f3c9b74cef7ce587ed6aad45c2eaa9558a",
+          "name": "WORKERS",
+          "secret": false,
+          "secret_source": "not_secret",
+          "severity_override": null
+        },
+        "fact_kind": "config_key"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "allow_literal": false,
+          "component": "python-app",
+          "id": "key-d3001ef756240eaebe0861450215eb9a0d35a00050baae266a08695151104757",
+          "name": "API_TOKEN",
+          "secret": true,
+          "secret_source": "heuristic",
+          "severity_override": null
+        },
+        "fact_kind": "config_key"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "allow_literal": true,
+          "component": "python-app",
+          "id": "key-f30ed3935309d02611cddc957395ea99c686026aa599a4aa53d57fda358f7f02",
+          "name": "API_URL",
+          "secret": false,
+          "secret_source": "not_secret",
+          "severity_override": null
+        },
+        "fact_kind": "config_key"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "python_os_getenv",
+          "component": "python-app",
+          "config_key_id": "key-f30ed3935309d02611cddc957395ea99c686026aa599a4aa53d57fda358f7f02",
+          "has_literal_fallback": false,
+          "id": "consumer-0a1337b5335dd0307ff2a12ffd2eb88c0c3243f684df69866f0c17c876900609",
+          "location": {
+            "end_column": 29,
+            "end_line": 6,
+            "path": "src/settings.py",
+            "start_column": 9,
+            "start_line": 6
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "python_os_environ_get",
+          "component": "python-app",
+          "config_key_id": "key-f30ed3935309d02611cddc957395ea99c686026aa599a4aa53d57fda358f7f02",
+          "has_literal_fallback": false,
+          "id": "consumer-380e8d4f9252b7403795585a4447d154788209c582ea945a536c29464bcbb661",
+          "location": {
+            "end_column": 34,
+            "end_line": 8,
+            "path": "src/settings.py",
+            "start_column": 9,
+            "start_line": 8
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "python_os_environ",
+          "component": "python-app",
+          "config_key_id": "key-d3001ef756240eaebe0861450215eb9a0d35a00050baae266a08695151104757",
+          "has_literal_fallback": false,
+          "id": "consumer-68aeede9cc05d0f92d9f9059105327aa15bedb9ff57e1d7ef212d55fefed1bc7",
+          "location": {
+            "end_column": 33,
+            "end_line": 7,
+            "path": "src/settings.py",
+            "start_column": 10,
+            "start_line": 7
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "python_os_getenv",
+          "component": "python-app",
+          "config_key_id": "key-9bbc78a02682ba23cf8980bb89d8a8f3c9b74cef7ce587ed6aad45c2eaa9558a",
+          "has_literal_fallback": true,
+          "id": "consumer-7f0cc9d24b09f29022935a2cc1abb8f58477ea13acf42f120e4c8f51eb030607",
+          "location": {
+            "end_column": 35,
+            "end_line": 9,
+            "path": "src/settings.py",
+            "start_column": 10,
+            "start_line": 9
+          },
+          "phase": "runtime",
+          "required": false,
+          "requirement_source": "literal_fallback"
+        },
+        "fact_kind": "consumer"
+      }
+    ],
+    "schema_id": "runtime-contract/analysis-result/v1"
+  },
+  "normalized_contract": {
+    "config_keys": [
+      {
+        "allow_literal": true,
+        "component": "python-app",
+        "id": "key-9bbc78a02682ba23cf8980bb89d8a8f3c9b74cef7ce587ed6aad45c2eaa9558a",
+        "name": "WORKERS",
+        "secret": false,
+        "secret_source": "not_secret",
+        "severity_override": null
+      },
+      {
+        "allow_literal": false,
+        "component": "python-app",
+        "id": "key-d3001ef756240eaebe0861450215eb9a0d35a00050baae266a08695151104757",
+        "name": "API_TOKEN",
+        "secret": true,
+        "secret_source": "heuristic",
+        "severity_override": null
+      },
+      {
+        "allow_literal": true,
+        "component": "python-app",
+        "id": "key-f30ed3935309d02611cddc957395ea99c686026aa599a4aa53d57fda358f7f02",
+        "name": "API_URL",
+        "secret": false,
+        "secret_source": "not_secret",
+        "severity_override": null
+      }
+    ],
+    "consumers": [
+      {
+        "access_kind": "python_os_getenv",
+        "component": "python-app",
+        "config_key_id": "key-f30ed3935309d02611cddc957395ea99c686026aa599a4aa53d57fda358f7f02",
+        "has_literal_fallback": false,
+        "id": "consumer-0a1337b5335dd0307ff2a12ffd2eb88c0c3243f684df69866f0c17c876900609",
+        "location": {
+          "end_column": 29,
+          "end_line": 6,
+          "path": "src/settings.py",
+          "start_column": 9,
+          "start_line": 6
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      {
+        "access_kind": "python_os_environ_get",
+        "component": "python-app",
+        "config_key_id": "key-f30ed3935309d02611cddc957395ea99c686026aa599a4aa53d57fda358f7f02",
+        "has_literal_fallback": false,
+        "id": "consumer-380e8d4f9252b7403795585a4447d154788209c582ea945a536c29464bcbb661",
+        "location": {
+          "end_column": 34,
+          "end_line": 8,
+          "path": "src/settings.py",
+          "start_column": 9,
+          "start_line": 8
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      {
+        "access_kind": "python_os_environ",
+        "component": "python-app",
+        "config_key_id": "key-d3001ef756240eaebe0861450215eb9a0d35a00050baae266a08695151104757",
+        "has_literal_fallback": false,
+        "id": "consumer-68aeede9cc05d0f92d9f9059105327aa15bedb9ff57e1d7ef212d55fefed1bc7",
+        "location": {
+          "end_column": 33,
+          "end_line": 7,
+          "path": "src/settings.py",
+          "start_column": 10,
+          "start_line": 7
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      {
+        "access_kind": "python_os_getenv",
+        "component": "python-app",
+        "config_key_id": "key-9bbc78a02682ba23cf8980bb89d8a8f3c9b74cef7ce587ed6aad45c2eaa9558a",
+        "has_literal_fallback": true,
+        "id": "consumer-7f0cc9d24b09f29022935a2cc1abb8f58477ea13acf42f120e4c8f51eb030607",
+        "location": {
+          "end_column": 35,
+          "end_line": 9,
+          "path": "src/settings.py",
+          "start_column": 10,
+          "start_line": 9
+        },
+        "phase": "runtime",
+        "required": false,
+        "requirement_source": "literal_fallback"
+      }
+    ],
+    "environments": [],
+    "providers": [],
+    "schema_id": "runtime-contract/contract/v1"
+  }
+}
