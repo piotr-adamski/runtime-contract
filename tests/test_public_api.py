@@ -92,6 +92,22 @@ PUBLIC_EXPORTS = {
         "load_compose",
         "resolve_compose_project",
     ),
+    "runtime_contract.kubernetes": (
+        "MAX_KUBERNETES_BYTES",
+        "MAX_YAML_ALIASES",
+        "MAX_YAML_DEPTH",
+        "MAX_YAML_DOCUMENTS",
+        "MAX_YAML_NODES",
+        "KubernetesContainerContext",
+        "KubernetesContainerKind",
+        "KubernetesDiagnostic",
+        "KubernetesDiagnosticCode",
+        "KubernetesInput",
+        "KubernetesLoadStatus",
+        "KubernetesTraversalResult",
+        "KubernetesWorkloadKind",
+        "traverse_kubernetes_workloads",
+    ),
     "runtime_contract.domain": (
         "ConfigKey",
         "Consumer",
@@ -158,6 +174,11 @@ def test_documented_import_paths_are_supported() -> None:
         Provider,
         SourceLocation,
     )
+    from runtime_contract.kubernetes import (
+        KubernetesInput,
+        KubernetesTraversalResult,
+        traverse_kubernetes_workloads,
+    )
     from runtime_contract.normalization import normalize_observations
     from runtime_contract.scan import ScanResult, parse_json_report, render, run_scan, write_atomic
 
@@ -184,5 +205,8 @@ def test_documented_import_paths_are_supported() -> None:
             run_scan,
             write_atomic,
             load_compose,
+            KubernetesInput,
+            KubernetesTraversalResult,
+            traverse_kubernetes_workloads,
         )
     )

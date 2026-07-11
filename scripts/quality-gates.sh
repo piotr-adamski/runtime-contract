@@ -211,7 +211,9 @@ smoke_distribution() {
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'from runtime_contract.normalization import NormalizationError, NormalizationErrorCode, normalize_observations; assert normalize_observations(()).model_dump_json() and NormalizationError and NormalizationErrorCode'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
-      'import importlib; modules=("runtime_contract", "runtime_contract.analysis", "runtime_contract.domain", "runtime_contract.normalization", "runtime_contract.scan"); assert all(getattr(importlib.import_module(name), exported) is not None for name in modules for exported in importlib.import_module(name).__all__)'
+      'from runtime_contract.kubernetes import KubernetesInput, KubernetesTraversalResult, traverse_kubernetes_workloads; result=traverse_kubernetes_workloads(KubernetesInput(path="pod.yaml", content=b"apiVersion: v1\nkind: Pod\nmetadata: {name: x}\nspec: {containers: [{name: web}]}\n")); assert KubernetesTraversalResult and result.contexts[0].container_name == "web"'
+    PYTHONPATH= "$temp_dir/venv/bin/python" -c \
+      'import importlib; modules=("runtime_contract", "runtime_contract.analysis", "runtime_contract.domain", "runtime_contract.kubernetes", "runtime_contract.normalization", "runtime_contract.scan"); assert all(getattr(importlib.import_module(name), exported) is not None for name in modules for exported in importlib.import_module(name).__all__)'
     for scan_format in text json sarif; do
       PYTHONHASHSEED=1 PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" scan fixture \
         --format "$scan_format" >"$scan_format.first"
