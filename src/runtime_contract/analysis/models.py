@@ -38,6 +38,10 @@ class DiagnosticCode(StrEnum):
     UNSUPPORTED_CONSTRUCT = "unsupported_construct"
     PARTIAL_ANALYSIS = "partial_analysis"
     ANALYZER_NOT_REGISTERED = "analyzer_not_registered"
+    ANALYZER_CONTRACT = "analyzer_contract"
+    FILESYSTEM_MUTATION = "filesystem_mutation"
+    NORMALIZATION_ERROR = "normalization_error"
+    READ_ERROR = "read_error"
 
 
 class Confidence(StrEnum):
@@ -107,6 +111,10 @@ DIAGNOSTIC_SEVERITY: dict[DiagnosticCode, Severity] = {
     DiagnosticCode.UNSUPPORTED_CONSTRUCT: Severity.WARNING,
     DiagnosticCode.PARTIAL_ANALYSIS: Severity.WARNING,
     DiagnosticCode.ANALYZER_NOT_REGISTERED: Severity.ERROR,
+    DiagnosticCode.ANALYZER_CONTRACT: Severity.ERROR,
+    DiagnosticCode.FILESYSTEM_MUTATION: Severity.ERROR,
+    DiagnosticCode.NORMALIZATION_ERROR: Severity.ERROR,
+    DiagnosticCode.READ_ERROR: Severity.ERROR,
 }
 
 

@@ -16,7 +16,7 @@ from typing import Any, NoReturn
 
 from pathspec import GitIgnoreSpec
 
-from runtime_contract.config.loader import ConfigValidationError, load_config
+from runtime_contract.config.loader import ConfigDocument, ConfigValidationError, load_config
 from runtime_contract.config.models import RuntimeContractConfig
 
 
@@ -71,6 +71,7 @@ class DiscoveryItem:
     identity: FileIdentity
     _resolved_path: Path = field(repr=False, compare=False)
     _logical_path: Path = field(repr=False, compare=False)
+    root_name: str = "default"
 
     def to_public_dict(self) -> dict[str, str]:
         return {"path": self.path, "kind": self.kind.value}
@@ -181,14 +182,45 @@ _CODE_SUFFIXES = {
 _WINDOWS_ABSOLUTE = re.compile(r"^[A-Za-z]:[/\\]")
 
 
-def discover(root: str | os.PathLike[str], *, environment: str | None = None) -> DiscoveryResult:
+def discover(
+    root: str | os.PathLike[str],
+    *,
+    environment: str | None = None,
+    config_path: Path | None = None,
+    selected_roots: Sequence[str] | None = None,
+    include: Sequence[str] | None = None,
+    exclude: Sequence[str] | None = None,
+    config_document: ConfigDocument | None = None,
+) -> DiscoveryResult:
     """Discover supported files under *root* without reading candidate contents."""
 
     logical_root = Path(root)
     canonical_root, root_stat = _validate_root(logical_root)
-    config_item, config, contract = _load_root_config(logical_root, canonical_root)
+    config_item, config, contract = _load_root_config(
+        logical_root,
+        canonical_root,
+        config_path=config_path,
+        config_document=config_document,
+    )
+    if include is not None:
+        config = _Config(tuple(include), config.exclude)
+        if contract is not None:
+            contract = contract.model_copy(update={"include": list(include)})
+    if exclude is not None:
+        config = _Config(config.include, tuple(exclude))
+        if contract is not None:
+            contract = contract.model_copy(update={"exclude": list(exclude)})
     effective_roots = contract.effective_roots() if contract is not None else {"default": None}
-    if environment is not None:
+    if selected_roots is not None:
+        unknown = [name for name in selected_roots if name not in effective_roots]
+        if unknown:
+            available = ", ".join(effective_roots)
+            raise DiscoveryError(
+                DiscoveryErrorCode.INVALID_CONFIG,
+                f"unknown root: {unknown[0]}; available roots: {available}",
+            )
+        selected_names = list(selected_roots)
+    elif environment is not None:
         if contract is None or environment not in contract.environments:
             raise DiscoveryError(DiscoveryErrorCode.INVALID_CONFIG, "unknown environment")
         selected_names = contract.environments[environment].roots
@@ -418,6 +450,7 @@ def _discover_named_roots(
                 item.identity,
                 item._resolved_path,
                 item._logical_path,
+                name,
             )
             previous = candidates.get(public.identity)
             if previous is None or _sort_key(public.path) < _sort_key(previous.path):
@@ -451,13 +484,25 @@ def _validate_root(logical_root: Path) -> tuple[Path, os.stat_result]:
 
 
 def _load_root_config(
-    logical_root: Path, canonical_root: Path
+    logical_root: Path,
+    canonical_root: Path,
+    *,
+    config_path: Path | None = None,
+    config_document: ConfigDocument | None = None,
 ) -> tuple[DiscoveryItem | None, _Config, RuntimeContractConfig | None]:
-    path = logical_root / "runtime-contract.yaml"
+    path = (
+        config_document.path
+        if config_document is not None
+        else logical_root / (config_path or Path("runtime-contract.yaml"))
+    )
     try:
         path.lstat()
     except FileNotFoundError:
-        return None, _Config(), None
+        if config_path is None:
+            return None, _Config(), None
+        raise DiscoveryError(
+            DiscoveryErrorCode.INVALID_CONFIG, "configuration file was not found"
+        ) from None
     except OSError as error:
         _raise(DiscoveryErrorCode.INACCESSIBLE_PATH, "cannot inspect runtime-contract.yaml", error)
     try:
@@ -471,7 +516,9 @@ def _load_root_config(
             "runtime-contract.yaml must resolve to a regular file inside the analysis root",
         )
     try:
-        document = load_config(logical_root, require=True)
+        document = config_document or load_config(
+            logical_root, require=True, config_path=config_path
+        )
         assert document is not None
     except ConfigValidationError as error:
         first = error.errors[0]
@@ -487,7 +534,8 @@ def _load_root_config(
     include = tuple(document.config.include)
     exclude = tuple(document.config.exclude)
     identity = FileIdentity.from_stat(metadata)
-    item = DiscoveryItem("runtime-contract.yaml", CandidateKind.CONFIG, identity, resolved, path)
+    reported_config = path.relative_to(logical_root).as_posix()
+    item = DiscoveryItem(reported_config, CandidateKind.CONFIG, identity, resolved, path)
     return item, _Config(include, exclude), document.config
 
 

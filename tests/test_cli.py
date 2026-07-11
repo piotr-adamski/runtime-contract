@@ -92,8 +92,6 @@ def test_version_fails_closed_without_distribution_metadata(
 @pytest.mark.parametrize(
     ("arguments", "command"),
     [
-        (["scan"], "scan"),
-        (["scan", "project"], "scan"),
         (["check"], "check"),
         (["check", "project"], "check"),
         (["explain", "RTC001"], "explain"),

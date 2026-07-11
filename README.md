@@ -4,9 +4,9 @@
 
 Static, local CLI for finding inconsistencies between environment variables used in application code and how they are documented and supplied at build and runtime.
 
-> **Status:** An installable package and CLI skeleton exist. Production Python and
-> JavaScript/TypeScript analyzers are available as library APIs; the read-only analysis commands
-> are not wired to analyzers yet.
+> **Status:** `runtime-contract scan` performs deterministic static Python and
+> JavaScript/TypeScript analysis end to end. `check`, `explain`, and `diff` remain fail-closed
+> placeholders.
 
 An independent open-source project maintained by Piotr Adamski.
 
@@ -19,9 +19,18 @@ The planned v0.1.0 inputs are:
 - Docker Compose;
 - standard Kubernetes manifests.
 
-The CLI registers the planned read-only commands `scan`, `check`, `explain`, and `diff`.
-Their help is available, but every analysis command currently fails closed with exit code 2 rather
-than producing a misleading report.
+Scan a project and render text, canonical JSON, or SARIF 2.1.0:
+
+```text
+runtime-contract scan .
+runtime-contract scan . --root api --format json
+runtime-contract scan . --format sarif --output reports/runtime-contract.sarif
+```
+
+`scan` returns 0 for complete and credible partial analysis, and 2 when it cannot produce a
+reliable result. It never returns 1. Reports go to stdout unless `--output` (or configured
+`execution.report`) selects an atomic file write. Technical CLI errors go to stderr. `check`,
+`explain`, and `diff` continue to fail closed with exit code 2.
 
 Local-only operation without telemetry or data transmission remains a project requirement. There is
 currently no release or PyPI publication.
@@ -60,7 +69,7 @@ variables, propagate values between modules, handle mapping mutation methods suc
 or `update`, or detect Pydantic settings. The JavaScript/TypeScript analyzer likewise does not
 follow aliases or constants and does not inspect `import.meta.env`, Deno, Bun, dotenv, bundlers, or
 framework-specific APIs. Neither analyzer imports or executes analyzed project code. Deployment-file
-Deployment-file analyzers, findings, and CLI integration remain future work.
+analyzers and findings remain future work.
 
 ## Development
 
