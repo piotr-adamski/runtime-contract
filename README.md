@@ -4,6 +4,13 @@
 
 Static, local CLI for finding inconsistencies between environment variables used in application code and how they are documented and supplied at build and runtime.
 
+Kubernetes manifests are traversed statically and locally from caller-provided YAML (including
+multi-document streams) or JSON. Supported workload kinds are `Pod`, `Deployment`,
+`StatefulSet`, `DaemonSet`, `Job`, and `CronJob`; traversal inventories `containers` and
+`initContainers` without reading or exposing their values. CRDs, operator resources, `List`, and
+other unsupported resources produce informational `RTC012`. Helm, Kustomize, cluster access, and
+manifest-directed file reads are outside this boundary.
+
 > **Status:** `runtime-contract scan` performs deterministic static Python,
 > JavaScript/TypeScript, `.env.example`, Dockerfile, and Docker Compose analysis end to end. `check`, `explain`, and `diff`
 > remain fail-closed placeholders.
