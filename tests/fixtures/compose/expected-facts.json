@@ -1,0 +1,13 @@
+{
+  "environments": ["api", "worker"],
+  "keys": ["DATABASE_URL", "EMPTY", "IMAGE_VERSION", "QUEUE_URL"],
+  "providers": [
+    ["api", "build", "compose_build_args", "explicit_key"],
+    ["api", "runtime", "compose_env_file", "unresolved_bulk"],
+    ["api", "runtime", "compose_env_file", "unresolved_bulk"],
+    ["api", "runtime", "compose_environment", "explicit_key"],
+    ["api", "runtime", "compose_environment", "explicit_key"],
+    ["worker", "runtime", "compose_env_file", "unresolved_bulk"],
+    ["worker", "runtime", "compose_environment", "explicit_key"]
+  ]
+}

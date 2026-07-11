@@ -14,9 +14,17 @@ import pytest
 from pydantic import ValidationError
 
 from runtime_contract.compose import (
+    MAX_BINDING_NAME_BYTES,
+    MAX_BUILD_ARG_ENTRIES,
     MAX_COMPOSE_BYTES,
+    MAX_ENV_FILE_ENTRIES,
+    MAX_ENV_FILE_PATH_BYTES,
+    MAX_ENVIRONMENT_ENTRIES,
+    ComposeBinding,
+    ComposeBindingKind,
     ComposeDiagnostic,
     ComposeDiagnosticCode,
+    ComposeEnvFile,
     ComposeInput,
     ComposeInterpolation,
     ComposeInterpolationOperator,
@@ -103,6 +111,104 @@ def test_services_profiles_locations_sorting_and_empty_profiles() -> None:
     ]
 
 
+def test_structural_bindings_and_env_files_preserve_declared_priority() -> None:
+    result = load(
+        """services:
+  api:
+    environment: [A=first, B=x, A=last]
+    env_file:
+      - base.env
+      - path: raw.env
+        required: false
+        format: raw
+    build:
+      args: [VERSION=one, VERSION=two, BARE]
+"""
+    )
+    service = result.services[0]
+    assert [(item.name, item.priority) for item in service.bindings] == [
+        ("B", 1),
+        ("A", 2),
+        ("VERSION", 1),
+        ("BARE", 2),
+    ]
+    assert [
+        (item.path, item.required, item.format, item.priority) for item in service.env_files
+    ] == [
+        ("base.env", True, None, 0),
+        ("raw.env", False, "raw", 1),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("field", "limit"),
+    [
+        ("environment", MAX_ENVIRONMENT_ENTRIES),
+        ("build_args", MAX_BUILD_ARG_ENTRIES),
+        ("env_file", MAX_ENV_FILE_ENTRIES),
+    ],
+)
+@pytest.mark.parametrize("delta", [-1, 0, 1])
+def test_new_collection_limits(field: str, limit: int, delta: int) -> None:
+    count = limit + delta
+    if field == "environment":
+        body = "    environment:\n" + "".join(f"      K{i}: x\n" for i in range(count))
+    elif field == "build_args":
+        body = "    build:\n      args:\n" + "".join(f"        K{i}: x\n" for i in range(count))
+    else:
+        body = "    env_file:\n" + "".join(f"      - f{i}.env\n" for i in range(count))
+    result = load("services:\n  api:\n" + body)
+    assert (result.status is ComposeLoadStatus.FAILED) is (delta == 1)
+    if delta == 1:
+        assert result.services == ()
+        assert result.diagnostics[0].code is ComposeDiagnosticCode.SAFETY_LIMIT
+
+
+@pytest.mark.parametrize("limit_kind", ["name", "path"])
+@pytest.mark.parametrize("delta", [-1, 0, 1])
+def test_new_scalar_limits(limit_kind: str, delta: int) -> None:
+    if limit_kind == "name":
+        value = "A" * (MAX_BINDING_NAME_BYTES + delta)
+        source = f"services:\n  api:\n    environment:\n      {value}: x\n"
+    else:
+        value = "a" * (MAX_ENV_FILE_PATH_BYTES - 4 + delta) + ".env"
+        source = f"services:\n  api:\n    env_file: {value}\n"
+    result = load(source)
+    assert (result.status is ComposeLoadStatus.FAILED) is (delta == 1)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "build: []",
+        "environment: {1: x}",
+        "environment: [{A: x}]",
+        "environment: scalar",
+        "environment: [BAD-NAME=x]",
+        'env_file: {path: safe.env, required: "yes"}',
+        "env_file: {required: false}",
+    ],
+)
+def test_invalid_new_constructs_are_redacted_partial(body: str) -> None:
+    result = load(f"services:\n  api:\n    {body}\n")
+    assert result.status is ComposeLoadStatus.PARTIAL
+    assert result.diagnostics
+
+
+def test_new_public_model_validators_reject_unsafe_metadata() -> None:
+    location = SourceLocation(path="compose.yaml", start_line=1, start_column=1)
+    with pytest.raises(ValidationError):
+        ComposeBinding(
+            name="BAD-NAME",
+            kind=ComposeBindingKind.ENVIRONMENT,
+            location=location,
+            priority=0,
+        )
+    for path in ("/absolute.env", "../escape.env"):
+        with pytest.raises(ValidationError):
+            ComposeEnvFile(path=path, location=location, priority=0)
+
+
 def test_anchors_aliases_merge_and_explicit_override_preserve_source_locations() -> None:
     result = load(
         """x-defaults: &defaults
@@ -167,9 +273,6 @@ def test_all_interpolation_forms_nested_escaped_and_mapping_keys() -> None:
         (b"services: {}\n---\nservices: {}\n", ComposeDiagnosticCode.MULTIPLE_DOCUMENTS),
         (b"name: value\n", ComposeDiagnosticCode.MISSING_SERVICES),
         (b"services: []\n", ComposeDiagnosticCode.INVALID_SERVICES),
-        (b"services:\n  api: value\n", ComposeDiagnosticCode.INVALID_SERVICE),
-        (b"services:\n  1: {}\n", ComposeDiagnosticCode.INVALID_SERVICE),
-        (b"services:\n  '${NAME}': {}\n", ComposeDiagnosticCode.DYNAMIC_NAME),
         (b"services: &loop\n  api:\n    self: *loop\n", ComposeDiagnosticCode.CYCLIC_ALIAS),
         (b"services:\n  api:\n    <<: value\n", ComposeDiagnosticCode.INVALID_MERGE),
     ],
@@ -179,6 +282,23 @@ def test_fatal_inputs_fail_closed(content: bytes, code: ComposeDiagnosticCode) -
     assert result.status is ComposeLoadStatus.FAILED
     assert result.services == ()
     assert result.interpolations == ()
+    assert result.diagnostics[0].code is code
+
+
+@pytest.mark.parametrize(
+    ("content", "code"),
+    [
+        (b"services:\n  api: value\n", ComposeDiagnosticCode.INVALID_SERVICE),
+        (b"services:\n  1: {}\n", ComposeDiagnosticCode.INVALID_SERVICE),
+        (b"services:\n  '${NAME}': {}\n", ComposeDiagnosticCode.DYNAMIC_NAME),
+    ],
+)
+def test_invalid_individual_services_are_recoverable(
+    content: bytes, code: ComposeDiagnosticCode
+) -> None:
+    result = load(content)
+    assert result.status is ComposeLoadStatus.PARTIAL
+    assert result.services == ()
     assert result.diagnostics[0].code is code
 
 

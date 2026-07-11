@@ -44,6 +44,7 @@ __all__ = [
     "AnalyzerRegistryError",
     "CandidateKindConflictError",
     "ClassificationResolver",
+    "ComposeAnalyzer",
     "Confidence",
     "ConfigPolicyClassificationResolver",
     "DecisionSource",
@@ -61,3 +62,4 @@ __all__ = [
     "JavaScriptTypeScriptAnalyzer",
     "PythonAstAnalyzer",
 ]
+from runtime_contract.analysis.compose import ComposeAnalyzer

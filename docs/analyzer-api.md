@@ -35,14 +35,18 @@ result = registry.analyze(analyzer_input)
 JSON Schema is available from `runtime_contract.analysis.schema.schema_bytes()` and as
 `schemas/runtime-contract-analysis-result-v1.schema.json`.
 
-`PythonAstAnalyzer`, `JavaScriptTypeScriptAnalyzer`, `DotenvAnalyzer`, and `DockerfileAnalyzer` are
-the built-in
+`PythonAstAnalyzer`, `JavaScriptTypeScriptAnalyzer`, `DotenvAnalyzer`, `DockerfileAnalyzer`, and
+`ComposeAnalyzer` are the built-in
 implementations registered by `scan`. `DotenvAnalyzer` accepts only the `ENV_EXAMPLE` candidate
 kind produced for the exact `.env.example` filename. It inventories declaration facts without
 retaining values, expanding interpolation, evaluating command substitution, or performing I/O.
 `DockerfileAnalyzer` statically inventories explicit `ARG` build delivery and `ENV` runtime
 delivery across multi-stage Dockerfiles. It tracks local-stage inheritance privately, recognizes
 line continuations and parser escape directives, and never retains values or executes Dockerfile
-content. Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry` seam without changing
-`FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin discovery and deployment-file
-Compose and Kubernetes analyzers remain outside v0.1.0's implemented slice.
+content. `ComposeAnalyzer` inventories static service `environment` and `build.args` names as
+explicit runtime/build providers and static `env_file` references as unresolved bulk providers.
+It never reads an env file or retains values, interpolation fallbacks, or host data. Service
+`environment` has higher declared precedence than every `env_file`; multi-file Compose resolution
+remains outside this slice. Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry`
+seam without changing `FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin
+discovery and Kubernetes analysis remain outside v0.1.0's implemented slice.

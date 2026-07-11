@@ -14,6 +14,7 @@ from runtime_contract.analysis import (
     AnalyzerExecutionError,
     AnalyzerInput,
     AnalyzerRegistry,
+    ComposeAnalyzer,
     ConfigPolicyClassificationResolver,
     DiagnosticCode,
     DockerfileAnalyzer,
@@ -152,6 +153,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
             JavaScriptTypeScriptAnalyzer(),
             DotenvAnalyzer(),
             DockerfileAnalyzer(),
+            ComposeAnalyzer(),
         )
     )
     policy = ConfigPolicy(document)
@@ -164,6 +166,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         CandidateKind.JAVASCRIPT,
         CandidateKind.ENV_EXAMPLE,
         CandidateKind.DOCKERFILE,
+        CandidateKind.COMPOSE,
     }
     for item in discovery.candidates:
         if item.kind not in supported:
