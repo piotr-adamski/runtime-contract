@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Add explicit in-memory Docker Compose project resolution with ordered multi-file merge,
+  profiles, `!reset`/`!override`, local include/extends, interpolation-source precedence, atomic
+  failures, and field-level value-blind provenance.
 - Add an end-to-end, non-executing Docker Compose analyzer for service `environment`, `env_file`,
   and `build.args` delivery facts without reading referenced files or retaining values.
 - Add a deterministic, non-executing Dockerfile analyzer for explicit multi-stage `ARG` and `ENV`

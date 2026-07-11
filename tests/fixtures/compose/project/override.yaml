@@ -1,0 +1,7 @@
+services:
+  web:
+    profiles: [test, debug]
+    environment:
+      SHARED: override
+      OVERRIDE_ONLY: override
+    env_file: [override.env]

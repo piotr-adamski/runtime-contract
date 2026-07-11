@@ -46,7 +46,11 @@ line continuations and parser escape directives, and never retains values or exe
 content. `ComposeAnalyzer` inventories static service `environment` and `build.args` names as
 explicit runtime/build providers and static `env_file` references as unresolved bulk providers.
 It never reads an env file or retains values, interpolation fallbacks, or host data. Service
-`environment` has higher declared precedence than every `env_file`; multi-file Compose resolution
-remains outside this slice. Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry`
+`environment` has higher declared precedence than every `env_file`. The public
+`resolve_compose_project` API resolves explicit multi-file bundles, profile activation,
+`!reset`/`!override`, local include/extends, interpolation-source names, and value-blind provenance.
+`ComposeAnalyzer.analyze_project` converts only enabled effective services into provider facts;
+the ordinary one-file `analyze` contract is unchanged. Additional analyzers can use the same
+`Analyzer` and `AnalyzerRegistry`
 seam without changing `FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin
 discovery and Kubernetes analysis remain outside v0.1.0's implemented slice.

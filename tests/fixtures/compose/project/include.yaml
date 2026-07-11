@@ -1,0 +1,4 @@
+services:
+  worker:
+    environment:
+      WORKER_ONLY: worker

@@ -33,6 +33,12 @@ class ComposeInterpolationOperator(StrEnum):
     ALTERNATE_IF_SET = "alternate_if_set"
 
 
+class ComposeInterpolationResolution(StrEnum):
+    RESOLVED = "resolved"
+    UNRESOLVED = "unresolved"
+    FALLBACK = "fallback"
+
+
 class ComposeDiagnosticCode(StrEnum):
     INVALID_ENCODING = "invalid_encoding"
     INVALID_YAML = "invalid_yaml"
@@ -49,6 +55,52 @@ class ComposeDiagnosticCode(StrEnum):
     INVALID_MERGE = "invalid_merge"
     CYCLIC_ALIAS = "cyclic_alias"
     SAFETY_LIMIT = "safety_limit"
+    INVALID_PROJECT_INPUT = "invalid_project_input"
+    DUPLICATE_PROJECT_PATH = "duplicate_project_path"
+    MISSING_REFERENCE = "missing_reference"
+    CYCLIC_REFERENCE = "cyclic_reference"
+    REMOTE_REFERENCE = "remote_reference"
+    INVALID_PROFILE = "invalid_profile"
+    INVALID_OVERRIDE_TAG = "invalid_override_tag"
+    MERGE_CONFLICT = "merge_conflict"
+    PROVENANCE_LIMIT = "provenance_limit"
+    PROJECT_SIZE_LIMIT = "project_size_limit"
+
+
+class ComposeSourceKind(StrEnum):
+    COMPOSE_FILE = "compose_file"
+    INCLUDE_FILE = "include_file"
+    EXTENDS_FILE = "extends_file"
+    CLI_ENV_FILE = "cli_env_file"
+    PROJECT_DOTENV = "project_dotenv"
+    EXPLICIT_SHELL_NAME = "explicit_shell_name"
+
+
+class ComposeVariableSourceKind(StrEnum):
+    CLI_ENV_FILE = "cli_env_file"
+    PROJECT_DOTENV = "project_dotenv"
+
+
+class ComposeProvenanceOperation(StrEnum):
+    INTRODUCED = "introduced"
+    MERGED = "merged"
+    REPLACED = "replaced"
+    SUPERSEDED = "superseded"
+    RESET = "reset"
+    REMOVED = "removed"
+    RETAINED = "retained"
+
+
+class ComposeProvenanceOutcome(StrEnum):
+    EFFECTIVE = "effective"
+    SUPERSEDED = "superseded"
+    REMOVED = "removed"
+
+
+class ComposeServiceActivation(StrEnum):
+    ALWAYS_ENABLED = "always_enabled"
+    PROFILE_ENABLED = "profile_enabled"
+    PROFILE_DISABLED = "profile_disabled"
 
 
 class ComposeInput(_ComposeModel):
@@ -78,6 +130,9 @@ class ComposeInterpolation(_ComposeModel):
     operator: ComposeInterpolationOperator
     location: SourceLocation
     service: str | None = None
+    resolved_source_kind: ComposeSourceKind | None = None
+    resolved_source_path: str | None = None
+    resolution: ComposeInterpolationResolution | None = None
 
     @field_validator("name")
     @classmethod
@@ -139,6 +194,7 @@ class ComposeService(_ComposeModel):
     interpolations: tuple[ComposeInterpolation, ...] = ()
     bindings: tuple[ComposeBinding, ...] = ()
     env_files: tuple[ComposeEnvFile, ...] = ()
+    activation: ComposeServiceActivation = ComposeServiceActivation.ALWAYS_ENABLED
 
     @model_validator(mode="after")
     def aligned_profiles(self) -> Self:
@@ -166,6 +222,69 @@ class ComposeLoadResult(_ComposeModel):
         return self
 
 
+class ComposeVariableSourceInput(_ComposeModel):
+    kind: ComposeVariableSourceKind
+    path: str
+    content: bytes = Field(repr=False)
+
+    @field_validator("path")
+    @classmethod
+    def normalize_path(cls, value: str) -> str:
+        return ComposeInput.normalize_path(value)
+
+
+class ComposeProjectInput(_ComposeModel):
+    files: tuple[ComposeInput, ...]
+    active_profiles: tuple[str, ...] = ()
+    interpolation_sources: tuple[ComposeVariableSourceInput, ...] = ()
+    shell_variable_names: tuple[str, ...] = ()
+
+    @field_validator("files")
+    @classmethod
+    def files_not_empty(cls, value: tuple[ComposeInput, ...]) -> tuple[ComposeInput, ...]:
+        if not value:
+            raise ValueError("files must not be empty")
+        return value
+
+
+class ComposeProvenanceStep(_ComposeModel):
+    source_kind: ComposeSourceKind
+    source_path: str
+    source_index: int
+    location: SourceLocation
+    operation: ComposeProvenanceOperation
+    outcome: ComposeProvenanceOutcome
+
+
+class ComposeResolutionTrace(_ComposeModel):
+    subject: str
+    contributions: tuple[ComposeProvenanceStep, ...]
+    winner_index: int | None
+
+
+class ComposeUsedSource(_ComposeModel):
+    kind: ComposeSourceKind
+    path: str | None
+    source_index: int
+
+
+class ComposeProjectResult(_ComposeModel):
+    status: ComposeLoadStatus
+    services: tuple[ComposeService, ...] = ()
+    interpolations: tuple[ComposeInterpolation, ...] = ()
+    diagnostics: tuple[ComposeDiagnostic, ...] = ()
+    resolution_traces: tuple[ComposeResolutionTrace, ...] = ()
+    used_sources: tuple[ComposeUsedSource, ...] = ()
+
+    @model_validator(mode="after")
+    def failed_is_atomic(self) -> Self:
+        if self.status is ComposeLoadStatus.FAILED and (
+            self.services or self.interpolations or self.resolution_traces
+        ):
+            raise ValueError("failed Compose project resolution cannot expose partial data")
+        return self
+
+
 __all__ = [
     "ComposeBinding",
     "ComposeBindingKind",
@@ -175,7 +294,19 @@ __all__ = [
     "ComposeInput",
     "ComposeInterpolation",
     "ComposeInterpolationOperator",
+    "ComposeInterpolationResolution",
     "ComposeLoadResult",
     "ComposeLoadStatus",
+    "ComposeProjectInput",
+    "ComposeProjectResult",
+    "ComposeProvenanceOperation",
+    "ComposeProvenanceOutcome",
+    "ComposeProvenanceStep",
+    "ComposeResolutionTrace",
     "ComposeService",
+    "ComposeServiceActivation",
+    "ComposeSourceKind",
+    "ComposeUsedSource",
+    "ComposeVariableSourceInput",
+    "ComposeVariableSourceKind",
 ]
