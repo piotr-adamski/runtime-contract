@@ -97,6 +97,21 @@ create references, and `$(...)` is opaque text that is never executed. This is i
 syntax compatibility with a common dotenv subset, not runtime compatibility with dotenv libraries
 and not an environment loader.
 
+`DockerfileAnalyzer` statically recognizes case-insensitive `FROM`, `ARG`, and `ENV`
+instructions in `Dockerfile` and `Dockerfile.*`. Each explicit `ARG` is build-phase delivery and
+each explicit `ENV` pair is runtime-phase delivery into one implicit component environment.
+Multi-stage aliases are matched case-insensitively and local-stage state is inherited privately;
+inherited declarations never create synthetic provider evidence. Global `ARG` names are available
+to later `FROM` instructions but enter a stage only after an explicit stage-local declaration.
+
+The Dockerfile lexer supports UTF-8 with an optional BOM, LF/CRLF, parser `# escape=` directives,
+logical-line continuations, quoted and legacy `ENV` forms, and bounded heredoc skipping. It
+recognizes substitutions without expanding them. Values, base-image references, source snippets,
+and substitution-only variable names are never emitted or retained as facts. Malformed local
+instructions recover as redacted partial diagnostics when boundaries remain trustworthy; invalid
+encoding and safety-limit violations fail closed. Docker, BuildKit, shells, commands, files named
+by the Dockerfile, host environment variables, and network resources are never invoked or read.
+
 Analyzer observations can be aggregated through the pure `runtime_contract.normalization` API.
 It canonicalizes relative source locations, deduplicates identical facts, rejects conflicts and
 invalid references with typed technical errors, and returns a deterministic facts-only `Contract`.
@@ -115,8 +130,8 @@ The analyzer intentionally does not follow aliases created by assignment, resolv
 variables, propagate values between modules, handle mapping mutation methods such as `setdefault`
 or `update`, or detect Pydantic settings. The JavaScript/TypeScript analyzer likewise does not
 follow aliases or constants and does not inspect `import.meta.env`, Deno, Bun, dotenv, bundlers, or
-framework-specific APIs. No analyzer imports or executes analyzed project code. Dockerfile,
-Compose, Kubernetes, and findings remain future work.
+framework-specific APIs. No analyzer imports or executes analyzed project code. Compose,
+Kubernetes, and findings remain future work.
 
 ## Development
 
