@@ -17,20 +17,22 @@ from typer.testing import CliRunner
 
 from runtime_contract.analysis import (
     AnalysisCompleteness,
+    AnalysisResult,
     AnalyzerInput,
     AnalyzerRegistry,
     DiagnosticCode,
     EffectiveClassification,
     FactKind,
+    FactObservation,
     JavaScriptTypeScriptAnalyzer,
     PythonAstAnalyzer,
     python_ast,
 )
 from runtime_contract.cli import app
 from runtime_contract.discovery import CandidateKind
-from runtime_contract.domain import ConfigKey, Consumer, ConsumerAccessKind, Profile
+from runtime_contract.domain import ConfigKey, Consumer, ConsumerAccessKind, Contract, Profile
 from runtime_contract.normalization import normalize_observations
-from runtime_contract.scan import ScanRequest, run_scan
+from runtime_contract.scan import ScanRequest, ScanResult, run_scan
 
 FIXTURES = Path(__file__).parent / "fixtures" / "cross"
 GOLDENS = Path(__file__).parent / "golden"
@@ -364,9 +366,20 @@ environments:
 
 @pytest.mark.parametrize("output_format", ["text", "json", "sarif"])
 def test_multi_root_cli_and_run_scan_are_deterministic_safe_and_valid(
-    tmp_path: Path, output_format: str
+    tmp_path: Path, output_format: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _write_project(tmp_path)
+    analyzed_kinds: list[CandidateKind] = []
+    observations: list[FactObservation] = []
+    original_analyze = AnalyzerRegistry.analyze
+
+    def record_analysis(registry: AnalyzerRegistry, input: AnalyzerInput) -> AnalysisResult:
+        analyzed_kinds.append(input.kind)
+        result = original_analyze(registry, input)
+        observations.extend(result.observations)
+        return result
+
+    monkeypatch.setattr(AnalyzerRegistry, "analyze", record_analysis)
     args = ["scan", str(tmp_path), "--environment", "prod", "--format", output_format]
     first = runner.invoke(app, args)
     second = runner.invoke(app, args)
@@ -376,6 +389,10 @@ def test_multi_root_cli_and_run_scan_are_deterministic_safe_and_valid(
     direct = run_scan(ScanRequest(path=tmp_path, environment="prod", output_format=output_format))
     assert direct.exit_code == 0
     assert direct.rendered == first.stdout
+    assert isinstance(direct.result, ScanResult)
+    assert isinstance(direct.result.contract, Contract)
+    assert set(analyzed_kinds) == {CandidateKind.PYTHON, CandidateKind.JAVASCRIPT}
+    assert observations and all(type(item) is FactObservation for item in observations)
     for canary in (*CANARIES, str(tmp_path)):
         assert canary not in repr(direct.result)
         assert canary not in first.stdout + first.stderr
@@ -392,6 +409,11 @@ def test_multi_root_cli_and_run_scan_are_deterministic_safe_and_valid(
         "settings.js",
         "settings.ts",
     }
+    target = tmp_path / f"report-{output_format}.out"
+    written = runner.invoke(app, [*args, "--output", target.name])
+    assert written.exit_code == 0
+    assert written.stdout == written.stderr == ""
+    assert target.read_bytes() == first.stdout.encode("utf-8")
     if output_format == "json":
         schema = json.loads(Path("schemas/runtime-contract-scan-result-v1.schema.json").read_text())
         jsonschema.Draft202012Validator(schema).validate(json.loads(first.stdout))

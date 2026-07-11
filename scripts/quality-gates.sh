@@ -192,6 +192,9 @@ smoke_distribution() {
   temp_dir=$(mktemp -d)
   uv venv --python "$python_version" "$temp_dir/venv"
   uv pip install --python "$temp_dir/venv/bin/python" "$distribution"
+  uv pip install --python "$temp_dir/venv/bin/python" 'jsonschema>=4.26,<5'
+  uv pip check --python "$temp_dir/venv/bin/python"
+  cp -R examples/scan-flow "$temp_dir/fixture"
   (
     cd "$temp_dir"
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
@@ -207,6 +210,20 @@ smoke_distribution() {
       'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'from runtime_contract.normalization import NormalizationError, NormalizationErrorCode, normalize_observations; assert normalize_observations(()).model_dump_json() and NormalizationError and NormalizationErrorCode'
+    PYTHONPATH= "$temp_dir/venv/bin/python" -c \
+      'import importlib; modules=("runtime_contract", "runtime_contract.analysis", "runtime_contract.domain", "runtime_contract.normalization", "runtime_contract.scan"); assert all(getattr(importlib.import_module(name), exported) is not None for name in modules for exported in importlib.import_module(name).__all__)'
+    for scan_format in text json sarif; do
+      PYTHONHASHSEED=1 PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" scan fixture \
+        --format "$scan_format" >"$scan_format.first"
+      PYTHONHASHSEED=2 PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" scan fixture \
+        --format "$scan_format" >"$scan_format.second"
+      cmp "$scan_format.first" "$scan_format.second"
+      PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" scan fixture --format "$scan_format" \
+        --output "$scan_format.output"
+      cmp "$scan_format.first" "fixture/$scan_format.output"
+    done
+    PYTHONPATH= "$temp_dir/venv/bin/python" -c \
+      'import json; from jsonschema import Draft202012Validator; from runtime_contract.scan.schema import schema_bytes; Draft202012Validator(json.loads(schema_bytes())).validate(json.load(open("json.first", encoding="utf-8")))'
   )
   rm -rf "$temp_dir"
   echo "$label smoke test: PASS on Python $python_version"
