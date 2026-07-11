@@ -41,6 +41,11 @@ static Python source analysis. It recognizes literal keys used through `os.geten
 aliases. Source is decoded according to Python coding-cookie rules and parsed with the standard
 library AST; analyzed project code is never imported or executed.
 
+Analyzer observations can be aggregated through the pure `runtime_contract.normalization` API.
+It canonicalizes relative source locations, deduplicates identical facts, rejects conflicts and
+invalid references with typed technical errors, and returns a deterministic facts-only `Contract`.
+See [`docs/normalization-api.md`](docs/normalization-api.md).
+
 `JavaScriptTypeScriptAnalyzer` uses the Python Tree-sitter bindings and distributed JavaScript,
 TypeScript, and TSX grammars for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`, and `.tsx`.
 It recognizes direct `process.env.NAME` and literal `process.env["NAME"]` reads, including optional
@@ -55,7 +60,7 @@ variables, propagate values between modules, handle mapping mutation methods suc
 or `update`, or detect Pydantic settings. The JavaScript/TypeScript analyzer likewise does not
 follow aliases or constants and does not inspect `import.meta.env`, Deno, Bun, dotenv, bundlers, or
 framework-specific APIs. Neither analyzer imports or executes analyzed project code. Deployment-file
-analyzers, multi-file aggregation, findings, and CLI integration remain future work.
+Deployment-file analyzers, findings, and CLI integration remain future work.
 
 ## Development
 
