@@ -1,5 +1,6 @@
 """Public, language-independent analyzer extension contract."""
 
+from runtime_contract.analysis.dockerfile import DockerfileAnalyzer
 from runtime_contract.analysis.dotenv import DotenvAnalyzer
 from runtime_contract.analysis.javascript_typescript import JavaScriptTypeScriptAnalyzer
 from runtime_contract.analysis.models import (
@@ -48,6 +49,7 @@ __all__ = [
     "DecisionSource",
     "DiagnosticCode",
     "DiagnosticParameter",
+    "DockerfileAnalyzer",
     "DotenvAnalyzer",
     "DuplicateAnalyzerIdError",
     "EffectiveClassification",

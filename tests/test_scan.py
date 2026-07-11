@@ -12,6 +12,7 @@ import pytest
 from typer.testing import CliRunner
 
 from runtime_contract.analysis import AnalyzerExecutionError, AnalyzerRegistry
+from runtime_contract.analysis.dockerfile import MAX_DOCKERFILE_BYTES
 from runtime_contract.analysis.dotenv import MAX_DOTENV_BYTES
 from runtime_contract.cli import app
 from runtime_contract.config.loader import ConfigDocument
@@ -150,14 +151,54 @@ def test_invalid_encoding_is_failed_exit_two_with_safe_json(tmp_path: Path, name
 
 
 def test_only_unsupported_candidates_are_skipped_without_diagnostic(tmp_path: Path) -> None:
-    write(tmp_path / "Dockerfile", "FROM scratch\n")
     write(tmp_path / "compose.yaml", "services: {}\n")
     result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["status"] == "complete"
-    assert payload["summary"]["skipped"] == 2
+    assert payload["summary"]["skipped"] == 1
     assert payload["diagnostics"] == []
+
+
+@pytest.mark.parametrize("output_format", ["text", "json", "sarif"])
+def test_dockerfile_is_analyzed_in_every_output_format(tmp_path: Path, output_format: str) -> None:
+    write(tmp_path / "Dockerfile.prod", "FROM image\nARG BUILD_KEY\nENV RUNTIME_KEY=x\n")
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", output_format])
+    assert result.exit_code == 0
+    assert "no_registered_analyzer" not in result.stdout + result.stderr
+    if output_format == "json":
+        payload = json.loads(result.stdout)
+        assert payload["summary"]["analyzed"] == 1
+        assert payload["summary"]["providers"] == 2
+        assert payload["summary"]["candidate_kinds"] == {"dockerfile": 1}
+
+
+def test_dockerfile_partial_exits_zero_and_failed_exits_two(tmp_path: Path) -> None:
+    target = tmp_path / "Dockerfile"
+    write(target, "FROM ${DYNAMIC}\nARG SAFE\n")
+    partial = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert partial.exit_code == 0
+    assert json.loads(partial.stdout)["status"] == "partial"
+    write(target, b"\xff")
+    failed = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert failed.exit_code == 2
+    assert json.loads(failed.stdout)["status"] == "failed"
+
+
+def test_oversized_dockerfile_is_rejected_before_content_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "Dockerfile"
+    target.write_bytes(b"X" * (MAX_DOCKERFILE_BYTES + 1))
+
+    def forbidden_read(path: Path) -> bytes:
+        raise AssertionError(f"oversized candidate was read: {path.name}")
+
+    monkeypatch.setattr(Path, "read_bytes", forbidden_read)
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert result.exit_code == 2
+    payload = json.loads(result.stdout)
+    assert payload["diagnostics"][0]["parameters"] == [["limit_kind", "file_size"]]
 
 
 def test_dotenv_example_is_analyzed_and_forbidden_env_files_are_never_opened(
@@ -360,7 +401,7 @@ def test_text_verbose_levels_add_file_and_effective_scope_details(project: Path)
     assert "Effective scope" not in one.stdout
     assert "Effective scope" in two.stdout
     assert "Named roots: api, web" in two.stdout
-    assert "no_registered_analyzer=1" in two.stdout
+    assert "Skip reasons: -" in two.stdout
     assert default.stdout != one.stdout != two.stdout
 
 

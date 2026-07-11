@@ -16,11 +16,13 @@ from runtime_contract.analysis import (
     AnalyzerRegistry,
     ConfigPolicyClassificationResolver,
     DiagnosticCode,
+    DockerfileAnalyzer,
     DotenvAnalyzer,
     FactObservation,
     JavaScriptTypeScriptAnalyzer,
     PythonAstAnalyzer,
 )
+from runtime_contract.analysis.dockerfile import MAX_DOCKERFILE_BYTES
 from runtime_contract.analysis.dotenv import MAX_DOTENV_BYTES
 from runtime_contract.config.execution import EffectiveExecution, resolve_execution
 from runtime_contract.config.loader import ConfigDocument, load_config
@@ -108,7 +110,7 @@ def _technical_diagnostic(code: DiagnosticCode, path: str) -> AnalysisDiagnostic
     )
 
 
-def _dotenv_size_diagnostic(path: str) -> AnalysisDiagnostic:
+def _file_size_diagnostic(path: str) -> AnalysisDiagnostic:
     return AnalysisDiagnostic(
         code=DiagnosticCode.SAFETY_LIMIT,
         severity=Severity.ERROR,
@@ -145,14 +147,24 @@ def run_scan(request: ScanRequest) -> ScanRun:
         config_document=document if has_config else None,
     )
     registry = AnalyzerRegistry(
-        (PythonAstAnalyzer(), JavaScriptTypeScriptAnalyzer(), DotenvAnalyzer())
+        (
+            PythonAstAnalyzer(),
+            JavaScriptTypeScriptAnalyzer(),
+            DotenvAnalyzer(),
+            DockerfileAnalyzer(),
+        )
     )
     policy = ConfigPolicy(document)
     observations: list[FactObservation] = []
     diagnostics: list[AnalysisDiagnostic] = []
     files: list[ScanFile] = []
     counts = {"complete": 0, "partial": 0, "failed": 0, "analyzed": 0, "skipped": 0}
-    supported = {CandidateKind.PYTHON, CandidateKind.JAVASCRIPT, CandidateKind.ENV_EXAMPLE}
+    supported = {
+        CandidateKind.PYTHON,
+        CandidateKind.JAVASCRIPT,
+        CandidateKind.ENV_EXAMPLE,
+        CandidateKind.DOCKERFILE,
+    }
     for item in discovery.candidates:
         if item.kind not in supported:
             counts["skipped"] += 1
@@ -173,9 +185,13 @@ def run_scan(request: ScanRequest) -> ScanRun:
             diagnostics.append(_technical_diagnostic(DiagnosticCode.FILESYSTEM_MUTATION, item.path))
             files.append(ScanFile(path=item.path, kind=item.kind.value, status="failed"))
             continue
-        if item.kind is CandidateKind.ENV_EXAMPLE:
+        size_limit = {
+            CandidateKind.ENV_EXAMPLE: MAX_DOTENV_BYTES,
+            CandidateKind.DOCKERFILE: MAX_DOCKERFILE_BYTES,
+        }.get(item.kind)
+        if size_limit is not None:
             try:
-                oversized = resolved.stat().st_size > MAX_DOTENV_BYTES
+                oversized = resolved.stat().st_size > size_limit
             except OSError:
                 counts["failed"] += 1
                 diagnostics.append(_technical_diagnostic(DiagnosticCode.READ_ERROR, item.path))
@@ -183,7 +199,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
                 continue
             if oversized:
                 counts["failed"] += 1
-                diagnostics.append(_dotenv_size_diagnostic(item.path))
+                diagnostics.append(_file_size_diagnostic(item.path))
                 files.append(ScanFile(path=item.path, kind=item.kind.value, status="failed"))
                 continue
         try:

@@ -31,6 +31,7 @@ PUBLIC_EXPORTS = {
         "DecisionSource",
         "DiagnosticCode",
         "DiagnosticParameter",
+        "DockerfileAnalyzer",
         "DotenvAnalyzer",
         "DuplicateAnalyzerIdError",
         "EffectiveClassification",
