@@ -112,6 +112,15 @@ instructions recover as redacted partial diagnostics when boundaries remain trus
 encoding and safety-limit violations fail closed. Docker, BuildKit, shells, commands, files named
 by the Dockerfile, host environment variables, and network resources are never invoked or read.
 
+The public `runtime_contract.compose` API loads one in-memory Docker Compose YAML document from
+immutable relative-path and byte input. It returns frozen models for static service names,
+profiles, interpolation variable names, one-based locations, and redacted diagnostics. The loader
+supports bounded standard anchors, aliases, and mapping merges, but never expands variables,
+consults the host environment, opens referenced files, invokes Compose or Docker, or retains YAML
+values and snippets. External `include` and file-based `extends` remain inert partial diagnostics.
+Provider extraction from `environment`, `env_file`, and `build.args`, and multi-file override
+semantics are intentionally deferred.
+
 Analyzer observations can be aggregated through the pure `runtime_contract.normalization` API.
 It canonicalizes relative source locations, deduplicates identical facts, rejects conflicts and
 invalid references with typed technical errors, and returns a deterministic facts-only `Contract`.

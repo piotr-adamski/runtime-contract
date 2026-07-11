@@ -160,6 +160,24 @@ def test_only_unsupported_candidates_are_skipped_without_diagnostic(tmp_path: Pa
     assert payload["diagnostics"] == []
 
 
+def test_compose_loader_is_not_registered_and_scan_never_opens_candidate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "compose.yaml"
+    target.write_bytes(b"services: {}\n" + b"X" * (1024 * 1024))
+
+    def forbidden_read(path: Path) -> bytes:
+        raise AssertionError(f"unregistered Compose candidate was read: {path.name}")
+
+    monkeypatch.setattr(Path, "read_bytes", forbidden_read)
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["summary"]["analyzed"] == 0
+    assert payload["summary"]["skipped"] == 1
+    assert payload["summary"]["skipped_reasons"] == {"no_registered_analyzer": 1}
+
+
 @pytest.mark.parametrize("output_format", ["text", "json", "sarif"])
 def test_dockerfile_is_analyzed_in_every_output_format(tmp_path: Path, output_format: str) -> None:
     write(tmp_path / "Dockerfile.prod", "FROM image\nARG BUILD_KEY\nENV RUNTIME_KEY=x\n")

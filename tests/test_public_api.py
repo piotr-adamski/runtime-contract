@@ -43,6 +43,25 @@ PUBLIC_EXPORTS = {
         "JavaScriptTypeScriptAnalyzer",
         "PythonAstAnalyzer",
     ),
+    "runtime_contract.compose": (
+        "MAX_ALIAS_MERGE_REFERENCES",
+        "MAX_COMPOSE_BYTES",
+        "MAX_COMPOSE_SERVICES",
+        "MAX_INTERPOLATIONS",
+        "MAX_PROFILES_PER_SERVICE",
+        "MAX_SCALAR_BYTES",
+        "MAX_YAML_DEPTH",
+        "MAX_YAML_NODES",
+        "ComposeDiagnostic",
+        "ComposeDiagnosticCode",
+        "ComposeInput",
+        "ComposeInterpolation",
+        "ComposeInterpolationOperator",
+        "ComposeLoadResult",
+        "ComposeLoadStatus",
+        "ComposeService",
+        "load_compose",
+    ),
     "runtime_contract.domain": (
         "ConfigKey",
         "Consumer",
@@ -98,6 +117,7 @@ def test_public_exports_match_reviewable_snapshot() -> None:
 
 def test_documented_import_paths_are_supported() -> None:
     from runtime_contract.analysis import AnalysisResult, AnalyzerInput, AnalyzerRegistry
+    from runtime_contract.compose import ComposeInput, ComposeLoadResult, load_compose
     from runtime_contract.discovery import CandidateKind
     from runtime_contract.domain import (
         ConfigKey,
@@ -118,6 +138,8 @@ def test_documented_import_paths_are_supported() -> None:
             AnalyzerInput,
             AnalyzerRegistry,
             CandidateKind,
+            ComposeInput,
+            ComposeLoadResult,
             ConfigKey,
             Consumer,
             Contract,
@@ -131,5 +153,6 @@ def test_documented_import_paths_are_supported() -> None:
             render,
             run_scan,
             write_atomic,
+            load_compose,
         )
     )
