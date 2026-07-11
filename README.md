@@ -24,6 +24,8 @@ Scan a project and render text, canonical JSON, or SARIF 2.1.0:
 ```text
 runtime-contract scan .
 runtime-contract scan . --root api --format json
+runtime-contract scan PATH --format json
+runtime-contract scan PATH --format json --output report.json
 runtime-contract scan . --format sarif --output reports/runtime-contract.sarif
 ```
 
@@ -31,6 +33,11 @@ runtime-contract scan . --format sarif --output reports/runtime-contract.sarif
 reliable result. It never returns 1. Reports go to stdout unless `--output` (or configured
 `execution.report`) selects an atomic file write. Technical CLI errors go to stderr. `check`,
 `explain`, and `diff` continue to fail closed with exit code 2.
+
+The JSON report is the versioned public automation API `runtime-contract/v1` with integer
+`schema_version: 1`. Its canonical structure, compatibility policy, deterministic serialization,
+schema location, and reference snapshot are documented in
+[`docs/json-report-v1.md`](docs/json-report-v1.md).
 
 Local-only operation without telemetry or data transmission remains a project requirement. There is
 currently no release or PyPI publication.

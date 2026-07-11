@@ -105,7 +105,7 @@ def test_happy_path_json_is_normalized_schema_valid_and_deterministic(project: P
     schema = json.loads(Path("schemas/runtime-contract-scan-result-v1.schema.json").read_text())
     jsonschema.validate(payload, schema)
     assert payload["status"] == "complete"
-    assert payload["selected_roots"] == ["api", "web"]
+    assert payload["inputs"]["selected_roots"] == ["api", "web"]
     assert payload["summary"]["consumers"] == 3
     assert payload["summary"]["config_keys"] == 2
     assert payload["summary"]["providers"] == 0
@@ -119,7 +119,7 @@ def test_root_selection_deduplicates_and_unknown_lists_available(project: Path) 
     )
     assert selected.exit_code == 0
     payload = json.loads(selected.stdout)
-    assert payload["selected_roots"] == ["api"]
+    assert payload["inputs"]["selected_roots"] == ["api"]
     assert {item["component"] for item in payload["contract"]["consumers"]} == {"api"}
     unknown = runner.invoke(app, ["scan", str(project), "--root", "missing"])
     assert unknown.exit_code == 2
@@ -197,7 +197,7 @@ def test_explicit_config_and_escape_rules(tmp_path: Path) -> None:
         ["scan", str(tmp_path), "--config", "configs/custom.yaml", "--format", "json"],
     )
     assert valid.exit_code == 0
-    assert json.loads(valid.stdout)["config"] == "configs/custom.yaml"
+    assert json.loads(valid.stdout)["inputs"]["config"] == "configs/custom.yaml"
     escaped = runner.invoke(app, ["scan", str(tmp_path), "--config", "../outside.yaml"])
     assert escaped.exit_code == 2
     assert "relative to the project root" in escaped.stderr
@@ -314,8 +314,8 @@ def test_environment_selects_roots_and_profile(project: Path) -> None:
     result = runner.invoke(app, ["scan", str(project), "--environment", "prod", "--format", "json"])
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
-    assert payload["environment"] == "prod"
-    assert payload["selected_roots"] == ["api"]
+    assert payload["inputs"]["environment"] == "prod"
+    assert payload["inputs"]["selected_roots"] == ["api"]
 
     config.write_text(
         config.read_text(encoding="utf-8").replace(
@@ -327,7 +327,7 @@ def test_environment_selects_roots_and_profile(project: Path) -> None:
         app, ["scan", str(project), "--environment", "custom", "--format", "json"]
     )
     assert custom.exit_code == 0
-    assert json.loads(custom.stdout)["environment"] == "custom"
+    assert json.loads(custom.stdout)["inputs"]["environment"] == "custom"
 
 
 def test_project_path_and_read_errors_are_safely_mapped(

@@ -6,6 +6,7 @@ import os
 import tempfile
 from contextlib import suppress
 from dataclasses import dataclass
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from runtime_contract.analysis import (
@@ -26,7 +27,14 @@ from runtime_contract.config.policy import ConfigPolicy
 from runtime_contract.discovery import CandidateKind, DiscoveryError, discover
 from runtime_contract.domain import Contract, Profile, Severity, SourceLocation
 from runtime_contract.normalization import NormalizationError, normalize_observations
-from runtime_contract.scan.models import ScanFile, ScanResult, ScanStatus, ScanSummary
+from runtime_contract.scan.models import (
+    ReportInputs,
+    ReportMetadata,
+    ScanFile,
+    ScanResult,
+    ScanStatus,
+    ScanSummary,
+)
 from runtime_contract.scan.renderers import render
 
 
@@ -222,19 +230,26 @@ def run_scan(request: ScanRequest) -> ScanRun:
             {"no_registered_analyzer": counts["skipped"]} if counts["skipped"] else {}
         ),
     )
-    config_label = (request.config or Path("runtime-contract.yaml")).as_posix()
+    config_label = document.path.relative_to(root).as_posix() if has_config else None
+    try:
+        tool_version = version("runtime-contract")
+    except PackageNotFoundError:
+        tool_version = None
     scan_result = ScanResult(
+        metadata=ReportMetadata(tool_version=tool_version),
+        inputs=ReportInputs(
+            config=config_label,
+            environment=execution.value.environment,
+            selected_roots=selected,
+            include=tuple(document.config.include) if include is None else include,
+            exclude=tuple(document.config.exclude) if exclude is None else exclude,
+            fail_on=execution.value.fail_on.value,
+        ),
         status=status,
-        config=config_label,
-        environment=execution.value.environment,
-        selected_roots=selected,
         summary=summary,
         contract=contract,
         diagnostics=diagnostics_tuple,
         files=tuple(sorted(files, key=lambda item: item.path.encode("utf-8"))),
-        effective_include=tuple(document.config.include) if include is None else include,
-        effective_exclude=tuple(document.config.exclude) if exclude is None else exclude,
-        fail_on=execution.value.fail_on.value,
     )
     output_format = execution.value.format.value
     rendered = render(scan_result, output_format, request.verbosity)

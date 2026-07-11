@@ -1,0 +1,9 @@
+version: 1
+roots:
+  api: api
+  web: web
+classifications:
+  variables:
+    DATABASE_URL:
+      secret: true
+      required: true
