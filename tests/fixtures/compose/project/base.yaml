@@ -1,0 +1,7 @@
+services:
+  web:
+    profiles: [debug]
+    environment:
+      BASE_ONLY: base
+      SHARED: base
+    env_file: [base.env]

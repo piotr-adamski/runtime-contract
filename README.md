@@ -117,7 +117,7 @@ immutable relative-path and byte input. It returns frozen models for static serv
 profiles, interpolation variable names, one-based locations, and redacted diagnostics. The loader
 supports bounded standard anchors, aliases, and mapping merges, but never expands variables,
 consults the host environment, opens referenced files, invokes Compose or Docker, or retains YAML
-values and snippets. External `include` and file-based `extends` remain inert partial diagnostics.
+values and snippets.
 `ComposeAnalyzer` turns each static service into one `compose_service` environment. Static
 `environment` names are explicit runtime delivery providers, and static `build.args` names are
 explicit build delivery providers. Map, list, empty, null, and bare passthrough declarations are
@@ -128,9 +128,24 @@ Each safe static `env_file` reference becomes unresolved-bulk runtime evidence f
 The referenced file is never opened, resolved, checked for existence, or followed through a
 symlink, and no variable names are inferred from it. Later entries retain higher declared
 precedence, while `environment` declarations override all `env_file` entries structurally,
-including empty, null, and passthrough declarations. Single-document analysis does not implement
-multi-file Compose merging, overrides, `include`, `extends`, CLI `--env-file`, project `.env`, or
-runtime value resolution; those remain later scope.
+including empty, null, and passthrough declarations.
+
+`resolve_compose_project(ComposeProjectInput)` adds an explicit, closed-bundle project path while
+preserving the one-file behavior above. Files merge in caller order; `environment` and
+`build.args` use key-level last-wins semantics, `env_file` appends, and `profiles` appends with
+stable first-occurrence deduplication. Safe `!reset` and Compose 2.24.4+ `!override` tags are
+handled without object construction. Local `include` (including its dedicated override path
+list) and `extends` resolve only against caller-supplied bytes. Missing, cyclic, remote, absolute,
+escaping, Windows, or backslash references fail atomically.
+
+Project results retain every service with `always_enabled`, `profile_enabled`, or
+`profile_disabled` activation and expose field/key-level, value-blind resolution traces. Explicit
+shell names take interpolation-source precedence, then caller-ordered CLI env files; project
+`.env` is considered only when no CLI env file is supplied. These sources are model-interpolation
+inputs only. A service `env_file` remains unresolved-bulk runtime delivery and is never read.
+Interpolation values and fallbacks are never expanded or returned. `ComposeAnalyzer.analyze_project`
+emits provider facts only for enabled services. The API accepts no cwd, filesystem callback,
+resolver, ambient environment, Docker, subprocess, shell, or network capability.
 
 Analyzer observations can be aggregated through the pure `runtime_contract.normalization` API.
 It canonicalizes relative source locations, deduplicates identical facts, rejects conflicts and
