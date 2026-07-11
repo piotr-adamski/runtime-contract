@@ -257,6 +257,26 @@ environments:
     assert load_config(tmp_path, require=True) is not None
 
 
+def test_named_yaml_can_be_explicitly_classified_as_compose(tmp_path: Path) -> None:
+    (tmp_path / "api").mkdir()
+    (tmp_path / "api" / "deployment.yml").write_text("services: {}\n", encoding="utf-8")
+    write_config(
+        tmp_path,
+        """version: 1
+roots: {api: api}
+environments:
+  prod:
+    roots: [api]
+    sources:
+      - {root: api, type: compose, path: deployment.yml}
+""",
+    )
+    result = discover(tmp_path)
+    assert [(item.path, item.kind.value) for item in result.candidates] == [
+        ("api/deployment.yml", "compose")
+    ]
+
+
 @pytest.mark.parametrize(
     "provides",
     ["{DATABASE_URL: value}", "[DATABASE_URL, DATABASE_URL]", "[NOT-VALID]"],

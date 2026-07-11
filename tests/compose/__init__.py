@@ -1,0 +1,1 @@
+"""Compose loader tests."""

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 import stat
 from dataclasses import dataclass
 from pathlib import Path
@@ -282,11 +281,10 @@ def _filesystem_errors(config: RuntimeContractConfig, logical_root: Path) -> lis
                 )
                 continue
             suffix = resolved.suffix.lower()
-            compose_file = bool(re.fullmatch(r"(?:docker-)?compose[^/]*\.ya?ml", resolved.name))
             supported_yaml = suffix in {".yaml", ".yml", ".json"}
             type_matches = (
                 (source.type is SourceType.AUTO and supported_yaml)
-                or (source.type is SourceType.COMPOSE and compose_file)
+                or (source.type is SourceType.COMPOSE and suffix in {".yaml", ".yml"})
                 or (source.type is SourceType.KUBERNETES and supported_yaml)
             )
             if not type_matches:

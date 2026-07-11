@@ -423,6 +423,12 @@ def _discover_named_roots(
 ) -> DiscoveryResult:
     candidates: dict[FileIdentity, DiscoveryItem] = {}
     stats = [0, 0, 0, 0]
+    explicit_compose = {
+        (source.root, source.path)
+        for environment in contract.environments.values()
+        for source in environment.sources
+        if source.type.value == "compose"
+    }
     for name in selected_names:
         target = contract.effective_roots()[name]
         target_logical = logical_root / target.path
@@ -446,7 +452,7 @@ def _discover_named_roots(
                 continue
             public = DiscoveryItem(
                 prefix + item.path,
-                item.kind,
+                CandidateKind.COMPOSE if (name, item.path) in explicit_compose else item.kind,
                 item.identity,
                 item._resolved_path,
                 item._logical_path,
