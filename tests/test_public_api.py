@@ -31,6 +31,7 @@ PUBLIC_EXPORTS = {
         "DecisionSource",
         "DiagnosticCode",
         "DiagnosticParameter",
+        "DotenvAnalyzer",
         "DuplicateAnalyzerIdError",
         "EffectiveClassification",
         "FactKind",

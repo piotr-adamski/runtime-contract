@@ -5,12 +5,14 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import cast
 
 import jsonschema
 import pytest
 from typer.testing import CliRunner
 
 from runtime_contract.analysis import AnalyzerExecutionError, AnalyzerRegistry
+from runtime_contract.analysis.dotenv import MAX_DOTENV_BYTES
 from runtime_contract.cli import app
 from runtime_contract.config.loader import ConfigDocument
 from runtime_contract.config.loader import load_config as actual_load_config
@@ -156,6 +158,87 @@ def test_only_unsupported_candidates_are_skipped_without_diagnostic(tmp_path: Pa
     assert payload["status"] == "complete"
     assert payload["summary"]["skipped"] == 2
     assert payload["diagnostics"] == []
+
+
+def test_dotenv_example_is_analyzed_and_forbidden_env_files_are_never_opened(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sentinel = "forbidden-fixture-secret-Q7Z9"
+    write(tmp_path / ".env.example", "PUBLIC_KEY=example\nINCLUDE=.env\n")
+    for name in (".env", ".env.local", ".env.production", ".env.development", ".env.test"):
+        write(tmp_path / name, f"SECRET={sentinel}\n")
+    original = Path.read_bytes
+    opened: list[str] = []
+
+    def guarded_read(path: Path) -> bytes:
+        opened.append(path.name)
+        if path.name != ".env.example" and path.name.startswith(".env"):
+            raise AssertionError("a forbidden dotenv file was opened")
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", guarded_read)
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["summary"]["providers"] == 2
+    assert payload["summary"]["candidate_kinds"] == {"env_example": 1}
+    assert opened == [".env.example"]
+    assert sentinel not in result.stdout + result.stderr
+
+
+def test_outside_root_dotenv_example_symlink_is_rejected_without_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    outside = tmp_path / ".env.example"
+    write(outside, "SECRET=outside-sentinel-X8\n")
+    (root / ".env.example").symlink_to(outside)
+
+    def forbidden_read(path: Path) -> bytes:
+        raise AssertionError(f"unexpected read: {path.name}")
+
+    monkeypatch.setattr(Path, "read_bytes", forbidden_read)
+    result = runner.invoke(app, ["scan", str(root), "--format", "json"])
+    assert result.exit_code == 2
+    assert result.stdout == ""
+    assert "outside-sentinel-X8" not in result.stderr
+
+
+def test_oversized_dotenv_example_is_rejected_before_content_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / ".env.example"
+    target.write_bytes(b"X" * (MAX_DOTENV_BYTES + 1))
+
+    def forbidden_read(path: Path) -> bytes:
+        raise AssertionError(f"oversized candidate was read: {path.name}")
+
+    monkeypatch.setattr(Path, "read_bytes", forbidden_read)
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert result.exit_code == 2
+    payload = json.loads(result.stdout)
+    assert payload["diagnostics"][0]["code"] == "safety_limit"
+    assert payload["diagnostics"][0]["parameters"] == [["limit_kind", "file_size"]]
+
+
+def test_dotenv_metadata_read_failure_is_redacted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(tmp_path / ".env.example", "KEY=value\n")
+
+    class FailedMetadata:
+        def stat(self) -> os.stat_result:
+            raise OSError
+
+    def failed_metadata(item: DiscoveryItem, root: Path) -> Path:
+        del item, root
+        return cast(Path, FailedMetadata())
+
+    monkeypatch.setattr(DiscoveryItem, "revalidate", failed_metadata)
+    run = scan_engine.run_scan(ScanRequest(path=tmp_path, output_format="json"))
+    assert run.exit_code == 2
+    assert run.result.diagnostics[0].code.value == "read_error"
 
 
 def test_atomic_output_leaves_stdout_empty_and_matches_stdout(
