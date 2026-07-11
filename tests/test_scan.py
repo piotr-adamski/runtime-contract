@@ -3,11 +3,11 @@
 import importlib.metadata
 import json
 import os
+import re
 from pathlib import Path
 
 import jsonschema
 import pytest
-from click import unstyle
 from typer.testing import CliRunner
 
 from runtime_contract.analysis import AnalyzerExecutionError, AnalyzerRegistry
@@ -64,7 +64,7 @@ classifications:
 def test_scan_help_exposes_d1_12_options() -> None:
     result = runner.invoke(app, ["scan", "--help"], terminal_width=200, color=False)
     assert result.exit_code == 0
-    help_text = unstyle(result.stdout)
+    help_text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", result.stdout)
     for option in (
         "--config",
         "--root",
