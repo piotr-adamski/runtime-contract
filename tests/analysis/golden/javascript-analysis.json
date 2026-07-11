@@ -1,0 +1,236 @@
+{
+  "analysis": {
+    "completeness": "complete",
+    "diagnostics": [],
+    "observations": [
+      {
+        "confidence": "exact",
+        "fact": {
+          "allow_literal": true,
+          "component": "javascript-app",
+          "id": "key-1fce4324a07d954f63c12d6a2d5026a5c135f65a70175f78349d21beeb5abcf0",
+          "name": "WORKERS",
+          "secret": false,
+          "secret_source": "not_secret",
+          "severity_override": null
+        },
+        "fact_kind": "config_key"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "allow_literal": true,
+          "component": "javascript-app",
+          "id": "key-4b21dd03a5da555e567ce032e879c3a692d1e76b94e68d7ab26a071e707b92a0",
+          "name": "API_URL",
+          "secret": false,
+          "secret_source": "not_secret",
+          "severity_override": null
+        },
+        "fact_kind": "config_key"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "allow_literal": false,
+          "component": "javascript-app",
+          "id": "key-6bf8c8ee644e43fd026d01409d6933dde53cf0aa2e0eca3a6f42d4b9439c239f",
+          "name": "API_TOKEN",
+          "secret": true,
+          "secret_source": "heuristic",
+          "severity_override": null
+        },
+        "fact_kind": "config_key"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "node_process_env",
+          "component": "javascript-app",
+          "config_key_id": "key-1fce4324a07d954f63c12d6a2d5026a5c135f65a70175f78349d21beeb5abcf0",
+          "has_literal_fallback": false,
+          "id": "consumer-26e530a19c07b6fc3ba30c11e36ec2467d0e233c538ad620889e7aea44e38220",
+          "location": {
+            "end_column": 35,
+            "end_line": 6,
+            "path": "src/settings.js",
+            "start_column": 16,
+            "start_line": 6
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "node_process_env",
+          "component": "javascript-app",
+          "config_key_id": "key-4b21dd03a5da555e567ce032e879c3a692d1e76b94e68d7ab26a071e707b92a0",
+          "has_literal_fallback": false,
+          "id": "consumer-291ac6fe69a2d9ba0911e7957a0f5f7cd86e37afa3ae7e9499b893c275ae5fe3",
+          "location": {
+            "end_column": 34,
+            "end_line": 5,
+            "path": "src/settings.js",
+            "start_column": 15,
+            "start_line": 5
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "node_process_env",
+          "component": "javascript-app",
+          "config_key_id": "key-4b21dd03a5da555e567ce032e879c3a692d1e76b94e68d7ab26a071e707b92a0",
+          "has_literal_fallback": false,
+          "id": "consumer-63c64aa7e81ee6e2c3623157f9c0889f782d3e43460771df3090003c5cd405a2",
+          "location": {
+            "end_column": 34,
+            "end_line": 3,
+            "path": "src/settings.js",
+            "start_column": 15,
+            "start_line": 3
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "node_process_env",
+          "component": "javascript-app",
+          "config_key_id": "key-6bf8c8ee644e43fd026d01409d6933dde53cf0aa2e0eca3a6f42d4b9439c239f",
+          "has_literal_fallback": false,
+          "id": "consumer-6b3a37c80ee81abfe36c76799533a799fe122a09ba0e5dc93c96836b32a77134",
+          "location": {
+            "end_column": 37,
+            "end_line": 4,
+            "path": "src/settings.js",
+            "start_column": 16,
+            "start_line": 4
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      }
+    ],
+    "schema_id": "runtime-contract/analysis-result/v1"
+  },
+  "normalized_contract": {
+    "config_keys": [
+      {
+        "allow_literal": true,
+        "component": "javascript-app",
+        "id": "key-1fce4324a07d954f63c12d6a2d5026a5c135f65a70175f78349d21beeb5abcf0",
+        "name": "WORKERS",
+        "secret": false,
+        "secret_source": "not_secret",
+        "severity_override": null
+      },
+      {
+        "allow_literal": true,
+        "component": "javascript-app",
+        "id": "key-4b21dd03a5da555e567ce032e879c3a692d1e76b94e68d7ab26a071e707b92a0",
+        "name": "API_URL",
+        "secret": false,
+        "secret_source": "not_secret",
+        "severity_override": null
+      },
+      {
+        "allow_literal": false,
+        "component": "javascript-app",
+        "id": "key-6bf8c8ee644e43fd026d01409d6933dde53cf0aa2e0eca3a6f42d4b9439c239f",
+        "name": "API_TOKEN",
+        "secret": true,
+        "secret_source": "heuristic",
+        "severity_override": null
+      }
+    ],
+    "consumers": [
+      {
+        "access_kind": "node_process_env",
+        "component": "javascript-app",
+        "config_key_id": "key-1fce4324a07d954f63c12d6a2d5026a5c135f65a70175f78349d21beeb5abcf0",
+        "has_literal_fallback": false,
+        "id": "consumer-26e530a19c07b6fc3ba30c11e36ec2467d0e233c538ad620889e7aea44e38220",
+        "location": {
+          "end_column": 35,
+          "end_line": 6,
+          "path": "src/settings.js",
+          "start_column": 16,
+          "start_line": 6
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      {
+        "access_kind": "node_process_env",
+        "component": "javascript-app",
+        "config_key_id": "key-4b21dd03a5da555e567ce032e879c3a692d1e76b94e68d7ab26a071e707b92a0",
+        "has_literal_fallback": false,
+        "id": "consumer-291ac6fe69a2d9ba0911e7957a0f5f7cd86e37afa3ae7e9499b893c275ae5fe3",
+        "location": {
+          "end_column": 34,
+          "end_line": 5,
+          "path": "src/settings.js",
+          "start_column": 15,
+          "start_line": 5
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      {
+        "access_kind": "node_process_env",
+        "component": "javascript-app",
+        "config_key_id": "key-4b21dd03a5da555e567ce032e879c3a692d1e76b94e68d7ab26a071e707b92a0",
+        "has_literal_fallback": false,
+        "id": "consumer-63c64aa7e81ee6e2c3623157f9c0889f782d3e43460771df3090003c5cd405a2",
+        "location": {
+          "end_column": 34,
+          "end_line": 3,
+          "path": "src/settings.js",
+          "start_column": 15,
+          "start_line": 3
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      {
+        "access_kind": "node_process_env",
+        "component": "javascript-app",
+        "config_key_id": "key-6bf8c8ee644e43fd026d01409d6933dde53cf0aa2e0eca3a6f42d4b9439c239f",
+        "has_literal_fallback": false,
+        "id": "consumer-6b3a37c80ee81abfe36c76799533a799fe122a09ba0e5dc93c96836b32a77134",
+        "location": {
+          "end_column": 37,
+          "end_line": 4,
+          "path": "src/settings.js",
+          "start_column": 16,
+          "start_line": 4
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      }
+    ],
+    "environments": [],
+    "providers": [],
+    "schema_id": "runtime-contract/contract/v1"
+  }
+}

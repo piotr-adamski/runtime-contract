@@ -1,0 +1,236 @@
+{
+  "analysis": {
+    "completeness": "complete",
+    "diagnostics": [],
+    "observations": [
+      {
+        "confidence": "exact",
+        "fact": {
+          "allow_literal": false,
+          "component": "typescript-app",
+          "id": "key-622578a770f195a01113ff31ea736fc2fcfbad62920dafd72050c1c45b07e8c8",
+          "name": "API_TOKEN",
+          "secret": true,
+          "secret_source": "heuristic",
+          "severity_override": null
+        },
+        "fact_kind": "config_key"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "allow_literal": true,
+          "component": "typescript-app",
+          "id": "key-98cf77713fbacca424043e6b3757cae77b96cd363ed42e658355938b4c3f94fe",
+          "name": "API_URL",
+          "secret": false,
+          "secret_source": "not_secret",
+          "severity_override": null
+        },
+        "fact_kind": "config_key"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "allow_literal": true,
+          "component": "typescript-app",
+          "id": "key-d38e1750d6e5c2a6952f4f142726753f7714813666f3ab5aad903dd87483c12e",
+          "name": "WORKERS",
+          "secret": false,
+          "secret_source": "not_secret",
+          "severity_override": null
+        },
+        "fact_kind": "config_key"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "node_process_env",
+          "component": "typescript-app",
+          "config_key_id": "key-d38e1750d6e5c2a6952f4f142726753f7714813666f3ab5aad903dd87483c12e",
+          "has_literal_fallback": false,
+          "id": "consumer-23ef4895c92a1138e00d617c471415af35f6fff93f66cfb0f15afcc34091193c",
+          "location": {
+            "end_column": 16,
+            "end_line": 6,
+            "path": "src/settings.ts",
+            "start_column": 9,
+            "start_line": 6
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "node_process_env",
+          "component": "typescript-app",
+          "config_key_id": "key-98cf77713fbacca424043e6b3757cae77b96cd363ed42e658355938b4c3f94fe",
+          "has_literal_fallback": false,
+          "id": "consumer-a4d43f3d5150844a672449be3e3375d03d257e48b58c67844af334a513f36b2b",
+          "location": {
+            "end_column": 54,
+            "end_line": 3,
+            "path": "src/settings.ts",
+            "start_column": 35,
+            "start_line": 3
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "node_process_env",
+          "component": "typescript-app",
+          "config_key_id": "key-98cf77713fbacca424043e6b3757cae77b96cd363ed42e658355938b4c3f94fe",
+          "has_literal_fallback": false,
+          "id": "consumer-ac01922a9660be339bdf50637f110dd21ae53a0d6503409879a45e9a089441cc",
+          "location": {
+            "end_column": 54,
+            "end_line": 5,
+            "path": "src/settings.ts",
+            "start_column": 35,
+            "start_line": 5
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      },
+      {
+        "confidence": "exact",
+        "fact": {
+          "access_kind": "node_process_env",
+          "component": "typescript-app",
+          "config_key_id": "key-622578a770f195a01113ff31ea736fc2fcfbad62920dafd72050c1c45b07e8c8",
+          "has_literal_fallback": false,
+          "id": "consumer-e1c5a9389982c4b3c88c871f8ad45cfa60444c1083a1e0938d444be59306b34b",
+          "location": {
+            "end_column": 57,
+            "end_line": 4,
+            "path": "src/settings.ts",
+            "start_column": 36,
+            "start_line": 4
+          },
+          "phase": "runtime",
+          "required": true,
+          "requirement_source": "detected_default"
+        },
+        "fact_kind": "consumer"
+      }
+    ],
+    "schema_id": "runtime-contract/analysis-result/v1"
+  },
+  "normalized_contract": {
+    "config_keys": [
+      {
+        "allow_literal": false,
+        "component": "typescript-app",
+        "id": "key-622578a770f195a01113ff31ea736fc2fcfbad62920dafd72050c1c45b07e8c8",
+        "name": "API_TOKEN",
+        "secret": true,
+        "secret_source": "heuristic",
+        "severity_override": null
+      },
+      {
+        "allow_literal": true,
+        "component": "typescript-app",
+        "id": "key-98cf77713fbacca424043e6b3757cae77b96cd363ed42e658355938b4c3f94fe",
+        "name": "API_URL",
+        "secret": false,
+        "secret_source": "not_secret",
+        "severity_override": null
+      },
+      {
+        "allow_literal": true,
+        "component": "typescript-app",
+        "id": "key-d38e1750d6e5c2a6952f4f142726753f7714813666f3ab5aad903dd87483c12e",
+        "name": "WORKERS",
+        "secret": false,
+        "secret_source": "not_secret",
+        "severity_override": null
+      }
+    ],
+    "consumers": [
+      {
+        "access_kind": "node_process_env",
+        "component": "typescript-app",
+        "config_key_id": "key-d38e1750d6e5c2a6952f4f142726753f7714813666f3ab5aad903dd87483c12e",
+        "has_literal_fallback": false,
+        "id": "consumer-23ef4895c92a1138e00d617c471415af35f6fff93f66cfb0f15afcc34091193c",
+        "location": {
+          "end_column": 16,
+          "end_line": 6,
+          "path": "src/settings.ts",
+          "start_column": 9,
+          "start_line": 6
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      {
+        "access_kind": "node_process_env",
+        "component": "typescript-app",
+        "config_key_id": "key-98cf77713fbacca424043e6b3757cae77b96cd363ed42e658355938b4c3f94fe",
+        "has_literal_fallback": false,
+        "id": "consumer-a4d43f3d5150844a672449be3e3375d03d257e48b58c67844af334a513f36b2b",
+        "location": {
+          "end_column": 54,
+          "end_line": 3,
+          "path": "src/settings.ts",
+          "start_column": 35,
+          "start_line": 3
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      {
+        "access_kind": "node_process_env",
+        "component": "typescript-app",
+        "config_key_id": "key-98cf77713fbacca424043e6b3757cae77b96cd363ed42e658355938b4c3f94fe",
+        "has_literal_fallback": false,
+        "id": "consumer-ac01922a9660be339bdf50637f110dd21ae53a0d6503409879a45e9a089441cc",
+        "location": {
+          "end_column": 54,
+          "end_line": 5,
+          "path": "src/settings.ts",
+          "start_column": 35,
+          "start_line": 5
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      },
+      {
+        "access_kind": "node_process_env",
+        "component": "typescript-app",
+        "config_key_id": "key-622578a770f195a01113ff31ea736fc2fcfbad62920dafd72050c1c45b07e8c8",
+        "has_literal_fallback": false,
+        "id": "consumer-e1c5a9389982c4b3c88c871f8ad45cfa60444c1083a1e0938d444be59306b34b",
+        "location": {
+          "end_column": 57,
+          "end_line": 4,
+          "path": "src/settings.ts",
+          "start_column": 36,
+          "start_line": 4
+        },
+        "phase": "runtime",
+        "required": true,
+        "requirement_source": "detected_default"
+      }
+    ],
+    "environments": [],
+    "providers": [],
+    "schema_id": "runtime-contract/contract/v1"
+  }
+}
