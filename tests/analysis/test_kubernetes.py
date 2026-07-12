@@ -54,6 +54,27 @@ def analyze(source: str | bytes) -> AnalysisResult:
     )
 
 
+def analyze_project(*sources: tuple[str, str]) -> AnalysisResult:
+    return (
+        KubernetesAnalyzer()
+        .analyze_project(
+            tuple(
+                AnalyzerInput(
+                    path=path,
+                    kind=CandidateKind.KUBERNETES,
+                    content=content.encode(),
+                    component="api",
+                    root="api",
+                    profile=Profile.STAGING,
+                    resolver=StaticResolver(),
+                )
+                for path, content in sources
+            )
+        )
+        .result
+    )
+
+
 def facts(result: AnalysisResult, kind: type[Any]) -> list[Any]:
     return [item.fact for item in result.observations if isinstance(item.fact, kind)]
 
@@ -217,3 +238,161 @@ def test_wrong_kind_is_rejected_and_input_repr_is_redacted() -> None:
     assert CANARY not in repr(input)
     with pytest.raises(ValueError, match=r"CandidateKind\.KUBERNETES"):
         KubernetesAnalyzer().analyze(input)
+
+
+def test_project_resolves_local_env_from_keys_across_files_in_same_namespace() -> None:
+    result = analyze_project(
+        (
+            "manifests/workload.yaml",
+            """apiVersion: v1
+kind: Deployment
+metadata: {name: api, namespace: tenant-a}
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          envFrom:
+            - prefix: CM_
+              configMapRef: {name: app-config}
+            - prefix: SEC_
+              secretRef: {name: app-secret}
+            - configMapRef: {name: external-config, optional: true}
+""",
+        ),
+        (
+            "manifests/config.yaml",
+            """apiVersion: v1
+kind: ConfigMap
+metadata: {name: app-config, namespace: tenant-a}
+data: {LOG_LEVEL: hidden, SHARED: hidden}
+binaryData: {CERT: aGlkZGVu}
+""",
+        ),
+        (
+            "manifests/secret.yaml",
+            """apiVersion: v1
+kind: Secret
+metadata: {name: app-secret, namespace: tenant-a}
+data: {TOKEN: aGlkZGVu}
+stringData: {PASSWORD: hidden}
+""",
+        ),
+    )
+
+    assert result.completeness is AnalysisCompleteness.COMPLETE
+    assert sorted(item.name for item in facts(result, ConfigKey)) == [
+        "CM_CERT",
+        "CM_LOG_LEVEL",
+        "CM_SHARED",
+        "SEC_PASSWORD",
+        "SEC_TOKEN",
+    ]
+    providers = facts(result, Provider)
+    resolved = [item for item in providers if item.evidence_kind is EvidenceKind.RESOLVED_BULK]
+    unresolved = [item for item in providers if item.evidence_kind is EvidenceKind.UNRESOLVED_BULK]
+    assert len(resolved) == 5
+    assert len(unresolved) == 1
+    assert unresolved[0].config_key_id is None
+    assert all(item.mechanism is ProviderMechanism.KUBERNETES_ENV_FROM for item in providers)
+    normalize_observations(result.observations)
+    public = repr(result) + result.model_dump_json()
+    assert "aGlkZGVu" not in public
+    assert "hidden" not in public
+
+
+def test_project_never_resolves_across_namespace_or_object_kind() -> None:
+    result = analyze_project(
+        (
+            "workload.yaml",
+            """apiVersion: v1
+kind: Pod
+metadata: {name: api, namespace: tenant-a}
+spec:
+  containers:
+    - name: app
+      envFrom:
+        - configMapRef: {name: shared}
+        - secretRef: {name: shared}
+""",
+        ),
+        (
+            "other-namespace.yaml",
+            """apiVersion: v1
+kind: ConfigMap
+metadata: {name: shared, namespace: tenant-b}
+data: {WRONG_NAMESPACE: hidden}
+""",
+        ),
+        (
+            "wrong-kind.yaml",
+            """apiVersion: v1
+kind: ConfigMap
+metadata: {name: shared, namespace: tenant-a}
+data: {RIGHT_CONFIG: hidden}
+""",
+        ),
+    )
+
+    assert sorted(item.name for item in facts(result, ConfigKey)) == ["RIGHT_CONFIG"]
+    providers = facts(result, Provider)
+    assert sum(item.evidence_kind is EvidenceKind.RESOLVED_BULK for item in providers) == 1
+    assert sum(item.evidence_kind is EvidenceKind.UNRESOLVED_BULK for item in providers) == 1
+
+
+def test_malformed_presence_never_suppresses_unresolved_bulk_evidence() -> None:
+    result = analyze_project(
+        (
+            "workload.yaml",
+            """apiVersion: v1
+kind: Pod
+metadata: {name: api}
+spec:
+  containers:
+    - name: app
+      envFrom: [{secretRef: {name: app-secret}}]
+""",
+        ),
+        (
+            "secret.yaml",
+            """apiVersion: v1
+kind: Secret
+metadata: {name: app-secret}
+stringData: invalid-secret-map-canary-Q7Z9
+""",
+        ),
+    )
+
+    assert result.completeness is AnalysisCompleteness.PARTIAL
+    assert facts(result, ConfigKey) == []
+    providers = facts(result, Provider)
+    assert len(providers) == 1
+    assert providers[0].evidence_kind is EvidenceKind.UNRESOLVED_BULK
+    assert "invalid-secret-map-canary-Q7Z9" not in repr(result) + result.model_dump_json()
+
+
+def test_project_requires_one_component_root_and_profile() -> None:
+    with pytest.raises(ValueError, match="at least one input"):
+        KubernetesAnalyzer().analyze_project(())
+
+    first = AnalyzerInput(
+        path="a.yaml",
+        kind=CandidateKind.KUBERNETES,
+        content=b"apiVersion: v1\nkind: ConfigMap\nmetadata: {name: a}\n",
+        component="api",
+        root="api",
+        profile=Profile.DEFAULT,
+        resolver=StaticResolver(),
+    )
+    second = AnalyzerInput(
+        path="b.yaml",
+        kind=CandidateKind.KUBERNETES,
+        content=b"apiVersion: v1\nkind: ConfigMap\nmetadata: {name: b}\n",
+        component="worker",
+        root="worker",
+        profile=Profile.DEFAULT,
+        resolver=StaticResolver(),
+    )
+
+    with pytest.raises(ValueError, match="share component, root, and profile"):
+        KubernetesAnalyzer().analyze_project((first, second))

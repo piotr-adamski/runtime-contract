@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
+from dataclasses import dataclass
 
 from runtime_contract.analysis.models import (
     AnalysisCompleteness,
@@ -31,14 +33,23 @@ from runtime_contract.domain import (
 from runtime_contract.kubernetes import (
     KubernetesDiagnostic,
     KubernetesDiagnosticCode,
-    KubernetesEnvBinding,
     KubernetesEnvFromSource,
+    KubernetesEnvFromSourceKind,
     KubernetesInput,
     KubernetesLoadStatus,
+    KubernetesObjectKind,
     traverse_kubernetes_workloads,
 )
 
 _SECRET_NAME = re.compile(r"(?:^|_)(?:TOKEN|PASSWORD|SECRET|PRIVATE_KEY)$")
+
+
+@dataclass(frozen=True, slots=True)
+class KubernetesProjectAnalysis:
+    """One project-wide result plus exact per-source completeness."""
+
+    result: AnalysisResult
+    file_completeness: tuple[tuple[str, AnalysisCompleteness], ...]
 
 
 class KubernetesAnalyzer:
@@ -48,43 +59,65 @@ class KubernetesAnalyzer:
     supported_kinds = frozenset({CandidateKind.KUBERNETES})
 
     def analyze(self, input: AnalyzerInput, /) -> AnalysisResult:
-        if input.kind is not CandidateKind.KUBERNETES:
+        return self.analyze_project((input,)).result
+
+    def analyze_project(self, inputs: Iterable[AnalyzerInput], /) -> KubernetesProjectAnalysis:
+        """Analyze one component's caller-supplied manifest set as a linked local project."""
+
+        sources = tuple(sorted(inputs, key=lambda item: item.path.encode("utf-8")))
+        if not sources:
+            raise ValueError("KubernetesAnalyzer requires at least one input")
+        if any(item.kind is not CandidateKind.KUBERNETES for item in sources):
             raise ValueError("KubernetesAnalyzer requires CandidateKind.KUBERNETES")
+        first = sources[0]
+        if any(
+            (item.component, item.root, item.profile)
+            != (first.component, first.root, first.profile)
+            for item in sources[1:]
+        ):
+            raise ValueError("Kubernetes project inputs must share component, root, and profile")
         loaded = traverse_kubernetes_workloads(
-            KubernetesInput(path=input.path, content=input.content),
+            tuple(KubernetesInput(path=item.path, content=item.content) for item in sources),
             ignore_unmarked=True,
         )
         diagnostics = tuple(_diagnostic(item) for item in loaded.diagnostics)
+        file_completeness = tuple(
+            (item.path, _analysis_completeness(item.status)) for item in loaded.sources
+        )
         if loaded.status is KubernetesLoadStatus.FAILED:
-            return AnalysisResult(
-                completeness=AnalysisCompleteness.FAILED,
-                diagnostics=diagnostics,
+            return KubernetesProjectAnalysis(
+                result=AnalysisResult(
+                    completeness=AnalysisCompleteness.FAILED,
+                    diagnostics=diagnostics,
+                ),
+                file_completeness=file_completeness,
             )
+        objects = {item.identity(): item for item in loaded.objects}
         keys: dict[str, FactObservation] = {}
         environments: dict[str, FactObservation] = {}
         providers: list[FactObservation] = []
         for context in loaded.contexts:
             environment = Environment(
-                component=input.component,
+                component=first.component,
                 target=(
                     f"{context.namespace}/{context.workload_kind.value}/{context.workload_name}"
                 ),
                 kind=EnvironmentKind.KUBERNETES_WORKLOAD,
-                profile=input.profile,
+                profile=first.profile,
             )
             environments.setdefault(
                 environment.id,
                 _observation(FactKind.ENVIRONMENT, environment),
             )
             for binding in context.env:
-                key = _config_key(input, binding)
+                key = _config_key(first, binding.name)
                 keys.setdefault(key.id, _observation(FactKind.CONFIG_KEY, key))
                 providers.append(
                     _observation(
                         FactKind.PROVIDER,
                         Provider(
                             config_key_id=key.id,
-                            component=input.component,
+                            component=first.component,
                             environment_id=environment.id,
                             role=ProviderRole.DELIVERY,
                             phase=Phase.RUNTIME,
@@ -95,15 +128,42 @@ class KubernetesAnalyzer:
                     )
                 )
             for source in context.env_from:
-                providers.append(_bulk_provider(input, environment, source))
-        return AnalysisResult(
-            completeness=(
-                AnalysisCompleteness.PARTIAL
-                if loaded.status is KubernetesLoadStatus.PARTIAL
-                else AnalysisCompleteness.COMPLETE
+                object_kind = (
+                    KubernetesObjectKind.SECRET
+                    if source.source_kind is KubernetesEnvFromSourceKind.SECRET_REF
+                    else KubernetesObjectKind.CONFIG_MAP
+                )
+                resolved = objects.get(
+                    (context.namespace, object_kind.value, source.reference_name)
+                )
+                if resolved is None:
+                    providers.append(_bulk_provider(first, environment, source))
+                    continue
+                for object_key in resolved.keys:
+                    key = _config_key(first, f"{source.prefix}{object_key.name}")
+                    keys.setdefault(key.id, _observation(FactKind.CONFIG_KEY, key))
+                    providers.append(
+                        _observation(
+                            FactKind.PROVIDER,
+                            Provider(
+                                config_key_id=key.id,
+                                component=first.component,
+                                environment_id=environment.id,
+                                role=ProviderRole.DELIVERY,
+                                phase=Phase.RUNTIME,
+                                mechanism=ProviderMechanism.KUBERNETES_ENV_FROM,
+                                evidence_kind=EvidenceKind.RESOLVED_BULK,
+                                location=source.location,
+                            ),
+                        )
+                    )
+        return KubernetesProjectAnalysis(
+            result=AnalysisResult(
+                completeness=_analysis_completeness(loaded.status),
+                observations=(*keys.values(), *environments.values(), *providers),
+                diagnostics=diagnostics,
             ),
-            observations=(*keys.values(), *environments.values(), *providers),
-            diagnostics=diagnostics,
+            file_completeness=file_completeness,
         )
 
 
@@ -111,12 +171,16 @@ def _observation(kind: FactKind, fact: ConfigKey | Environment | Provider) -> Fa
     return FactObservation(fact_kind=kind, confidence=Confidence.EXACT, fact=fact)
 
 
-def _config_key(input: AnalyzerInput, binding: KubernetesEnvBinding) -> ConfigKey:
-    resolved = input.resolver.classify(binding.name)
-    heuristic_secret = bool(_SECRET_NAME.search(binding.name))
+def _analysis_completeness(status: KubernetesLoadStatus) -> AnalysisCompleteness:
+    return AnalysisCompleteness(status.value)
+
+
+def _config_key(input: AnalyzerInput, name: str) -> ConfigKey:
+    resolved = input.resolver.classify(name)
+    heuristic_secret = bool(_SECRET_NAME.search(name))
     secret = resolved.secret if resolved.secret is not None else heuristic_secret
     return ConfigKey(
-        name=binding.name,
+        name=name,
         component=input.component,
         secret=secret,
         secret_source=(
@@ -172,4 +236,4 @@ def _diagnostic(item: KubernetesDiagnostic) -> AnalysisDiagnostic:
     )
 
 
-__all__ = ["KubernetesAnalyzer"]
+__all__ = ["KubernetesAnalyzer", "KubernetesProjectAnalysis"]

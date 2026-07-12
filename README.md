@@ -9,12 +9,14 @@ multi-document streams) or JSON. Supported workload kinds are `Pod`, `Deployment
 `StatefulSet`, `DaemonSet`, `Job`, and `CronJob`; traversal inventories `containers` and
 `initContainers` together with value-blind `env` and `envFrom` metadata. For `env.value`, only the
 environment name and source kind survive. `secretKeyRef`, `configMapKeyRef`, `fieldRef`, and
-`resourceFieldRef` retain only the selectors needed to explain delivery; `envFrom` retains its
-reference type, name, effective `optional`, prefix, and locations as unresolved bulk evidence.
-Literal environment values never enter public result models, reprs, reports, diagnostics, or logs. CRDs,
-operator resources, `List`, and other unsupported resources produce informational `RTC012`. Helm,
-Kustomize, cluster access, manifest-directed file reads, and ConfigMap/Secret presence resolution
-are outside this boundary. Extension-based `scan` ignores generic YAML/JSON mappings that have
+`resourceFieldRef` retain only the selectors needed to explain delivery. ConfigMap `data` and
+`binaryData` plus Secret `data` and `stringData` are indexed by object identity and key name only.
+References resolve only to a same-component, same-namespace object of the expected kind. A local
+`envFrom` becomes one resolved-bulk provider per observed key; an external or mismatched reference
+remains exactly one unresolved-bulk provider. Literal and encoded values never enter public result
+models, reprs, reports, diagnostics, or logs. CRDs, operator resources, `List`, and other unsupported
+resources produce informational `RTC012`. Helm, Kustomize, cluster access, manifest-directed file
+reads, and value resolution are outside this boundary. Extension-based `scan` ignores generic YAML/JSON mappings that have
 neither `apiVersion` nor `kind`; direct traversal remains fail-closed unless the caller explicitly
 requests that unmarked-document behavior.
 
@@ -185,13 +187,16 @@ framework-specific APIs. No analyzer imports or executes analyzed project code. 
 `import.meta.env`, and findings remain future work.
 
 `KubernetesAnalyzer` creates one `kubernetes_workload` environment per stable
-`namespace/Kind/name` target. Every static `env` name becomes an explicit runtime provider with
+`namespace/Kind/name` target. It analyzes all Kubernetes candidates in one selected component as a
+linked local manifest set while preserving exact per-file completeness. Every static `env` name becomes an explicit runtime provider with
 mechanism `kubernetes_env`, independent of whether its source is a literal, key reference, field
-selector, or resource selector. Every `envFrom` entry remains an unresolved-bulk runtime provider
-with mechanism `kubernetes_env_from`; it cannot confirm a concrete key until a later presence-only
-ConfigMap/Secret index resolves the local reference. Container-level source kinds, selectors,
+selector, or resource selector. Every `envFrom` entry uses mechanism `kubernetes_env_from`: a
+same-namespace local ConfigMap/Secret produces value-blind `resolved_bulk` providers for its key
+names, including the declared prefix, while an absent, wrong-kind, cross-namespace, or
+cross-component object remains `unresolved_bulk`. Container-level source kinds, selectors,
 `optional`, prefix, declaration index, and source locations remain available through the public
-`runtime_contract.kubernetes` traversal API without being widened into value-bearing domain facts.
+`runtime_contract.kubernetes` traversal API. That API also exposes deterministic presence objects,
+source statuses, and reference-resolution records without being widened into value-bearing facts.
 Malformed environment structures produce redacted partial or failed analysis while preserving
 safe sibling facts. The analyzer reads only caller-supplied bytes and never contacts a cluster,
 opens referenced files, reads ambient environment variables, or invokes `kubectl` or any process.

@@ -149,6 +149,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         exclude=exclude,
         config_document=document if has_config else None,
     )
+    kubernetes_analyzer = KubernetesAnalyzer()
     registry = AnalyzerRegistry(
         (
             PythonAstAnalyzer(),
@@ -156,7 +157,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
             DotenvAnalyzer(),
             DockerfileAnalyzer(),
             ComposeAnalyzer(),
-            KubernetesAnalyzer(),
+            kubernetes_analyzer,
         )
     )
     policy = ConfigPolicy(document)
@@ -164,6 +165,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
     diagnostics: list[AnalysisDiagnostic] = []
     files: list[ScanFile] = []
     counts = {"complete": 0, "partial": 0, "failed": 0, "analyzed": 0, "skipped": 0}
+    kubernetes_projects: dict[str, list[AnalyzerInput]] = {}
     supported = {
         CandidateKind.PYTHON,
         CandidateKind.JAVASCRIPT,
@@ -220,18 +222,20 @@ def run_scan(request: ScanRequest) -> ScanRun:
         resolver = ConfigPolicyClassificationResolver(
             policy, item.root_name, execution.value.environment
         )
+        analyzer_input = AnalyzerInput(
+            path=item.path,
+            kind=item.kind,
+            content=content,
+            component=item.root_name,
+            root=item.root_name,
+            profile=_profile(execution.value.environment),
+            resolver=resolver,
+        )
+        if item.kind is CandidateKind.KUBERNETES:
+            kubernetes_projects.setdefault(item.root_name, []).append(analyzer_input)
+            continue
         try:
-            result = registry.analyze(
-                AnalyzerInput(
-                    path=item.path,
-                    kind=item.kind,
-                    content=content,
-                    component=item.root_name,
-                    root=item.root_name,
-                    profile=_profile(execution.value.environment),
-                    resolver=resolver,
-                )
-            )
+            result = registry.analyze(analyzer_input)
         except AnalyzerExecutionError:
             counts["failed"] += 1
             diagnostics.append(_technical_diagnostic(DiagnosticCode.ANALYZER_CONTRACT, item.path))
@@ -243,6 +247,36 @@ def run_scan(request: ScanRequest) -> ScanRun:
         )
         observations.extend(result.observations)
         diagnostics.extend(result.diagnostics)
+    for project_inputs in kubernetes_projects.values():
+        try:
+            project = kubernetes_analyzer.analyze_project(project_inputs)
+        except Exception:
+            for project_input in project_inputs:
+                counts["failed"] += 1
+                diagnostics.append(
+                    _technical_diagnostic(DiagnosticCode.ANALYZER_CONTRACT, project_input.path)
+                )
+                files.append(
+                    ScanFile(
+                        path=project_input.path,
+                        kind=project_input.kind.value,
+                        status="failed",
+                    )
+                )
+            continue
+        status_by_path = dict(project.file_completeness)
+        for project_input in project_inputs:
+            completeness = status_by_path[project_input.path]
+            counts[completeness.value] += 1
+            files.append(
+                ScanFile(
+                    path=project_input.path,
+                    kind=project_input.kind.value,
+                    status=completeness.value,
+                )
+            )
+        observations.extend(project.result.observations)
+        diagnostics.extend(project.result.diagnostics)
     try:
         contract = normalize_observations(observations)
     except NormalizationError:
