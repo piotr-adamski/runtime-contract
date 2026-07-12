@@ -346,6 +346,7 @@ def test_golden_snapshot_is_exact_and_repeatable() -> None:
     golden = Path("examples/reports/runtime-contract-v1.json").read_bytes()
     assert first == second == golden
     value = json.loads(golden)
-    assert value["diagnostics"] and value["findings"] == []
+    assert value["diagnostics"]
+    assert {item["rule_id"] for item in value["findings"]} == {"RTC001"}
     assert value["contract"]["providers"] == []
     assert {item["component"] for item in value["contract"]["consumers"]} == {"api", "web"}

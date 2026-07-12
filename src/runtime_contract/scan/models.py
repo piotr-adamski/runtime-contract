@@ -24,7 +24,7 @@ class ScanStatus(StrEnum):
 class ReportMetadata(ScanModel):
     tool: Literal["runtime-contract"] = "runtime-contract"
     tool_version: str | None
-    command: Literal["scan"] = "scan"
+    command: Literal["scan", "check"] = "scan"
 
 
 class ReportInputs(ScanModel):

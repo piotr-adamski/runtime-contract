@@ -824,8 +824,11 @@
       "additionalProperties": false,
       "properties": {
         "command": {
-          "const": "scan",
           "default": "scan",
+          "enum": [
+            "scan",
+            "check"
+          ],
           "title": "Command",
           "type": "string"
         },
