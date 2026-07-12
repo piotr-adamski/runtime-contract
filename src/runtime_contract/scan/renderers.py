@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.metadata
 import json
+import textwrap
 from typing import Any
 
 from runtime_contract.domain import Severity
@@ -24,12 +25,41 @@ def render_json(result: ScanResult) -> str:
     )
 
 
-def render_text(result: ScanResult, verbosity: int = 0) -> str:
+_COLORS = {
+    "error": "31",
+    "warning": "33",
+    "info": "36",
+    "complete": "32",
+    "partial": "33",
+    "failed": "31",
+}
+_SYMBOLS = {"error": "✖", "warning": "!", "info": "i"}
+
+
+def _paint(value: str, role: str, enabled: bool) -> str:
+    return f"\x1b[{_COLORS[role]}m{value}\x1b[0m" if enabled else value
+
+
+def _wrapped(lines: list[str], prefix: str, value: str, width: int) -> None:
+    available = max(10, width - len(prefix))
+    parts = textwrap.wrap(value, width=available, break_long_words=False, break_on_hyphens=False)
+    lines.append(prefix + (parts[0] if parts else ""))
+    lines.extend(" " * len(prefix) + part for part in parts[1:])
+
+
+def render_text(
+    result: ScanResult,
+    verbosity: int = 0,
+    *,
+    color: bool = False,
+    emoji: bool = False,
+    width: int = 100,
+) -> str:
     summary = result.summary
     if verbosity < 0:
         return f"Result: {result.status.value} — {summary.consumers} consumers, {summary.config_keys} config keys\n"
     lines = [
-        "runtime-contract scan",
+        f"runtime-contract {result.metadata.command}",
         "",
         "Root: .",
         f"Config: {result.inputs.config or '-'}",
@@ -81,30 +111,54 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
         lines.extend(["", "Findings"])
         keys = {key.id: key for key in result.contract.config_keys}
         environments = {item.id: item for item in result.contract.environments}
-        for finding in result.findings:
-            location = finding.primary_location
-            position = (
-                f":{location.start_line}:{location.start_column}" if location.start_line else ""
-            )
-            finding_key = keys.get(finding.config_key_id or "")
-            environment = environments.get(finding.environment_id or "")
-            lines.append(
-                f"  {finding.severity.value} {finding.rule_id.value} "
-                f"{get_rule(finding.rule_id).title}  "
-                f"{finding.component}/{environment.target if environment else '-'}  "
-                f"{finding_key.name if finding_key else '-'}  {finding.phase.value}  "
-                f"{location.path}{position}"
-            )
+        severity_order = (Severity.ERROR, Severity.WARNING, Severity.INFO)
+        for severity in severity_order:
+            findings = tuple(item for item in result.findings if item.severity is severity)
+            if not findings:
+                continue
+            label = severity.value.upper()
+            lines.append(f"  {_paint(label, severity.value, color)} ({len(findings)})")
+            for component in sorted({item.component for item in findings}):
+                lines.append(f"    {component}")
+                for finding in (item for item in findings if item.component == component):
+                    location = finding.primary_location
+                    position = (
+                        f":{location.start_line}:{location.start_column}"
+                        if location.start_line
+                        else ""
+                    )
+                    finding_key = keys.get(finding.config_key_id or "")
+                    environment = environments.get(finding.environment_id or "")
+                    symbol = f"{_SYMBOLS[severity.value]} " if emoji else ""
+                    _wrapped(
+                        lines,
+                        "      " + symbol,
+                        f"{finding.rule_id.value} {get_rule(finding.rule_id).title}",
+                        width,
+                    )
+                    _wrapped(
+                        lines,
+                        "        at ",
+                        f"{location.path}{position} | target={environment.target if environment else '-'} "
+                        f"key={finding_key.name if finding_key else '-'} phase={finding.phase.value}",
+                        width,
+                    )
+                    _wrapped(
+                        lines,
+                        "        suggestion: ",
+                        get_rule(finding.rule_id).remediation,
+                        width,
+                    )
     if result.metadata.policy:
         lines.extend(["", "Policy"])
         for record in result.metadata.policy:
-            severity = (
+            severity_suffix = (
                 f" {record.original_severity.value}->{record.effective_severity.value}"
                 if record.original_severity is not None and record.effective_severity is not None
                 else ""
             )
             lines.append(
-                f"  {record.status} {record.rule_id} {record.id}{severity} "
+                f"  {record.status} {record.rule_id} {record.id}{severity_suffix} "
                 f"{record.pointer} reason={record.reason}"
             )
     if verbosity >= 1:
@@ -146,7 +200,8 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
     lines.extend(
         [
             "",
-            f"Result: {result.status.value} — {summary.consumers} consumers, {summary.config_keys} config keys",
+            f"Result: {_paint(result.status.value, result.status.value, color)} — "
+            f"{summary.consumers} consumers, {summary.config_keys} config keys",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -260,12 +315,20 @@ def render_sarif(result: ScanResult) -> str:
     return json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
 
 
-def render(result: ScanResult, output_format: str, verbosity: int = 0) -> str:
+def render(
+    result: ScanResult,
+    output_format: str,
+    verbosity: int = 0,
+    *,
+    color: bool = False,
+    emoji: bool = False,
+    width: int = 100,
+) -> str:
     if output_format == "json":
         return render_json(result)
     if output_format == "sarif":
         return render_sarif(result)
-    return render_text(result, verbosity)
+    return render_text(result, verbosity, color=color, emoji=emoji, width=width)
 
 
 __all__ = ["render", "render_json", "render_sarif", "render_text"]

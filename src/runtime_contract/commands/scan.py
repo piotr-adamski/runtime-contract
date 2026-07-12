@@ -1,5 +1,8 @@
 """The scan command and its thin Typer adapter."""
 
+import os
+import shutil
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -51,6 +54,11 @@ def scan(
         int,
         typer.Option("--verbose", "-v", count=True, help="Increase text detail (maximum: -vv)."),
     ] = 0,
+    color: Annotated[str, typer.Option(help="Terminal color: auto, always, or never.")] = "auto",
+    no_emoji: Annotated[bool, typer.Option("--no-emoji", help="Disable terminal symbols.")] = False,
+    width: Annotated[
+        int | None, typer.Option(help="Terminal width override (40-240 columns).")
+    ] = None,
 ) -> None:
     """Statically inspect supported environment-variable consumers."""
     if output is not None and report is not None:
@@ -59,6 +67,17 @@ def scan(
         _fail("--quiet and --verbose cannot be used together")
     if verbose > 2:
         _fail("--verbose may be specified at most twice")
+    if color not in {"auto", "always", "never"}:
+        _fail("--color must be auto, always, or never")
+    if width is not None and not 40 <= width <= 240:
+        _fail("--width must be between 40 and 240")
+    is_tty = sys.stdout.isatty() and output is None and report is None
+    terminal_color = color == "always" or (
+        color == "auto" and is_tty and "NO_COLOR" not in os.environ
+    )
+    terminal_width = max(
+        40, min(240, width or shutil.get_terminal_size(fallback=(100, 24)).columns)
+    )
     request = ScanRequest(
         path=path,
         config=config,
@@ -71,6 +90,9 @@ def scan(
         report=report,
         fail_on=fail_on,
         verbosity=-1 if quiet else verbose,
+        terminal_color=terminal_color,
+        terminal_emoji=is_tty and not no_emoji,
+        terminal_width=terminal_width,
     )
     try:
         run = run_scan(request)

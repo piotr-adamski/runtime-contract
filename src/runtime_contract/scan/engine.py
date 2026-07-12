@@ -84,6 +84,9 @@ class ScanRequest:
     fail_on: str | None = None
     verbosity: int = 0
     command: Literal["scan", "check"] = "scan"
+    terminal_color: bool = False
+    terminal_emoji: bool = False
+    terminal_width: int = 100
 
 
 @dataclass(frozen=True, slots=True)
@@ -518,7 +521,14 @@ def run_scan(request: ScanRequest) -> ScanRun:
         files=tuple(sorted(files, key=lambda item: item.path.encode("utf-8"))),
     )
     output_format = execution.value.format.value
-    rendered = render(scan_result, output_format, request.verbosity)
+    rendered = render(
+        scan_result,
+        output_format,
+        request.verbosity,
+        color=request.terminal_color,
+        emoji=request.terminal_emoji,
+        width=request.terminal_width,
+    )
     output = request.output
     if output is None and execution.value.report is not None:
         output = Path(execution.value.report)

@@ -1,0 +1,38 @@
+runtime-contract scan
+
+Root: .
+Config: -
+Environment: -
+Selected roots: default
+
+Summary
+  Candidates: 2
+  Analyzed: 2
+  Skipped: 0
+  Config keys: 2
+  Consumers: 1
+  Flow nodes: 5
+  Flow edges: 2
+  Precedence providers: 1
+  Precedence conflicts: 0
+  Diagnostics: 0
+  Findings: 2
+
+Consumers
+  default  REQUIRED  app.py:3:1  required  plain
+
+Findings
+  ERROR (1)
+    default
+      RTC001 Required variable not provided
+        at app.py:3:1 | target=default key=REQUIRED phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or
+                    explicitly make the requirement optional.
+  WARNING (1)
+    default
+      RTC005 Declaration has no consumer
+        at .env.example:1:1 | target=- key=UNUSED phase=not_applicable
+        suggestion: Remove the stale declaration or confirm and document the unsupported consumption
+                    pattern.
+
+Result: complete — 1 consumers, 2 config keys
