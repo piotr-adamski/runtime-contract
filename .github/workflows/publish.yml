@@ -1,0 +1,74 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event.release.tag_name == 'v0.1.0' && github.event.release.target_commitish == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the immutable release tag
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Verify tag, version, tests, and distributions
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          test "$(git describe --tags --exact-match HEAD)" = "$RELEASE_TAG"
+          test "$(uv version --short)" = "${RELEASE_TAG#v}"
+          ./scripts/quality-gates.sh --base-ref HEAD^
+
+      - name: Upload the verified distributions
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: runtime-contract-release-${{ github.event.release.tag_name }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment:
+      name: pypi
+      url: https://pypi.org/project/runtime-contract/${{ github.event.release.tag_name }}/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download the verified distributions
+        uses: actions/download-artifact@82c63890e05b15a27c6c6f1c9db7b32e3a6a9541
+        with:
+          name: runtime-contract-release-${{ github.event.release.tag_name }}
+          path: dist
+
+      - name: Publish to PyPI with Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+        with:
+          packages-dir: dist
+          attestations: true
+          print-hash: true
