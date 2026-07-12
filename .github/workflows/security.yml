@@ -48,4 +48,5 @@ jobs:
       - name: Scan tracked history without exposing values
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           GITLEAKS_ENABLE_SUMMARY: "false"
