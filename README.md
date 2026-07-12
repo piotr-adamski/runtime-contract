@@ -26,6 +26,12 @@ requests that unmarked-document behavior.
 
 An independent open-source project maintained by Piotr Adamski.
 
+The public test fixture at `tests/fixtures/full-stack` combines every planned input family and
+documents valid flows, a missing delivery, an unused provider, competing deliveries, and a
+sensitive key delivered through ConfigMap. Its machine-readable golden file is deliberately not a
+Kubernetes-discoverable `.json` input. D2.14 records the current fail-closed normalization conflict;
+the following integration milestone owns resolving it into the expected graph.
+
 The planned v0.1.0 inputs are:
 
 - Python;

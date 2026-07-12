@@ -1,0 +1,3 @@
+FROM scratch AS runtime
+ARG BUILD_REVISION
+ENV OPTIONAL_MODE=production
