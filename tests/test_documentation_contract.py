@@ -75,7 +75,7 @@ def test_cli_and_format_references_cover_public_contract() -> None:
 
 def test_github_code_scanning_example_is_minimal_and_fail_closed() -> None:
     workflow = (ROOT / ".github/workflows/code-scanning.yml").read_text(encoding="utf-8")
-    guide = (ROOT / "docs/github-code-scanning.md").read_text(encoding="utf-8")
+    guide = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "contents: read" in workflow
     assert "security-events: write" in workflow
@@ -88,4 +88,4 @@ def test_github_code_scanning_example_is_minimal_and_fail_closed() -> None:
     assert "uv tool install --python 3.14 ." in workflow
     assert "if [[ $status -gt 1 ]]" in workflow
     assert "secrets." not in workflow
-    assert "GITHUB_TOKEN" in guide
+    assert "needs no repository secret" in guide
