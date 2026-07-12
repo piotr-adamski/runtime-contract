@@ -118,6 +118,8 @@ def test_supported_candidates(tmp_path: Path, name: str, kind: CandidateKind) ->
         ".env",
         ".env.local",
         ".env.prod",
+        "pnpm-lock.yaml",
+        "pnpm-lock.yml",
     ],
 )
 def test_unsupported_and_secret_env_files_are_rejected(tmp_path: Path, name: str) -> None:
@@ -157,6 +159,15 @@ def test_symlinked_gitignore_is_not_read(tmp_path: Path) -> None:
 def test_each_default_exclusion(tmp_path: Path, directory: str) -> None:
     write(tmp_path / directory / "app.py")
     assert paths(tmp_path) == []
+
+
+def test_next_backup_variant_is_excluded_without_hiding_similar_source_directory(
+    tmp_path: Path,
+) -> None:
+    write(tmp_path / ".next.root-owned-backup-example" / "generated.ts")
+    write(tmp_path / ".next-cache" / "source.ts")
+
+    assert paths(tmp_path) == [".next-cache/source.ts"]
 
 
 @pytest.mark.parametrize("directory", ["target", "out", "generated"])
