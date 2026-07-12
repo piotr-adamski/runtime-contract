@@ -285,6 +285,15 @@ smoke_distribution() {
 
 wheel=$(find dist -maxdepth 1 -type f -name '*.whl' -print)
 sdist=$(find dist -maxdepth 1 -type f -name '*.tar.gz' -print)
+stage "PyPI metadata and rendering"
+uv run twine check --strict "$wheel" "$sdist"
+stage "pipx local wheel install"
+pipx_root=$(mktemp -d)
+PIPX_HOME="$pipx_root/home" PIPX_BIN_DIR="$pipx_root/bin" uv run pipx install "$wheel"
+PYTHONPATH= "$pipx_root/bin/runtime-contract" --version
+PYTHONPATH= "$pipx_root/bin/runtime-contract" --help >/dev/null
+PIPX_HOME="$pipx_root/home" PIPX_BIN_DIR="$pipx_root/bin" uv run pipx uninstall runtime-contract
+rm -rf "$pipx_root"
 stage "Python 3.14 wheel four-command E2E"
 uv run --python 3.14 python scripts/ci/e2e_wheel.py \
   --wheel "$wheel" --python 3.14 --fixture tests/fixtures/full-stack

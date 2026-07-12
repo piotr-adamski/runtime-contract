@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Complete PyPI metadata, validate wheel/sdist rendering and private-file exclusions, and prove a
+  local wheel installs the `runtime-contract` command through isolated `pipx`.
 - Add a domain-neutral full-stack fixture spanning Python, TypeScript, `.env.example`, Dockerfile,
   multi-file Compose, and Kubernetes with machine-readable graph and diagnostic expectations.
 - Centralize public exception redaction, discard private exception causes, and add full-scan
