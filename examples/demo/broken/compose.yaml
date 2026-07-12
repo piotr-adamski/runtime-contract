@@ -1,0 +1,12 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        BUILD_REVISION: demo
+    environment:
+      DATABASE_URL: unsafe-demo-literal
+      SERVICE_TOKEN: unsafe-demo-literal
+  web:
+    environment:
+      PUBLIC_URL: https://example.invalid

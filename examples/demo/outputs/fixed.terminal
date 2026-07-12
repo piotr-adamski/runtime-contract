@@ -1,0 +1,26 @@
+runtime-contract scan
+
+Root: .
+Config: runtime-contract.yaml
+Environment: -
+Selected roots: default
+
+Summary
+  Candidates: 6
+  Analyzed: 6
+  Skipped: 0
+  Config keys: 3
+  Consumers: 3
+  Flow nodes: 18
+  Flow edges: 24
+  Precedence providers: 9
+  Precedence conflicts: 3
+  Diagnostics: 0
+  Findings: 0
+
+Consumers
+  default  SERVICE_TOKEN  app/settings.py:4:17  optional  secret
+  default  DATABASE_URL  app/settings.py:3:16  optional  secret
+  default  PUBLIC_URL  web/config.ts:1:26  optional  plain
+
+Result: complete — 3 consumers, 3 config keys

@@ -1,0 +1,9 @@
+services:
+  api:
+    image: example.invalid/demo-api:1
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
+  web:
+    environment:
+      PUBLIC_URL: https://example.invalid

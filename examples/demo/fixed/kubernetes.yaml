@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo-secrets
+stringData: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-config
+data:
+  PUBLIC_URL: https://example.invalid
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-api
+spec:
+  selector:
+    matchLabels: {app: demo-api}
+  template:
+    metadata:
+      labels: {app: demo-api}
+    spec:
+      containers:
+        - name: api
+          image: example.invalid/demo-api:1
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: {name: demo-secrets, key: DATABASE_URL}
+            - name: SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef: {name: demo-secrets, key: SERVICE_TOKEN}
+            - name: PUBLIC_URL
+              valueFrom:
+                configMapKeyRef: {name: demo-config, key: PUBLIC_URL}
