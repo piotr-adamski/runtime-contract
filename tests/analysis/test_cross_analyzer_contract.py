@@ -25,6 +25,7 @@ from runtime_contract.analysis import (
     FactKind,
     FactObservation,
     JavaScriptTypeScriptAnalyzer,
+    KubernetesAnalyzer,
     PythonAstAnalyzer,
     python_ast,
 )
@@ -474,6 +475,52 @@ def test_same_key_across_files_and_access_kinds_deduplicates_only_identity() -> 
         ConsumerAccessKind.PYTHON_OS_GETENV,
         ConsumerAccessKind.PYTHON_OS_ENVIRON,
     }
+
+
+def test_python_and_kubernetes_api_key_classification_normalizes_without_conflict() -> None:
+    resolver = Resolver()
+    python = PythonAstAnalyzer().analyze(
+        AnalyzerInput(
+            path="src/settings.py",
+            kind=CandidateKind.PYTHON,
+            content=b'import os\nos.getenv("SERVICE_API_KEY")\n',
+            component="app",
+            root="app",
+            profile=Profile.PROD,
+            resolver=resolver,
+        )
+    )
+    kubernetes = KubernetesAnalyzer().analyze(
+        AnalyzerInput(
+            path="deploy/pod.yaml",
+            kind=CandidateKind.KUBERNETES,
+            content=b"""apiVersion: v1
+kind: Pod
+metadata: {name: app}
+spec:
+  containers:
+    - name: app
+      env:
+        - name: SERVICE_API_KEY
+          value: cross-analyzer-value-canary-Q7Z9
+""",
+            component="app",
+            root="app",
+            profile=Profile.PROD,
+            resolver=resolver,
+        )
+    )
+
+    python_key = _facts(python, ConfigKey)[0]
+    kubernetes_key = _facts(kubernetes, ConfigKey)[0]
+    assert python_key == kubernetes_key
+    assert python_key.secret is False
+    contract = normalize_observations(python.observations + kubernetes.observations)
+    assert contract.config_keys == (python_key,)
+    assert len(contract.consumers) == 1
+    assert len(contract.environments) == 1
+    assert len(contract.providers) == 1
+    assert "cross-analyzer-value-canary-Q7Z9" not in repr(contract) + contract.model_dump_json()
 
 
 def test_overlapping_named_roots_analyze_physical_file_once(tmp_path: Path) -> None:

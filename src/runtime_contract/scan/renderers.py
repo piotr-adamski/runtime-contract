@@ -66,8 +66,9 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
             position = (
                 f":{location.start_line}:{location.start_column}" if location.start_line else ""
             )
+            rule = f"{diagnostic.rule_id.value} " if diagnostic.rule_id is not None else ""
             lines.append(
-                f"  {diagnostic.severity.value} {diagnostic.code.value.upper()} "
+                f"  {diagnostic.severity.value} {rule}{diagnostic.code.value.upper()} "
                 f"{location.path}{position}"
             )
     if verbosity >= 1:
@@ -121,10 +122,14 @@ def render_sarif(result: ScanResult) -> str:
     except importlib.metadata.PackageNotFoundError:
         version = "0.0.0-unknown"
     version = version.replace(".dev", "-dev.")
-    rules = [
-        {"id": code, "name": code}
-        for code in sorted({item.code.value for item in result.diagnostics})
-    ]
+    rule_pairs = {
+        (
+            item.rule_id.value if item.rule_id is not None else item.code.value,
+            item.code.value,
+        )
+        for item in result.diagnostics
+    }
+    rules = [{"id": rule_id, "name": name} for rule_id, name in sorted(rule_pairs)]
     levels = {Severity.INFO: "note", Severity.WARNING: "warning", Severity.ERROR: "error"}
     sarif_results: list[dict[str, Any]] = []
     for diagnostic in result.diagnostics:
@@ -139,7 +144,11 @@ def render_sarif(result: ScanResult) -> str:
             physical["region"] = region
         sarif_results.append(
             {
-                "ruleId": diagnostic.code.value,
+                "ruleId": (
+                    diagnostic.rule_id.value
+                    if diagnostic.rule_id is not None
+                    else diagnostic.code.value
+                ),
                 "level": levels[diagnostic.severity],
                 "message": {"text": diagnostic.code.value.replace("_", " ")},
                 "locations": [{"physicalLocation": physical}],

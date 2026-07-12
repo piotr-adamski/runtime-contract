@@ -49,6 +49,17 @@
           "title": "Related Locations",
           "type": "array"
         },
+        "rule_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "severity": {
           "$ref": "#/$defs/Severity"
         }
@@ -192,7 +203,8 @@
         "filesystem_mutation",
         "normalization_error",
         "read_error",
-        "safety_limit"
+        "safety_limit",
+        "unsupported_k8s_resource"
       ],
       "title": "DiagnosticCode",
       "type": "string"
@@ -403,6 +415,25 @@
         "config_override"
       ],
       "title": "RequirementSource",
+      "type": "string"
+    },
+    "RuleId": {
+      "description": "Identifiers shared by findings, configuration, and JSON Schema.",
+      "enum": [
+        "RTC001",
+        "RTC002",
+        "RTC003",
+        "RTC004",
+        "RTC005",
+        "RTC006",
+        "RTC007",
+        "RTC008",
+        "RTC009",
+        "RTC010",
+        "RTC011",
+        "RTC012"
+      ],
+      "title": "RuleId",
       "type": "string"
     },
     "SecretSource": {

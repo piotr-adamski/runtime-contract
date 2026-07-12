@@ -17,6 +17,7 @@ from runtime_contract.domain import (
     Severity,
     SourceLocation,
 )
+from runtime_contract.rules import RuleId
 
 
 class AnalysisModel(BaseModel):
@@ -43,6 +44,7 @@ class DiagnosticCode(StrEnum):
     NORMALIZATION_ERROR = "normalization_error"
     READ_ERROR = "read_error"
     SAFETY_LIMIT = "safety_limit"
+    UNSUPPORTED_K8S_RESOURCE = "unsupported_k8s_resource"
 
 
 class Confidence(StrEnum):
@@ -117,6 +119,7 @@ DIAGNOSTIC_SEVERITY: dict[DiagnosticCode, Severity] = {
     DiagnosticCode.NORMALIZATION_ERROR: Severity.ERROR,
     DiagnosticCode.READ_ERROR: Severity.ERROR,
     DiagnosticCode.SAFETY_LIMIT: Severity.ERROR,
+    DiagnosticCode.UNSUPPORTED_K8S_RESOURCE: Severity.INFO,
 }
 
 
@@ -124,6 +127,7 @@ class AnalysisDiagnostic(AnalysisModel):
     id: str = ""
     code: DiagnosticCode
     severity: Severity
+    rule_id: RuleId | None = None
     primary_location: SourceLocation
     related_locations: tuple[SourceLocation, ...] = ()
     parameters: tuple[DiagnosticParameter, ...] = ()
@@ -134,6 +138,11 @@ class AnalysisDiagnostic(AnalysisModel):
             raise ValueError(
                 f"{self.code.value} diagnostics require {DIAGNOSTIC_SEVERITY[self.code].value} severity"
             )
+        if self.code is DiagnosticCode.UNSUPPORTED_K8S_RESOURCE:
+            if self.rule_id is not RuleId.RTC012:
+                raise ValueError("unsupported Kubernetes resources require RTC012")
+        elif self.rule_id is not None:
+            raise ValueError("only unsupported Kubernetes resources have a rule id")
         related = tuple(sorted(self.related_locations, key=_location_key))
         if len(set(related)) != len(related):
             raise ValueError("related_locations must be unique")
@@ -144,7 +153,7 @@ class AnalysisDiagnostic(AnalysisModel):
             object.__setattr__(self, "related_locations", related)
         if parameters != self.parameters:
             object.__setattr__(self, "parameters", parameters)
-        expected = self.calculate_id(self.code, self.primary_location, parameters)
+        expected = self.calculate_id(self.code, self.primary_location, parameters, self.rule_id)
         if self.id and self.id != expected:
             raise ValueError("id does not match diagnostic identity")
         if not self.id:
@@ -156,12 +165,15 @@ class AnalysisDiagnostic(AnalysisModel):
         code: DiagnosticCode,
         primary_location: SourceLocation,
         parameters: tuple[DiagnosticParameter, ...] = (),
+        rule_id: RuleId | None = None,
     ) -> str:
         payload = {
             "code": code.value,
             "primary_location": primary_location.identity(),
             "parameters": parameters,
         }
+        if rule_id is not None:
+            payload["rule_id"] = rule_id.value
         encoded = json.dumps(
             payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True
         ).encode()
@@ -174,6 +186,7 @@ _LOSS_CODES = frozenset(
         DiagnosticCode.DYNAMIC_NAME,
         DiagnosticCode.UNSUPPORTED_CONSTRUCT,
         DiagnosticCode.PARTIAL_ANALYSIS,
+        DiagnosticCode.SAFETY_LIMIT,
     }
 )
 

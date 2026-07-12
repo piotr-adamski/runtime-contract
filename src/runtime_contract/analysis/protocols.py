@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import posixpath
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 from runtime_contract.analysis.models import AnalysisResult, EffectiveClassification
@@ -19,7 +19,7 @@ class ClassificationResolver(Protocol):
 class AnalyzerInput:
     path: str
     kind: CandidateKind
-    content: bytes
+    content: bytes = field(repr=False)
     component: str
     root: str
     profile: Profile

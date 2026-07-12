@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: tenant-a
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: migrate
+          env:
+            - name: INIT_READY
+              value: "kubernetes-init-value-canary-Q7Z9"
+      containers:
+        - name: app
+          env:
+            - name: LITERAL_VALUE
+              value: "kubernetes-literal-value-canary-Q7Z9"
+            - name: EMPTY_DEFAULT
+            - name: SECRET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: missing-secret
+                  key: token
+                  optional: false
+            - name: CONFIG_VALUE
+              valueFrom:
+                configMapKeyRef:
+                  name: missing-config
+                  key: setting
+                  optional: true
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: CPU_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  containerName: app
+                  resource: limits.cpu
+                  divisor: 1m
+          envFrom:
+            - prefix: CM_
+              configMapRef:
+                name: missing-config-bulk
+                optional: false
+            - prefix: SECRET_
+              secretRef:
+                name: missing-secret-bulk
+                optional: true

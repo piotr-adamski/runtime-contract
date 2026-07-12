@@ -21,6 +21,7 @@
           "start_line": 3
         }
       ],
+      "rule_id": null,
       "severity": "warning"
     }
   ],
