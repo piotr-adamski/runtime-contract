@@ -28,6 +28,13 @@ absolute private paths.
 
 ## Fields
 
+This section is the canonical human reference for every public configuration field. The generated
+[`runtime-contract.schema.json`](../schemas/runtime-contract.schema.json) is the machine-readable
+source for editor and validator integration; CI checks that this field inventory stays synchronized.
+Top-level fields are `version`, `include`, `exclude`, `roots`, `environments`, `classifications`,
+`severity_overrides`, `suppressions`, and `execution`. Classification containers use `variables`
+and `patterns`; execution's output-file field is `report`.
+
 - `include` and `exclude` are ordered lists of path globs. Global filters run before root filters.
 - `roots` maps names matching `[A-Za-z][A-Za-z0-9_-]{0,63}` to a relative path string or an object
   containing `path`, `include`, and `exclude`. Missing `roots` means `default: "."`. `default` is
