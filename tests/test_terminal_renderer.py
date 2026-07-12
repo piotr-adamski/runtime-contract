@@ -24,7 +24,7 @@ def result() -> ScanResult:
 
 def test_plain_ci_snapshot_groups_findings_and_never_leaks_values() -> None:
     rendered = render_text(result(), color=False, emoji=False, width=100)
-    assert rendered == Path("tests/fixtures/terminal-renderer-ci.txt").read_text()
+    assert rendered == Path("tests/fixtures/terminal-renderer-ci.txt").read_text(encoding="utf-8")
     assert "SUPER_SECRET_CANARY" not in rendered
     assert "Findings\n  ERROR" in rendered
     assert "\n  WARNING" in rendered
@@ -35,10 +35,9 @@ def test_plain_ci_snapshot_groups_findings_and_never_leaks_values() -> None:
 
 def test_tty_snapshot_has_controlled_color_and_emoji() -> None:
     rendered = render_text(result(), color=True, emoji=True, width=100)
-    assert (
-        rendered.replace("\x1b", "<ESC>")
-        == Path("tests/fixtures/terminal-renderer-tty.txt").read_text()
-    )
+    assert rendered.replace("\x1b", "<ESC>") == Path(
+        "tests/fixtures/terminal-renderer-tty.txt"
+    ).read_text(encoding="utf-8")
     assert "\x1b[31mERROR\x1b[0m" in rendered
     assert "✖ RTC001" in rendered
     assert "! RTC005" in rendered

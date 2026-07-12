@@ -16,7 +16,14 @@ FORMATS = {"terminal": "text", "json": "json", "sarif": "sarif"}
 
 
 def render(state: str, output_format: str) -> bytes:
-    environment = {**os.environ, "NO_COLOR": "1", "TERM": "dumb", "COLUMNS": "120"}
+    environment = {
+        **os.environ,
+        "NO_COLOR": "1",
+        "TERM": "dumb",
+        "COLUMNS": "120",
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+    }
     result = subprocess.run(
         [
             sys.executable,
@@ -34,7 +41,7 @@ def render(state: str, output_format: str) -> bytes:
     )
     if result.stderr:
         raise RuntimeError(f"unexpected stderr for {state}/{output_format}: {result.stderr!r}")
-    return result.stdout
+    return result.stdout.replace(b"\r\n", b"\n")
 
 
 def main() -> int:

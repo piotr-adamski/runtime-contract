@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Run the supported Python matrix on Linux, macOS, and Windows, add minimum/latest dependency
+  jobs, normalize checkout text to LF, stabilize Windows file identity, and make artifact checksum,
+  entry-point, Unicode-path, and encoding E2E checks portable.
 - Complete PyPI metadata, validate wheel/sdist rendering and private-file exclusions, and prove a
   local wheel installs the `runtime-contract` command through isolated `pipx`.
 - Add a domain-neutral full-stack fixture spanning Python, TypeScript, `.env.example`, Dockerfile,

@@ -271,7 +271,8 @@ def test_fifo_and_socket_are_never_opened(tmp_path: Path) -> None:
 def test_sorting_is_utf8_nfc_and_creation_order_independent(tmp_path: Path) -> None:
     for name in ["z.py", "ą.py", "A.py", "a.py"]:
         write(tmp_path / name)
-    expected = sorted(["z.py", "ą.py", "A.py", "a.py"], key=lambda value: value.encode())
+    representable = {unicodedata.normalize("NFC", entry.name) for entry in tmp_path.iterdir()}
+    expected = sorted(representable, key=lambda value: value.encode())
     assert paths(tmp_path) == expected
 
 
@@ -281,8 +282,12 @@ def test_unicode_is_normalized_and_collisions_fail(tmp_path: Path) -> None:
     assert paths(tmp_path) == [unicodedata.normalize("NFC", decomposed)]
     composed = "é.py"
     if composed != decomposed:
+        entries_before = len(list(tmp_path.iterdir()))
         write(tmp_path / composed)
-        assert_code(tmp_path, DiscoveryErrorCode.UNICODE_COLLISION)
+        if len(list(tmp_path.iterdir())) == entries_before:
+            assert paths(tmp_path) == [composed]
+        else:
+            assert_code(tmp_path, DiscoveryErrorCode.UNICODE_COLLISION)
 
 
 def test_spaces_and_non_ascii_names(tmp_path: Path) -> None:
@@ -296,8 +301,8 @@ def test_ten_thousand_entries_and_deep_iterative_tree(tmp_path: Path) -> None:
     for index in range(10_000):
         (bulk / f"entry-{index:05}.txt").touch()
     deep = tmp_path
-    for index in range(300):
-        deep /= f"d{index}"
+    for _ in range(300):
+        deep /= "d"
     write(deep / "app.py")
     assert paths(tmp_path) == [str((deep / "app.py").relative_to(tmp_path)).replace(os.sep, "/")]
 
