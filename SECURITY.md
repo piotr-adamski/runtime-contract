@@ -24,3 +24,6 @@ The maintainer aims to:
 - coordinate disclosure and remediation based on severity and affected users.
 
 These are response targets, not a fixed remediation service-level agreement. Please allow a reasonable period for investigation and coordinated disclosure before publishing details.
+
+The product threat model, local data boundaries, parser controls, no-telemetry contract, and
+residual limitations are maintained in [docs/security-and-privacy.md](docs/security-and-privacy.md).

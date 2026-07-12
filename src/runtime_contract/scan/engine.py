@@ -69,6 +69,8 @@ from runtime_contract.scan.models import (
 )
 from runtime_contract.scan.renderers import render
 
+MAX_SOURCE_BYTES = 4 * 1_048_576
+
 
 @dataclass(frozen=True, slots=True)
 class ScanRequest:
@@ -294,20 +296,19 @@ def run_scan(request: ScanRequest) -> ScanRun:
             CandidateKind.DOCKERFILE: MAX_DOCKERFILE_BYTES,
             CandidateKind.COMPOSE: MAX_COMPOSE_BYTES,
             CandidateKind.KUBERNETES: MAX_KUBERNETES_BYTES,
-        }.get(item.kind)
-        if size_limit is not None:
-            try:
-                oversized = resolved.stat().st_size > size_limit
-            except OSError:
-                counts["failed"] += 1
-                diagnostics.append(_technical_diagnostic(DiagnosticCode.READ_ERROR, item.path))
-                files.append(ScanFile(path=item.path, kind=item.kind.value, status="failed"))
-                continue
-            if oversized:
-                counts["failed"] += 1
-                diagnostics.append(_file_size_diagnostic(item.path))
-                files.append(ScanFile(path=item.path, kind=item.kind.value, status="failed"))
-                continue
+        }.get(item.kind, MAX_SOURCE_BYTES)
+        try:
+            oversized = resolved.stat().st_size > size_limit
+        except OSError:
+            counts["failed"] += 1
+            diagnostics.append(_technical_diagnostic(DiagnosticCode.READ_ERROR, item.path))
+            files.append(ScanFile(path=item.path, kind=item.kind.value, status="failed"))
+            continue
+        if oversized:
+            counts["failed"] += 1
+            diagnostics.append(_file_size_diagnostic(item.path))
+            files.append(ScanFile(path=item.path, kind=item.kind.value, status="failed"))
+            continue
         try:
             content = resolved.read_bytes()
         except OSError:
