@@ -1,0 +1,87 @@
+runtime-contract scan
+
+Root: .
+Config: -
+Environment: -
+Selected roots: -
+
+Summary
+  Candidates: 0
+  Analyzed: 0
+  Skipped: 0
+  Config keys: 0
+  Consumers: 0
+  Flow nodes: 0
+  Flow edges: 0
+  Precedence providers: 0
+  Precedence conflicts: 0
+  Diagnostics: 0
+  Findings: 12
+
+No supported consumers found.
+
+Findings
+  ERROR (5)
+    component-01
+      RTC001 Required variable not provided
+        at rules/rtc001.py:1:1 | target=- key=- phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or
+                    explicitly make the requirement optional.
+    component-02
+      RTC002 Secret has a literal value
+        at rules/rtc002.py:2:1 | target=- key=- phase=runtime
+        suggestion: Replace the literal with an empty or approved placeholder, pass-through
+                    reference, or secret-backed delivery.
+    component-03
+      RTC003 Private-key content detected
+        at rules/rtc003.py:3:1 | target=- key=- phase=runtime
+        suggestion: Remove the private-key content from the repository and rotate the affected key
+                    outside runtime-contract.
+    component-09
+      RTC009 Bulk delivery cannot be verified
+        at rules/rtc009.py:9:1 | target=- key=- phase=runtime
+        suggestion: Add a statically verifiable key or an explicit valueless provides declaration
+                    for the target.
+    component-10
+      RTC010 Delivery phase does not match
+        at rules/rtc010.py:10:1 | target=- key=- phase=runtime
+        suggestion: Move or duplicate delivery into the required build or runtime phase.
+  WARNING (5)
+    component-04
+      RTC004 Variable is not documented
+        at rules/rtc004.py:4:1 | target=- key=- phase=runtime
+        suggestion: Declare the variable in the component's documentation source without adding a
+                    real secret value.
+    component-05
+      RTC005 Declaration has no consumer
+        at rules/rtc005.py:5:1 | target=- key=- phase=runtime
+        suggestion: Remove the stale declaration or confirm and document the unsupported consumption
+                    pattern.
+    component-06
+      RTC006 Variable reference is dynamic
+        at rules/rtc006.py:6:1 | target=- key=- phase=runtime
+        suggestion: Use a statically named access or document the limitation; runtime-contract will
+                    not execute code or guess the name.
+    component-07
+      RTC007 Static defaults conflict
+        at rules/rtc007.py:7:1 | target=- key=- phase=runtime
+        suggestion: Choose one intended default contract and align every static declaration and
+                    consumer.
+    component-11
+      RTC011 Custom Settings source is dynamic
+        at rules/rtc011.py:11:1 | target=- key=- phase=runtime
+        suggestion: Expose a static field alias or prefix, or document the custom source as an
+                    intentional analysis limitation.
+  INFO (2)
+    component-08
+      RTC008 Optional variable not provided
+        at rules/rtc008.py:8:1 | target=- key=- phase=runtime
+        suggestion: No action is required when omission is intentional; otherwise add the matching
+                    delivery.
+    component-12
+      RTC012 Kubernetes resource is unsupported
+        at rules/rtc012.py:12:1 | target=- key=- phase=runtime
+        suggestion: Use a supported plain manifest for analysis or assess the unsupported resource
+                    with its native tooling.
+
+Result: complete — 0 consumers, 0 config keys
