@@ -12,6 +12,7 @@ from runtime_contract.domain import (
     ProviderRole,
     Severity,
 )
+from runtime_contract.precedence import PrecedenceAnalysis, ProviderDisposition
 from runtime_contract.rules import RuleId
 
 
@@ -76,4 +77,51 @@ def evaluate_required_not_provided(contract: Contract, /) -> tuple[Finding, ...]
     return tuple(sorted(findings, key=lambda item: item.id))
 
 
-__all__ = ["evaluate_required_not_provided"]
+def evaluate_unused_providers(
+    contract: Contract,
+    precedence: PrecedenceAnalysis,
+    /,
+    *,
+    has_dynamic_uncertainty: bool = False,
+) -> tuple[Finding, ...]:
+    """Evaluate value-blind RTC005 findings without guessing through dynamic access."""
+
+    if has_dynamic_uncertainty:
+        return ()
+    consumed = {item.config_key_id for item in contract.consumers}
+    components_with_consumers = {item.component for item in contract.consumers}
+    dispositions = {item.provider_id: item.disposition for item in precedence.providers}
+    findings: list[Finding] = []
+    for provider in contract.providers:
+        if provider.config_key_id is None:
+            continue
+        disposition = dispositions[provider.id]
+        if disposition is ProviderDisposition.OVERRIDDEN:
+            context = "shadowed"
+        elif provider.component not in components_with_consumers:
+            context = "unassigned"
+        elif provider.config_key_id not in consumed:
+            context = "unused"
+        else:
+            continue
+        findings.append(
+            Finding(
+                rule_id=RuleId.RTC005,
+                severity=Severity.WARNING,
+                component=provider.component,
+                environment_id=provider.environment_id,
+                config_key_id=provider.config_key_id,
+                phase=provider.phase,
+                primary_location=provider.location,
+                evidence_locations=(provider.location,),
+                parameters=(
+                    ("context", context),
+                    ("mechanism", provider.mechanism.value),
+                    ("provider_role", provider.role.value),
+                ),
+            )
+        )
+    return tuple(sorted(findings, key=lambda item: item.id))
+
+
+__all__ = ["evaluate_required_not_provided", "evaluate_unused_providers"]
