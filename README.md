@@ -99,8 +99,8 @@ or a maximum repository file count.
 
 ## Project status
 
-The v0.1 feature set is release-candidate complete and remains on version `0.1.0.dev0` until the
-release workflow publishes the immutable v0.1.0 artifacts. All supported commands are implemented:
+The v0.1 feature set and package version are frozen at `0.1.0`. Publication is still pending until
+the release workflow publishes and verifies the immutable artifacts. All supported commands are implemented:
 `scan`, `check`, `explain`, and `diff`.
 
 Kubernetes manifests are traversed statically and locally from caller-provided YAML (including

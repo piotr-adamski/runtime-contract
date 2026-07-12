@@ -245,7 +245,7 @@ smoke_distribution() {
   (
     cd "$temp_dir"
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
-      'import importlib.metadata; import runtime_contract; assert importlib.metadata.version("runtime-contract") == "0.1.0.dev0"'
+      'import importlib.metadata; import runtime_contract; assert importlib.metadata.version("runtime-contract") == "0.1.0"'
     PYTHONPATH= "$temp_dir/venv/bin/python" -m runtime_contract --version
     PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" --help >/dev/null
     for command in scan check explain diff config; do
