@@ -32,6 +32,7 @@ from runtime_contract.config.models import RuntimeContractConfig
 from runtime_contract.config.policy import ConfigPolicy
 from runtime_contract.discovery import CandidateKind, DiscoveryError, discover
 from runtime_contract.domain import Contract, Profile, Severity, SourceLocation
+from runtime_contract.flow import build_flow_graph
 from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
 from runtime_contract.normalization import NormalizationError, normalize_observations
 from runtime_contract.scan.models import (
@@ -285,6 +286,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
             _technical_diagnostic(DiagnosticCode.NORMALIZATION_ERROR, "runtime-contract.yaml")
         )
         contract = Contract()
+    flow_graph = build_flow_graph(contract)
     status = (
         ScanStatus.FAILED
         if counts["failed"]
@@ -308,6 +310,8 @@ def run_scan(request: ScanRequest) -> ScanRun:
         config_keys=len(contract.config_keys),
         consumers=len(contract.consumers),
         providers=len(contract.providers),
+        flow_nodes=len(flow_graph.nodes),
+        flow_edges=len(flow_graph.edges),
         diagnostics=len(diagnostics_tuple),
         candidate_kinds=candidate_kinds,
         skipped_reasons=(
@@ -334,6 +338,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         status=status,
         summary=summary,
         contract=contract,
+        flow_graph=flow_graph,
         diagnostics=diagnostics_tuple,
         findings=(),
         files=tuple(sorted(files, key=lambda item: item.path.encode("utf-8"))),

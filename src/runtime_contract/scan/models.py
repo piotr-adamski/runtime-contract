@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from runtime_contract.analysis import AnalysisDiagnostic
 from runtime_contract.domain import Contract, Finding
+from runtime_contract.flow import FlowGraph, build_flow_graph
 
 
 class ScanModel(BaseModel):
@@ -57,6 +58,8 @@ class ScanSummary(ScanModel):
     config_keys: int = 0
     consumers: int = 0
     providers: int = 0
+    flow_nodes: int = 0
+    flow_edges: int = 0
     diagnostics: int = 0
     findings: int = 0
     candidate_kinds: dict[str, int] = Field(default_factory=dict)
@@ -99,6 +102,7 @@ class ScanResult(ScanModel):
     status: ScanStatus
     summary: ScanSummary
     contract: Contract
+    flow_graph: FlowGraph = FlowGraph()
     diagnostics: tuple[AnalysisDiagnostic, ...]
     findings: tuple[Finding, ...]
     files: tuple[ScanFile, ...]
@@ -129,12 +133,16 @@ class ScanResult(ScanModel):
             "config_keys": len(self.contract.config_keys),
             "consumers": len(self.contract.consumers),
             "providers": len(self.contract.providers),
+            "flow_nodes": len(self.flow_graph.nodes),
+            "flow_edges": len(self.flow_graph.edges),
             "diagnostics": len(self.diagnostics),
             "findings": len(self.findings),
         }
         for name, count in expected.items():
             if getattr(self.summary, name) != count:
                 raise ValueError(f"summary.{name} is inconsistent")
+        if self.flow_graph != build_flow_graph(self.contract):
+            raise ValueError("flow_graph is inconsistent with contract")
         if self.status is ScanStatus.COMPLETE and (
             self.summary.partial_files or self.summary.failed_files
         ):

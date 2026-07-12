@@ -30,3 +30,7 @@ remain stable for every `runtime-contract/contract/v1` document.
 The model stores names, safe identifiers, relative locations, and structural facts only. It never
 stores environment-variable values, secret values, literal fallback values, source snippets, or
 source line contents.
+
+`Contract` remains the facts-only source of truth. The separate `runtime_contract.flow` API derives
+an immutable query graph from those facts without changing their identities or semantics. A
+`ScanResult` validates that its graph is exactly the graph implied by its embedded contract.

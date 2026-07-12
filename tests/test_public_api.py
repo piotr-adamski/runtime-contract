@@ -148,6 +148,15 @@ PUBLIC_EXPORTS = {
         "Severity",
         "SourceLocation",
     ),
+    "runtime_contract.flow": (
+        "FlowEdge",
+        "FlowEdgeKind",
+        "FlowGraph",
+        "FlowNode",
+        "FlowNodeKind",
+        "FlowTrace",
+        "build_flow_graph",
+    ),
     "runtime_contract.normalization": (
         "NormalizationError",
         "NormalizationErrorCode",
@@ -196,6 +205,7 @@ def test_documented_import_paths_are_supported() -> None:
         Provider,
         SourceLocation,
     )
+    from runtime_contract.flow import FlowGraph, build_flow_graph
     from runtime_contract.kubernetes import (
         KubernetesInput,
         KubernetesTraversalResult,
@@ -219,6 +229,7 @@ def test_documented_import_paths_are_supported() -> None:
             Contract,
             Environment,
             Finding,
+            FlowGraph,
             Provider,
             SourceLocation,
             normalize_observations,
@@ -231,5 +242,6 @@ def test_documented_import_paths_are_supported() -> None:
             KubernetesInput,
             KubernetesTraversalResult,
             traverse_kubernetes_workloads,
+            build_flow_graph,
         )
     )

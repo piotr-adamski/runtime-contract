@@ -376,6 +376,141 @@
       "title": "Finding",
       "type": "object"
     },
+    "FlowEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "title": "Component",
+          "type": "string"
+        },
+        "config_key_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Key Id"
+        },
+        "environment_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment Id"
+        },
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/FlowEdgeKind"
+        },
+        "phase": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Phase"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source_node_id": {
+          "title": "Source Node Id",
+          "type": "string"
+        },
+        "target_node_id": {
+          "title": "Target Node Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "source_node_id",
+        "target_node_id",
+        "component"
+      ],
+      "title": "FlowEdge",
+      "type": "object"
+    },
+    "FlowEdgeKind": {
+      "enum": [
+        "consumer_requires_key",
+        "key_declared_by",
+        "key_delivered_by",
+        "delivery_declared_by",
+        "provider_targets_environment"
+      ],
+      "title": "FlowEdgeKind",
+      "type": "string"
+    },
+    "FlowGraph": {
+      "additionalProperties": false,
+      "properties": {
+        "edges": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FlowEdge"
+          },
+          "title": "Edges",
+          "type": "array"
+        },
+        "nodes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FlowNode"
+          },
+          "title": "Nodes",
+          "type": "array"
+        }
+      },
+      "title": "FlowGraph",
+      "type": "object"
+    },
+    "FlowNode": {
+      "additionalProperties": false,
+      "properties": {
+        "fact_id": {
+          "title": "Fact Id",
+          "type": "string"
+        },
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/FlowNodeKind"
+        }
+      },
+      "required": [
+        "kind",
+        "fact_id"
+      ],
+      "title": "FlowNode",
+      "type": "object"
+    },
+    "FlowNodeKind": {
+      "enum": [
+        "config_key",
+        "consumer",
+        "environment",
+        "provider"
+      ],
+      "title": "FlowNodeKind",
+      "type": "string"
+    },
     "Phase": {
       "enum": [
         "build",
@@ -710,6 +845,16 @@
           "title": "Findings",
           "type": "integer"
         },
+        "flow_edges": {
+          "default": 0,
+          "title": "Flow Edges",
+          "type": "integer"
+        },
+        "flow_nodes": {
+          "default": 0,
+          "title": "Flow Nodes",
+          "type": "integer"
+        },
         "partial_files": {
           "default": 0,
           "title": "Partial Files",
@@ -844,6 +989,13 @@
       },
       "title": "Findings",
       "type": "array"
+    },
+    "flow_graph": {
+      "$ref": "#/$defs/FlowGraph",
+      "default": {
+        "edges": [],
+        "nodes": []
+      }
     },
     "inputs": {
       "$ref": "#/$defs/ReportInputs"
