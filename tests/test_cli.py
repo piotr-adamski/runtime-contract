@@ -2,6 +2,7 @@
 
 import importlib
 import importlib.metadata
+import re
 import runpy
 import sys
 
@@ -12,6 +13,7 @@ from runtime_contract import cli
 from runtime_contract.cli import app
 
 runner = CliRunner()
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 
 
 def test_main_invokes_typer_application(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -81,12 +83,13 @@ def test_command_help_succeeds(command: str) -> None:
 def test_cli_typo_errors_suggest_the_intended_command_or_option(
     arguments: list[str], suggestion: str
 ) -> None:
-    result = runner.invoke(app, arguments, color=False)
+    result = runner.invoke(app, arguments, env={"FORCE_COLOR": "1"})
+    stderr = ANSI_ESCAPE.sub("", result.stderr)
 
     assert result.exit_code == 2
     assert result.stdout == ""
-    assert suggestion in result.stderr
-    assert "--help" in result.stderr
+    assert suggestion in stderr
+    assert "--help" in stderr
 
 
 def test_version_uses_distribution_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
