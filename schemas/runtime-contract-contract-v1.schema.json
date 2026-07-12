@@ -27,6 +27,14 @@
         "secret_source": {
           "$ref": "#/$defs/SecretSource"
         },
+        "sensitivity_confidence": {
+          "$ref": "#/$defs/SensitivityConfidence",
+          "default": "none"
+        },
+        "sensitivity_reason": {
+          "$ref": "#/$defs/SensitivityReason",
+          "default": "no_match"
+        },
         "severity_override": {
           "anyOf": [
             {
@@ -281,6 +289,30 @@
         "not_secret"
       ],
       "title": "SecretSource",
+      "type": "string"
+    },
+    "SensitivityConfidence": {
+      "enum": [
+        "certain",
+        "high",
+        "none"
+      ],
+      "title": "SensitivityConfidence",
+      "type": "string"
+    },
+    "SensitivityReason": {
+      "enum": [
+        "config_override",
+        "token",
+        "password",
+        "secret",
+        "private_key",
+        "api_key",
+        "credential",
+        "secret_metadata",
+        "no_match"
+      ],
+      "title": "SensitivityReason",
       "type": "string"
     },
     "Severity": {

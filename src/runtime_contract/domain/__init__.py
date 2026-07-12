@@ -19,6 +19,8 @@ from runtime_contract.domain.models import (
     RequirementSource,
     SafeIdentifier,
     SecretSource,
+    SensitivityConfidence,
+    SensitivityReason,
     Severity,
     SourceLocation,
 )
@@ -44,6 +46,8 @@ __all__ = [
     "RuleId",
     "SafeIdentifier",
     "SecretSource",
+    "SensitivityConfidence",
+    "SensitivityReason",
     "Severity",
     "SourceLocation",
 ]

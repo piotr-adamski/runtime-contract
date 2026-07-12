@@ -31,7 +31,16 @@ from runtime_contract.analysis import (
 )
 from runtime_contract.cli import app
 from runtime_contract.discovery import CandidateKind
-from runtime_contract.domain import ConfigKey, Consumer, ConsumerAccessKind, Contract, Profile
+from runtime_contract.domain import (
+    ConfigKey,
+    Consumer,
+    ConsumerAccessKind,
+    Contract,
+    Profile,
+    SecretSource,
+    SensitivityConfidence,
+    SensitivityReason,
+)
 from runtime_contract.normalization import normalize_observations
 from runtime_contract.scan import ScanRequest, ScanResult, run_scan
 
@@ -514,7 +523,11 @@ spec:
     python_key = _facts(python, ConfigKey)[0]
     kubernetes_key = _facts(kubernetes, ConfigKey)[0]
     assert python_key == kubernetes_key
-    assert python_key.secret is False
+    assert python_key.secret is True
+    assert python_key.secret_source is SecretSource.HEURISTIC
+    assert python_key.sensitivity_reason is SensitivityReason.API_KEY
+    assert python_key.sensitivity_confidence is SensitivityConfidence.HIGH
+    assert python_key.allow_literal is False
     contract = normalize_observations(python.observations + kubernetes.observations)
     assert contract.config_keys == (python_key,)
     assert len(contract.consumers) == 1

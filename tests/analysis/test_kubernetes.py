@@ -29,6 +29,9 @@ from runtime_contract.domain import (
     Provider,
     ProviderMechanism,
     RuleId,
+    SecretSource,
+    SensitivityConfidence,
+    SensitivityReason,
     Severity,
 )
 from runtime_contract.kubernetes import loader as kubernetes_loader
@@ -288,6 +291,20 @@ stringData: {PASSWORD: hidden}
         "SEC_PASSWORD",
         "SEC_TOKEN",
     ]
+    secret_keys = {
+        item.name: item for item in facts(result, ConfigKey) if item.name.startswith("SEC_")
+    }
+    assert set(secret_keys) == {"SEC_PASSWORD", "SEC_TOKEN"}
+    assert all(item.secret for item in secret_keys.values())
+    assert all(item.secret_source is SecretSource.HEURISTIC for item in secret_keys.values())
+    assert all(
+        item.sensitivity_reason is SensitivityReason.SECRET_METADATA
+        for item in secret_keys.values()
+    )
+    assert all(
+        item.sensitivity_confidence is SensitivityConfidence.CERTAIN
+        for item in secret_keys.values()
+    )
     providers = facts(result, Provider)
     resolved = [item for item in providers if item.evidence_kind is EvidenceKind.RESOLVED_BULK]
     unresolved = [item for item in providers if item.evidence_kind is EvidenceKind.UNRESOLVED_BULK]

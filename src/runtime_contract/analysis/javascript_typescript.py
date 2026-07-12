@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable, Iterator
 
 import tree_sitter_javascript
@@ -26,12 +25,11 @@ from runtime_contract.domain import (
     ConsumerAccessKind,
     Phase,
     RequirementSource,
-    SecretSource,
     Severity,
     SourceLocation,
 )
+from runtime_contract.sensitivity import classify_sensitivity
 
-_SECRET_NAME = re.compile(r"(?:^|_)(?:TOKEN|PASSWORD|SECRET|PRIVATE_KEY)$")
 _TS_SUFFIXES = frozenset({".ts", ".mts", ".cts"})
 _TSX_SUFFIXES = frozenset({".tsx"})
 _WRAPPERS = frozenset(
@@ -184,21 +182,19 @@ class _Visitor:
 
     def _record(self, name: str, node: Node) -> None:
         resolved = self.input.resolver.classify(name)
-        heuristic_secret = bool(_SECRET_NAME.search(name))
-        secret = resolved.secret if resolved.secret is not None else heuristic_secret
-        secret_source = (
-            SecretSource.CONFIG_OVERRIDE
-            if resolved.secret is not None
-            else SecretSource.HEURISTIC
-            if heuristic_secret
-            else SecretSource.NOT_SECRET
+        sensitivity = classify_sensitivity(name, override=resolved.secret)
+        allow_literal = (
+            resolved.allow_literal
+            if resolved.allow_literal is not None
+            else not sensitivity.sensitive
         )
-        allow_literal = resolved.allow_literal if resolved.allow_literal is not None else not secret
         key = ConfigKey(
             name=name,
             component=self.input.component,
-            secret=secret,
-            secret_source=secret_source,
+            secret=sensitivity.sensitive,
+            secret_source=sensitivity.source,
+            sensitivity_reason=sensitivity.reason,
+            sensitivity_confidence=sensitivity.confidence,
             allow_literal=allow_literal,
         )
         required = resolved.required if resolved.required is not None else True
