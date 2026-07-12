@@ -19,6 +19,7 @@ def test_security_workflow_has_blocking_sca_sast_and_secret_scan() -> None:
     assert "pip-audit==2.10.1" in text
     assert "bandit==1.9.4" in text
     assert "GITLEAKS_ENABLE_SUMMARY" in text
+    assert "GITHUB_TOKEN: ${{ github.token }}" in text
     for job in jobs.values():
         for step in job["steps"]:
             if action := step.get("uses"):
