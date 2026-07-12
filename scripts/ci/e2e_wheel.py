@@ -32,6 +32,8 @@ def run(binary: Path, cwd: Path, *arguments: str) -> Outcome:
     environment = os.environ.copy()
     environment["PYTHONPATH"] = ""
     environment["PYTHONHASHSEED"] = "1"
+    environment["PYTHONUTF8"] = "1"
+    environment["PYTHONIOENCODING"] = "utf-8"
     completed = subprocess.run(
         [str(binary), *arguments],
         cwd=cwd,
@@ -64,6 +66,15 @@ def require_help(outcome: Outcome, *fragments: str) -> None:
         raise RuntimeError("installed CLI help is missing a required first-use fragment")
 
 
+def venv_executable(venv: Path, name: str) -> Path:
+    """Return an executable path for POSIX and Windows virtual environments."""
+
+    if os.name == "nt":
+        suffix = ".exe" if name in {"python", "runtime-contract"} else ""
+        return venv / "Scripts" / f"{name}{suffix}"
+    return venv / "bin" / name
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wheel", type=Path, required=True)
@@ -77,9 +88,9 @@ def main() -> int:
         root = Path(value)
         venv = root / "venv"
         subprocess.run(["uv", "venv", "--python", args.python, str(venv)], check=True)
-        python = venv / "bin/python"
+        python = venv_executable(venv, "python")
         subprocess.run(["uv", "pip", "install", "--python", str(python), str(wheel)], check=True)
-        binary = venv / "bin/runtime-contract"
+        binary = venv_executable(venv, "runtime-contract")
         workspace = root / "workspace"
         workspace.mkdir()
         full = workspace / "full-stack"
@@ -88,6 +99,12 @@ def main() -> int:
         clean.mkdir()
         (clean / "app.py").write_text(
             'import os\nos.getenv("OPTIONAL", "safe-placeholder")\n', encoding="utf-8"
+        )
+        unicode_root = workspace / "zażółć-gęślą-jaźń"
+        unicode_root.mkdir()
+        (unicode_root / "aplikacja.py").write_text(
+            'import os\nos.getenv("UNICODE_PATH_VALUE", "bezpieczna-wartość")\n',
+            encoding="utf-8",
         )
         defective = workspace / "defective"
         defective.mkdir()
@@ -124,6 +141,11 @@ def main() -> int:
         for output_format in ("text", "json", "sarif"):
             require(
                 run(binary, workspace, "scan", str(full), "--format", output_format),
+                0,
+                report=True,
+            )
+            require(
+                run(binary, workspace, "scan", str(unicode_root), "--format", output_format),
                 0,
                 report=True,
             )

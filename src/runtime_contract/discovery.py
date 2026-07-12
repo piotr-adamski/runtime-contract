@@ -313,13 +313,13 @@ def _discover_scope(
             else:
                 try:
                     resolved = Path(entry.path).resolve(strict=True)
+                    metadata = resolved.stat()
                 except (OSError, RuntimeError) as error:
                     _raise(
                         DiscoveryErrorCode.INACCESSIBLE_PATH,
                         f"cannot resolve path: {reported}",
                         error,
                     )
-                metadata = link_metadata
 
             is_directory = stat.S_ISDIR(metadata.st_mode)
             matched_include = bool(

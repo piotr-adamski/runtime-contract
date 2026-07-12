@@ -100,11 +100,16 @@ jobs:
   compatibility:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     needs: quality-gates
-    runs-on: ubuntu-24.04
-    timeout-minutes: 7
+    name: compatibility (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
         python: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - name: Check out the tested commit
@@ -130,6 +135,13 @@ jobs:
           name: runtime-contract-distributions
           path: artifact
 
+      - name: Normalize the checkout for byte-stable tests
+        if: runner.os == 'Windows'
+        run: |
+          set -euo pipefail
+          git config core.autocrlf false
+          git reset --hard HEAD
+
       - name: Report environment
         env:
           PYTHON_VERSION: ${{ matrix.python }}
@@ -143,40 +155,19 @@ jobs:
           echo "Runner image release: ${ImageRelease:-unknown}"
 
       - name: Verify SHA-256 manifest
-        working-directory: artifact
-        run: sha256sum --check SHA256SUMS
+        run: uv run --python "${{ matrix.python }}" python scripts/ci/verify_sha256.py artifact/SHA256SUMS
 
       - name: Run the complete test suite without coverage
         env:
           PYTHON_VERSION: ${{ matrix.python }}
+          PYTEST_BASETEMP: ${{ runner.temp }}/runtime-contract-py-${{ matrix.python }}
         run: |
           set -euo pipefail
           uv sync --locked --all-groups --python "$PYTHON_VERSION"
-          uv run --python "$PYTHON_VERSION" pytest
+          uv run --python "$PYTHON_VERSION" pytest --basetemp "$PYTEST_BASETEMP"
           git diff --exit-code -- uv.lock
 
-      - name: Smoke-test the wheel outside the checkout
-        env:
-          PYTHON_VERSION: ${{ matrix.python }}
-        run: |
-          set -euo pipefail
-          wheel=$(find "$GITHUB_WORKSPACE/artifact" -maxdepth 1 -type f -name '*.whl' -print)
-          test "$(printf '%s\n' "$wheel" | sed '/^$/d' | wc -l)" -eq 1
-          temp_dir=$(mktemp -d)
-          uv venv --python "$PYTHON_VERSION" "$temp_dir/venv"
-          uv pip install --python "$temp_dir/venv/bin/python" "$wheel"
-          cd "$temp_dir"
-          PYTHONPATH= "$temp_dir/venv/bin/python" -c 'import importlib.metadata; import runtime_contract; assert importlib.metadata.version("runtime-contract") == "0.1.0.dev0"'
-          PYTHONPATH= "$temp_dir/venv/bin/python" -m runtime_contract --version
-          PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" --help >/dev/null
-          for command in scan check explain diff config; do
-            PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" "$command" --help >/dev/null
-          done
-          PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.config.schema import schema_bytes; assert schema_bytes()'
-          PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError, DockerfileAnalyzer; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver and DockerfileAnalyzer'
-          PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.normalization import NormalizationError, NormalizationErrorCode, normalize_observations; assert normalize_observations(()).model_dump_json() and NormalizationError and NormalizationErrorCode'
-
-      - name: Run four-command E2E from the wheel
+      - name: Test wheel, entry point, paths, encodings, and four-command E2E
         env:
           PYTHON_VERSION: ${{ matrix.python }}
         run: |
@@ -186,7 +177,7 @@ jobs:
             --wheel "$wheel" --python "$PYTHON_VERSION" --fixture tests/fixtures/full-stack
 
       - name: Smoke-test the sdist on Python 3.14
-        if: matrix.python == '3.14'
+        if: matrix.os == 'ubuntu-24.04' && matrix.python == '3.14'
         run: |
           set -euo pipefail
           sdist=$(find "$GITHUB_WORKSPACE/artifact" -maxdepth 1 -type f -name '*.tar.gz' -print)
@@ -205,9 +196,69 @@ jobs:
           PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError, DockerfileAnalyzer; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver and DockerfileAnalyzer'
           PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.normalization import NormalizationError, NormalizationErrorCode, normalize_observations; assert normalize_observations(()).model_dump_json() and NormalizationError and NormalizationErrorCode'
 
+  dependency-range:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: quality-gates
+    name: dependencies (${{ matrix.profile }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: minimum
+            resolution: lowest-direct
+            python: "3.11"
+            constraints: scripts/ci/minimum-constraints.txt
+          - profile: latest-compatible
+            resolution: highest
+            python: "3.14"
+            constraints: ""
+    steps:
+      - name: Check out the tested commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990
+        with:
+          version: "0.11.28"
+          enable-cache: true
+          cache-python: false
+
+      - name: Download the validated distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: runtime-contract-distributions
+          path: artifact
+
+      - name: Test the selected dependency range
+        env:
+          PYTHON_VERSION: ${{ matrix.python }}
+          RESOLUTION: ${{ matrix.resolution }}
+          CONSTRAINTS: ${{ matrix.constraints }}
+        run: |
+          set -euo pipefail
+          wheel=$(find "$GITHUB_WORKSPACE/artifact" -maxdepth 1 -type f -name '*.whl' -print)
+          test "$(printf '%s\n' "$wheel" | sed '/^$/d' | wc -l)" -eq 1
+          uv venv --python "$PYTHON_VERSION" .dependency-venv
+          constraint_args=()
+          if [[ -n $CONSTRAINTS ]]; then
+            constraint_args=(--constraint "$CONSTRAINTS")
+          fi
+          uv pip install --python .dependency-venv/bin/python --resolution "$RESOLUTION" \
+            "${constraint_args[@]}" "$wheel" 'pytest>=9.1.1,<10' 'jsonschema>=4.26,<5'
+          .dependency-venv/bin/python -m pytest
+          uv pip check --python .dependency-venv/bin/python
+          .dependency-venv/bin/python -m pip --version >/dev/null 2>&1 || true
+          uv pip freeze --python .dependency-venv/bin/python
+
   quality:
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
-    needs: [quality-gates, compatibility]
+    needs: [quality-gates, compatibility, dependency-range]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -215,8 +266,10 @@ jobs:
         env:
           QUALITY_GATES_RESULT: ${{ needs.quality-gates.result }}
           COMPATIBILITY_RESULT: ${{ needs.compatibility.result }}
+          DEPENDENCY_RANGE_RESULT: ${{ needs.dependency-range.result }}
         run: |
           set -euo pipefail
           test "$QUALITY_GATES_RESULT" = success
           test "$COMPATIBILITY_RESULT" = success
+          test "$DEPENDENCY_RANGE_RESULT" = success
           echo "All required CI jobs succeeded."

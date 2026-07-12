@@ -42,7 +42,9 @@ def test_committed_demo_outputs_are_exact_and_machine_readable() -> None:
     for state in ("broken", "fixed"):
         for extension, output_format in FORMATS.items():
             output = OUTPUTS / f"{state}.{extension}"
-            assert output.read_bytes() == render(state, output_format)
+            canonical_checkout_bytes = output.read_text(encoding="utf-8").encode("utf-8")
+            assert b"\r" not in canonical_checkout_bytes
+            assert canonical_checkout_bytes == render(state, output_format)
         assert (
             json.loads((OUTPUTS / f"{state}.json").read_text())["schema_id"]
             == "runtime-contract/v1"

@@ -1,10 +1,28 @@
 """Smoke tests for the thin Bash quality-gate orchestrator."""
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
 SCRIPT = Path(__file__).parents[2] / "scripts" / "quality-gates.sh"
+
+
+def bash() -> str:
+    if os.name != "nt":
+        return "bash"
+    git = shutil.which("git")
+    if git is None:
+        raise RuntimeError("Git for Windows is required")
+    roots = tuple(Path(git).parents)
+    candidates = tuple(
+        root / relative
+        for root in roots
+        for relative in (Path("bin/bash.exe"), Path("usr/bin/bash.exe"))
+    )
+    if executable := next((candidate for candidate in candidates if candidate.is_file()), None):
+        return str(executable)
+    raise RuntimeError("Git Bash is required")
 
 
 def run_script(*arguments: str, test_mode: bool = False) -> subprocess.CompletedProcess[str]:
@@ -12,7 +30,7 @@ def run_script(*arguments: str, test_mode: bool = False) -> subprocess.Completed
     if test_mode:
         environment["QUALITY_GATES_TEST_MODE"] = "1"
     return subprocess.run(
-        ["bash", str(SCRIPT), *arguments],
+        [bash(), str(SCRIPT), *arguments],
         check=False,
         capture_output=True,
         text=True,
@@ -22,7 +40,7 @@ def run_script(*arguments: str, test_mode: bool = False) -> subprocess.Completed
 
 def test_bash_syntax_is_valid() -> None:
     result = subprocess.run(
-        ["bash", "-n", str(SCRIPT)], check=False, capture_output=True, text=True
+        [bash(), "-n", str(SCRIPT)], check=False, capture_output=True, text=True
     )
 
     assert result.returncode == 0, result.stderr
