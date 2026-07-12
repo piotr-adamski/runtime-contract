@@ -13,6 +13,7 @@ from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
 from runtime_contract.compose.loader import load_compose
 from runtime_contract.compose.models import (
     ComposeBinding,
+    ComposeBindingChannel,
     ComposeBindingKind,
     ComposeDiagnostic,
     ComposeDiagnosticCode,
@@ -514,6 +515,7 @@ def _binding_entries(
         binding = ComposeBinding(
             name=name,
             kind=kind,
+            channel=_project_binding_channel(value),
             location=_location(service.source_path, key),
             priority=priority,
         )
@@ -528,6 +530,19 @@ def _binding_entries(
             )
         )
     return result
+
+
+def _project_binding_channel(node: Node) -> ComposeBindingChannel:
+    if isinstance(node, ScalarNode):
+        if node.tag == "tag:yaml.org,2002:null":
+            return ComposeBindingChannel.PASS_THROUGH
+        value = node.value.split("=", 1)[1] if "=" in node.value else node.value
+        if re.fullmatch(
+            r"\$(?:[_A-Za-z][_A-Za-z0-9]*|\{[_A-Za-z][_A-Za-z0-9]*(?::[-?].*)?\})",
+            value,
+        ):
+            return ComposeBindingChannel.PASS_THROUGH
+    return ComposeBindingChannel.PLAIN_LITERAL
 
 
 def _sequence_entries(

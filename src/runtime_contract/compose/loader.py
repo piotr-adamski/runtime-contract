@@ -16,6 +16,7 @@ from yaml.tokens import AliasToken
 
 from runtime_contract.compose.models import (
     ComposeBinding,
+    ComposeBindingChannel,
     ComposeBindingKind,
     ComposeDiagnostic,
     ComposeDiagnosticCode,
@@ -488,9 +489,9 @@ def _load_bindings(
     if entry is None:
         return ()
     node = entry[1]
-    raw: list[tuple[str, ScalarNode]] = []
+    raw: list[tuple[str, ScalarNode, ComposeBindingChannel]] = []
     if isinstance(node, MappingNode):
-        for key_node, _ in node.value:
+        for key_node, value_node in node.value:
             if not isinstance(key_node, ScalarNode) or key_node.tag != "tag:yaml.org,2002:str":
                 context.diagnostic(
                     ComposeDiagnosticCode.DYNAMIC_NAME,
@@ -498,7 +499,7 @@ def _load_bindings(
                     "Compose binding name must be a static string.",
                 )
                 continue
-            raw.append((key_node.value, key_node))
+            raw.append((key_node.value, key_node, _binding_channel(value_node)))
     elif isinstance(node, SequenceNode):
         for child in node.value:
             if not isinstance(child, ScalarNode) or child.tag != "tag:yaml.org,2002:str":
@@ -508,7 +509,7 @@ def _load_bindings(
                     "Compose binding entry must be a static string.",
                 )
                 continue
-            raw.append((child.value.split("=", 1)[0], child))
+            raw.append((child.value.split("=", 1)[0], child, _sequence_channel(child.value)))
     else:
         context.diagnostic(
             ComposeDiagnosticCode.UNSUPPORTED_CONSTRUCT,
@@ -523,8 +524,8 @@ def _load_bindings(
             "Compose binding entry limit exceeded.",
             fatal=True,
         )
-    winners: dict[str, tuple[int, ScalarNode]] = {}
-    for priority, (name, name_node) in enumerate(raw):
+    winners: dict[str, tuple[int, ScalarNode, ComposeBindingChannel]] = {}
+    for priority, (name, name_node, channel) in enumerate(raw):
         if len(name.encode("utf-8")) > MAX_BINDING_NAME_BYTES:
             context.diagnostic(
                 ComposeDiagnosticCode.SAFETY_LIMIT,
@@ -539,17 +540,42 @@ def _load_bindings(
                 "Compose binding name must be static and valid.",
             )
             continue
-        winners[name] = (priority, name_node)
+        winners[name] = (priority, name_node, channel)
     return tuple(
         ComposeBinding(
             name=name,
             kind=kind,
+            channel=channel,
             location=context.location(name_node),
             priority=priority,
         )
-        for name, (priority, name_node) in sorted(
+        for name, (priority, name_node, channel) in sorted(
             winners.items(), key=lambda item: (item[1][0], item[0])
         )
+    )
+
+
+def _binding_channel(node: Node) -> ComposeBindingChannel:
+    if isinstance(node, ScalarNode) and node.tag == "tag:yaml.org,2002:null":
+        return ComposeBindingChannel.PASS_THROUGH
+    if isinstance(node, ScalarNode) and _is_reference(node.value):
+        return ComposeBindingChannel.PASS_THROUGH
+    return ComposeBindingChannel.PLAIN_LITERAL
+
+
+def _sequence_channel(value: str) -> ComposeBindingChannel:
+    if "=" not in value:
+        return ComposeBindingChannel.PASS_THROUGH
+    return (
+        ComposeBindingChannel.PASS_THROUGH
+        if _is_reference(value.split("=", 1)[1])
+        else ComposeBindingChannel.PLAIN_LITERAL
+    )
+
+
+def _is_reference(value: str) -> bool:
+    return bool(
+        re.fullmatch(r"\$(?:[_A-Za-z][_A-Za-z0-9]*|\{[_A-Za-z][_A-Za-z0-9]*(?::[-?].*)?\})", value)
     )
 
 

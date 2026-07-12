@@ -55,6 +55,7 @@
         "start_line": 8
       },
       "mechanism": "compose_environment",
+      "channel": "unknown",
       "phase": "runtime",
       "role": "delivery"
     }

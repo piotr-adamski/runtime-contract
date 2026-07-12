@@ -93,7 +93,8 @@
           "start_column": null,
           "start_line": 3
         },
-        "mechanism": "compose_environment",
+          "mechanism": "compose_environment",
+          "channel": "unknown",
         "phase": "runtime",
         "role": "delivery"
       },
