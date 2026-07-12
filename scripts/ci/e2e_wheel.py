@@ -49,6 +49,13 @@ def require(outcome: Outcome, code: int, *, report: bool) -> None:
         raise RuntimeError("E2E output exposed the redaction canary")
 
 
+def require_help(outcome: Outcome, *fragments: str) -> None:
+    if outcome.code or not outcome.stdout or outcome.stderr:
+        raise RuntimeError("installed CLI help did not use stdout exclusively")
+    if any(fragment not in outcome.stdout for fragment in fragments):
+        raise RuntimeError("installed CLI help is missing a required first-use fragment")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wheel", type=Path, required=True)
@@ -85,6 +92,26 @@ def main() -> int:
         corrupt = workspace / "corrupt"
         corrupt.mkdir()
         (corrupt / "app.py").write_bytes(b"\xff")
+
+        require_help(
+            run(binary, workspace, "--help"),
+            "runtime-contract scan .",
+            "built-in defaults < YAML",
+        )
+        for command in ("scan", "check", "explain", "diff"):
+            require_help(
+                run(binary, workspace, command, "--help"),
+                "Examples:",
+                f"runtime-contract {command}",
+            )
+        typo = run(binary, workspace, "sacn")
+        require(typo, 2, report=False)
+        if "Did you mean 'scan'?" not in typo.stderr:
+            raise RuntimeError("installed CLI did not suggest the intended command")
+        option_typo = run(binary, workspace, "scan", "--formt", "json")
+        require(option_typo, 2, report=False)
+        if "Possible options: --format" not in option_typo.stderr:
+            raise RuntimeError("installed CLI did not suggest the intended option")
 
         for output_format in ("text", "json", "sarif"):
             require(

@@ -38,14 +38,24 @@ def scan(
         typer.Option("--exclude", help="Replace global exclude filters; repeatable."),
     ] = None,
     output_format: Annotated[
-        str | None, typer.Option("--format", help="Output format: text, json, or sarif.")
+        str | None,
+        typer.Option(
+            "--format",
+            help="Output format: text, json, or sarif (default: text; overrides env/YAML).",
+        ),
     ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", help="Write the report atomically to this path.")
     ] = None,
     report: Annotated[Path | None, typer.Option("--report", hidden=True)] = None,
     fail_on: Annotated[
-        str | None, typer.Option(help="Effective finding threshold (scan remains non-blocking).")
+        str | None,
+        typer.Option(
+            help=(
+                "Finding threshold: error, warning, info, or never "
+                "(default: error; scan remains non-blocking)."
+            )
+        ),
     ] = None,
     quiet: Annotated[
         bool, typer.Option("--quiet", "-q", help="Print only the final text status.")

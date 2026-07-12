@@ -10,6 +10,12 @@ from runtime_contract.commands import check, config, diff, explain, scan
 app = typer.Typer(
     help="Check environment-variable delivery contracts without running project code.",
     no_args_is_help=True,
+    epilog=(
+        "Quick start: runtime-contract scan .\n\n"
+        "Configuration: commands discover runtime-contract.yaml in PATH. "
+        "Execution settings resolve in this order: built-in defaults < YAML < "
+        "RUNTIME_CONTRACT_* environment variables < explicit CLI options."
+    ),
 )
 
 
@@ -46,10 +52,37 @@ def cli(
     """Check environment-variable delivery contracts without running project code."""
 
 
-app.command()(scan.scan)
-app.command()(check.check)
-app.command()(explain.explain)
-app.command()(diff.diff)
+app.command(
+    epilog=(
+        "Examples:\n\n"
+        "  runtime-contract scan .\n\n"
+        "  runtime-contract scan ./service --format json --output scan.json\n\n"
+        "  runtime-contract scan . --environment production --root api --root worker"
+    )
+)(scan.scan)
+app.command(
+    epilog=(
+        "Examples:\n\n"
+        "  runtime-contract check .\n\n"
+        "  runtime-contract check . --fail-on warning\n\n"
+        "  runtime-contract check . --format sarif --output runtime-contract.sarif"
+    )
+)(check.check)
+app.command(
+    epilog=(
+        "Examples:\n\n"
+        "  runtime-contract explain RTC001\n\n"
+        "  runtime-contract explain RTC001 ./service --format json\n\n"
+        "  runtime-contract explain RTC001-<fingerprint> scan.json"
+    )
+)(explain.explain)
+app.command(
+    epilog=(
+        "Examples:\n\n"
+        "  runtime-contract diff ./before ./after\n\n"
+        "  runtime-contract diff before.json after.json --format json"
+    )
+)(diff.diff)
 app.add_typer(config.app, name="config")
 
 
