@@ -18,6 +18,7 @@ from runtime_contract.compose.loader import (
 )
 from runtime_contract.compose.models import (
     ComposeBinding,
+    ComposeBindingChannel,
     ComposeBindingKind,
     ComposeDiagnostic,
     ComposeDiagnosticCode,
@@ -76,6 +77,7 @@ __all__ = [
     "MAX_YAML_DEPTH",
     "MAX_YAML_NODES",
     "ComposeBinding",
+    "ComposeBindingChannel",
     "ComposeBindingKind",
     "ComposeDiagnostic",
     "ComposeDiagnosticCode",

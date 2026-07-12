@@ -23,6 +23,7 @@ from runtime_contract.domain import (
     EvidenceKind,
     Phase,
     Provider,
+    ProviderChannel,
     ProviderMechanism,
     ProviderRole,
     RuleId,
@@ -126,6 +127,7 @@ class KubernetesAnalyzer:
                             role=ProviderRole.DELIVERY,
                             phase=Phase.RUNTIME,
                             mechanism=ProviderMechanism.KUBERNETES_ENV,
+                            channel=_kubernetes_env_channel(binding.source_kind),
                             evidence_kind=EvidenceKind.EXPLICIT_KEY,
                             location=binding.location,
                         ),
@@ -162,6 +164,11 @@ class KubernetesAnalyzer:
                                 role=ProviderRole.DELIVERY,
                                 phase=Phase.RUNTIME,
                                 mechanism=ProviderMechanism.KUBERNETES_ENV_FROM,
+                                channel=(
+                                    ProviderChannel.SECRET_BULK
+                                    if object_kind is KubernetesObjectKind.SECRET
+                                    else ProviderChannel.CONFIG_MAP_BULK
+                                ),
                                 evidence_kind=EvidenceKind.RESOLVED_BULK,
                                 location=source.location,
                             ),
@@ -222,10 +229,25 @@ def _bulk_provider(
             role=ProviderRole.DELIVERY,
             phase=Phase.RUNTIME,
             mechanism=ProviderMechanism.KUBERNETES_ENV_FROM,
+            channel=(
+                ProviderChannel.SECRET_BULK
+                if source.source_kind is KubernetesEnvFromSourceKind.SECRET_REF
+                else ProviderChannel.CONFIG_MAP_BULK
+            ),
             evidence_kind=EvidenceKind.UNRESOLVED_BULK,
             location=source.location,
         ),
     )
+
+
+def _kubernetes_env_channel(source: KubernetesEnvSourceKind) -> ProviderChannel:
+    return {
+        KubernetesEnvSourceKind.VALUE: ProviderChannel.PLAIN_LITERAL,
+        KubernetesEnvSourceKind.SECRET_KEY_REF: ProviderChannel.SECRET_REFERENCE,
+        KubernetesEnvSourceKind.CONFIG_MAP_KEY_REF: ProviderChannel.CONFIG_MAP_REFERENCE,
+        KubernetesEnvSourceKind.FIELD_REF: ProviderChannel.PLATFORM_REFERENCE,
+        KubernetesEnvSourceKind.RESOURCE_FIELD_REF: ProviderChannel.PLATFORM_REFERENCE,
+    }[source]
 
 
 def _diagnostic(item: KubernetesDiagnostic) -> AnalysisDiagnostic:

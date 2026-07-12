@@ -13,6 +13,7 @@ from runtime_contract.analysis.models import (
 )
 from runtime_contract.analysis.protocols import AnalyzerInput
 from runtime_contract.compose import (
+    ComposeBindingChannel,
     ComposeBindingKind,
     ComposeDiagnosticCode,
     ComposeInput,
@@ -30,6 +31,7 @@ from runtime_contract.domain import (
     EvidenceKind,
     Phase,
     Provider,
+    ProviderChannel,
     ProviderMechanism,
     ProviderRole,
     Severity,
@@ -157,6 +159,11 @@ def _append_service_observations(
                     role=ProviderRole.DELIVERY,
                     phase=phase,
                     mechanism=mechanism,
+                    channel=(
+                        ProviderChannel.PLAIN_LITERAL
+                        if binding.channel is ComposeBindingChannel.PLAIN_LITERAL
+                        else ProviderChannel.PASS_THROUGH
+                    ),
                     evidence_kind=EvidenceKind.EXPLICIT_KEY,
                     location=binding.location,
                 ),

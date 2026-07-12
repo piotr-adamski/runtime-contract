@@ -99,6 +99,19 @@ class ProviderMechanism(StrEnum):
     KUBERNETES_ENV_FROM = "kubernetes_env_from"
 
 
+class ProviderChannel(StrEnum):
+    """Value-free security classification of a provider's source channel."""
+
+    UNKNOWN = "unknown"
+    PLAIN_LITERAL = "plain_literal"
+    PASS_THROUGH = "pass_through"
+    SECRET_REFERENCE = "secret_reference"
+    CONFIG_MAP_REFERENCE = "config_map_reference"
+    SECRET_BULK = "secret_bulk"
+    CONFIG_MAP_BULK = "config_map_bulk"
+    PLATFORM_REFERENCE = "platform_reference"
+
+
 SafeIdentifier = Annotated[str, Field(min_length=1, pattern=r"^[A-Za-z0-9_.:/@+-]+$")]
 FindingParameter = tuple[SafeIdentifier, SafeIdentifier]
 
@@ -271,6 +284,7 @@ class Provider(DomainModel):
     role: ProviderRole
     phase: Phase
     mechanism: ProviderMechanism
+    channel: ProviderChannel = ProviderChannel.UNKNOWN
     evidence_kind: EvidenceKind
     location: SourceLocation
 

@@ -23,6 +23,7 @@ from runtime_contract.domain import (
     EvidenceKind,
     Phase,
     Provider,
+    ProviderChannel,
     ProviderMechanism,
     ProviderRole,
     Severity,
@@ -45,6 +46,14 @@ _SUBSTITUTION = re.compile(
     r"\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*(?:(?::-|:\+|-|\+)[^}]*)?\})"
 )
 _HEREDOC = re.compile(r"<<-?[ \t]*(?:'([^']+)'|\"([^\"]+)\"|([A-Za-z0-9_.-]+))")
+
+
+def _provider_channel(value: str) -> ProviderChannel:
+    return (
+        ProviderChannel.PASS_THROUGH
+        if _SUBSTITUTION.fullmatch(value.strip())
+        else ProviderChannel.PLAIN_LITERAL
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -293,7 +302,14 @@ class _Parser:
             return
         if "=" in stripped:
             self._count_substitutions(stripped.split("=", 1)[1], position)
-        self._declaration(name_text, position, Phase.BUILD, ProviderMechanism.DOCKERFILE_ARG)
+        channel = (
+            ProviderChannel.PASS_THROUGH
+            if "=" not in stripped
+            else _provider_channel(stripped.split("=", 1)[1])
+        )
+        self._declaration(
+            name_text, position, Phase.BUILD, ProviderMechanism.DOCKERFILE_ARG, channel
+        )
         location = self._location(position)
         if self.current_stage is None:
             self.global_args.add(name_text)
@@ -313,13 +329,13 @@ class _Parser:
         if tokens is None or not tokens:
             self._syntax("malformed_env", self._position(instruction, offset))
             return
-        pairs: list[tuple[str, tuple[int, int]]] = []
+        pairs: list[tuple[str, tuple[int, int], ProviderChannel]] = []
         if "=" not in tokens[0][0]:
             name, position = tokens[0]
             if len(tokens) < 2 or not _NAME.fullmatch(name):
                 self._syntax("malformed_env", position)
                 return
-            pairs.append((name, position))
+            pairs.append((name, position, _provider_channel(tokens[1][0])))
             self._count_substitutions(payload[payload.find(tokens[1][0]) :], tokens[1][1])
         else:
             for token, position in tokens:
@@ -330,11 +346,17 @@ class _Parser:
                 if not _NAME.fullmatch(name):
                     self._syntax("invalid_env_name", position)
                     return
-                pairs.append((name, position))
+                pairs.append((name, position, _provider_channel(value)))
                 self._count_substitutions(value, position)
         stage = self.stages[self.current_stage - 1]
-        for name, position in pairs:
-            self._declaration(name, position, Phase.RUNTIME, ProviderMechanism.DOCKERFILE_ENV)
+        for name, position, channel in pairs:
+            self._declaration(
+                name,
+                position,
+                Phase.RUNTIME,
+                ProviderMechanism.DOCKERFILE_ENV,
+                channel,
+            )
             location = self._location(position)
             stage = replace(
                 stage,
@@ -384,6 +406,7 @@ class _Parser:
         position: tuple[int, int],
         phase: Phase,
         mechanism: ProviderMechanism,
+        channel: ProviderChannel,
     ) -> None:
         self.declarations += 1
         if self.declarations > MAX_DECLARATIONS:
@@ -419,6 +442,7 @@ class _Parser:
             role=ProviderRole.DELIVERY,
             phase=phase,
             mechanism=mechanism,
+            channel=channel,
             evidence_kind=EvidenceKind.EXPLICIT_KEY,
             location=self._location(position),
         )

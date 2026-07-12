@@ -336,6 +336,10 @@
     "Provider": {
       "additionalProperties": false,
       "properties": {
+        "channel": {
+          "$ref": "#/$defs/ProviderChannel",
+          "default": "unknown"
+        },
         "component": {
           "title": "Component",
           "type": "string"
@@ -395,6 +399,21 @@
       ],
       "title": "Provider",
       "type": "object"
+    },
+    "ProviderChannel": {
+      "description": "Value-free security classification of a provider's source channel.",
+      "enum": [
+        "unknown",
+        "plain_literal",
+        "pass_through",
+        "secret_reference",
+        "config_map_reference",
+        "secret_bulk",
+        "config_map_bulk",
+        "platform_reference"
+      ],
+      "title": "ProviderChannel",
+      "type": "string"
     },
     "ProviderMechanism": {
       "enum": [

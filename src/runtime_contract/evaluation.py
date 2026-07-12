@@ -9,7 +9,9 @@ from runtime_contract.domain import (
     Contract,
     EvidenceKind,
     Finding,
+    ProviderChannel,
     ProviderRole,
+    SensitivityConfidence,
     Severity,
 )
 from runtime_contract.precedence import PrecedenceAnalysis, ProviderDisposition
@@ -124,4 +126,50 @@ def evaluate_unused_providers(
     return tuple(sorted(findings, key=lambda item: item.id))
 
 
-__all__ = ["evaluate_required_not_provided", "evaluate_unused_providers"]
+def evaluate_unsafe_secret_sources(contract: Contract, /) -> tuple[Finding, ...]:
+    """Evaluate RTC002 from value-free, high-confidence provider channel metadata."""
+
+    keys = {item.id: item for item in contract.config_keys}
+    unsafe = {
+        ProviderChannel.PLAIN_LITERAL,
+        ProviderChannel.CONFIG_MAP_REFERENCE,
+        ProviderChannel.CONFIG_MAP_BULK,
+    }
+    findings: list[Finding] = []
+    for provider in contract.providers:
+        if provider.config_key_id is None or provider.channel not in unsafe:
+            continue
+        key = keys[provider.config_key_id]
+        if (
+            not key.secret
+            or key.allow_literal
+            or key.sensitivity_confidence
+            not in {SensitivityConfidence.CERTAIN, SensitivityConfidence.HIGH}
+        ):
+            continue
+        findings.append(
+            Finding(
+                rule_id=RuleId.RTC002,
+                severity=Severity.ERROR,
+                component=provider.component,
+                environment_id=provider.environment_id,
+                config_key_id=provider.config_key_id,
+                phase=provider.phase,
+                primary_location=provider.location,
+                evidence_locations=(provider.location,),
+                parameters=(
+                    ("channel", provider.channel.value),
+                    ("classification", key.sensitivity_reason.value),
+                    ("confidence", key.sensitivity_confidence.value),
+                    ("recommended_source", ProviderChannel.SECRET_REFERENCE.value),
+                ),
+            )
+        )
+    return tuple(sorted(findings, key=lambda item: item.id))
+
+
+__all__ = [
+    "evaluate_required_not_provided",
+    "evaluate_unsafe_secret_sources",
+    "evaluate_unused_providers",
+]

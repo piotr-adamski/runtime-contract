@@ -45,7 +45,11 @@ from runtime_contract.domain import (
     SourceLocation,
 )
 from runtime_contract.errors import PublicError
-from runtime_contract.evaluation import evaluate_required_not_provided, evaluate_unused_providers
+from runtime_contract.evaluation import (
+    evaluate_required_not_provided,
+    evaluate_unsafe_secret_sources,
+    evaluate_unused_providers,
+)
 from runtime_contract.flow import build_flow_graph
 from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
 from runtime_contract.normalization import NormalizationError, normalize_observations
@@ -424,6 +428,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         sorted(
             (
                 *evaluate_required_not_provided(contract),
+                *evaluate_unsafe_secret_sources(contract),
                 *evaluate_unused_providers(
                     contract,
                     precedence,

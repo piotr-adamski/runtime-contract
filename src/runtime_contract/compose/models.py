@@ -147,9 +147,15 @@ class ComposeBindingKind(StrEnum):
     BUILD_ARG = "build_arg"
 
 
+class ComposeBindingChannel(StrEnum):
+    PLAIN_LITERAL = "plain_literal"
+    PASS_THROUGH = "pass_through"
+
+
 class ComposeBinding(_ComposeModel):
     name: str
     kind: ComposeBindingKind
+    channel: ComposeBindingChannel = ComposeBindingChannel.PASS_THROUGH
     location: SourceLocation
     priority: int
 
@@ -287,6 +293,7 @@ class ComposeProjectResult(_ComposeModel):
 
 __all__ = [
     "ComposeBinding",
+    "ComposeBindingChannel",
     "ComposeBindingKind",
     "ComposeDiagnostic",
     "ComposeDiagnosticCode",
