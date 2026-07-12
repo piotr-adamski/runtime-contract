@@ -1,0 +1,8 @@
+version: 1
+classifications:
+  variables:
+    PUBLIC_URL:
+      classification: public
+      reason: Public browser endpoint
+    SERVICE_TOKEN:
+      classification: sensitive

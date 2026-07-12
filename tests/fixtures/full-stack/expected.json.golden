@@ -1,0 +1,40 @@
+{
+  "fixture_id": "runtime-contract/full-stack/v1",
+  "domain_neutral": true,
+  "inputs": [
+    ".env.example",
+    "Dockerfile",
+    "app/settings.py",
+    "compose.base.yaml",
+    "compose.override.yaml",
+    "kubernetes.yaml",
+    "runtime-contract.yaml",
+    "web/config.ts"
+  ],
+  "required_config_keys": [
+    "BUILD_REVISION",
+    "CONFLICTING_MODE",
+    "DATABASE_URL",
+    "EXTRA_PROVIDER",
+    "MISSING_RUNTIME",
+    "OPTIONAL_MODE",
+    "PUBLIC_URL",
+    "SERVICE_TOKEN",
+    "UNUSED_DECLARATION"
+  ],
+  "scenario_expectations": [
+    {"id": "valid-secret-flow", "key": "DATABASE_URL", "expected": "consumer_and_secret_delivery"},
+    {"id": "valid-public-flow", "key": "PUBLIC_URL", "expected": "consumer_and_delivery"},
+    {"id": "missing-provider", "key": "MISSING_RUNTIME", "expected": "required_without_delivery"},
+    {"id": "unused-provider", "key": "EXTRA_PROVIDER", "expected": "delivery_without_consumer"},
+    {"id": "conflicting-provider", "key": "CONFLICTING_MODE", "expected": "multiple_independent_deliveries"},
+    {"id": "secret-in-configmap", "key": "SERVICE_TOKEN", "expected": "sensitive_key_delivered_by_configmap"}
+  ],
+  "expected_graph": {
+    "consumer_keys": ["DATABASE_URL", "MISSING_RUNTIME", "OPTIONAL_MODE", "PUBLIC_URL", "SERVICE_TOKEN"],
+    "delivered_keys": ["BUILD_REVISION", "CONFLICTING_MODE", "DATABASE_URL", "EXTRA_PROVIDER", "OPTIONAL_MODE", "PUBLIC_URL", "SERVICE_TOKEN"],
+    "declared_keys": ["DATABASE_URL", "OPTIONAL_MODE", "SERVICE_TOKEN", "UNUSED_DECLARATION"]
+  },
+  "current_pre_d2_15_diagnostics": ["normalization_error"],
+  "forbidden_terms": ["brillnet", "pulsar", "crewshift", "tenant"]
+}

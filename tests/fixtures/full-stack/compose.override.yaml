@@ -1,0 +1,9 @@
+services:
+  api:
+    environment:
+      SERVICE_TOKEN: override
+      CONFLICTING_MODE: first
+  worker:
+    environment:
+      CONFLICTING_MODE: second
+      EXTRA_PROVIDER: unused

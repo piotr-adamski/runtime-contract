@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Add a domain-neutral full-stack fixture spanning Python, TypeScript, `.env.example`, Dockerfile,
+  multi-file Compose, and Kubernetes with machine-readable graph and diagnostic expectations.
 - Centralize public exception redaction, discard private exception causes, and add full-scan
   capability, canary, traceback, real-dotenv exclusion, and source-mtime integrity tests.
 - Extend YAML classifications with explicit `sensitive`, `public`, and `ignore` decisions, bounded

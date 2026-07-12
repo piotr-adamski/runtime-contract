@@ -1,0 +1,14 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        BUILD_REVISION: base
+    environment:
+      DATABASE_URL: base
+      SERVICE_TOKEN: base
+    env_file:
+      - runtime.env
+  web:
+    environment:
+      PUBLIC_URL: base
