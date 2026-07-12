@@ -34,11 +34,12 @@ TOP_LEVEL_FIELDS = {
     "summary",
     "contract",
     "flow_graph",
+    "precedence",
     "diagnostics",
     "findings",
     "files",
 }
-REQUIRED_TOP_LEVEL_FIELDS = TOP_LEVEL_FIELDS - {"flow_graph"}
+REQUIRED_TOP_LEVEL_FIELDS = TOP_LEVEL_FIELDS - {"flow_graph", "precedence"}
 
 
 def report() -> str:
@@ -134,6 +135,9 @@ def test_canonical_shape_metadata_inputs_null_empty_and_no_host_data() -> None:
     flow_graph = value["flow_graph"]
     assert isinstance(flow_graph, dict)
     assert set(flow_graph) == {"nodes", "edges"}
+    precedence = value["precedence"]
+    assert isinstance(precedence, dict)
+    assert set(precedence) == {"providers", "conflicts"}
 
 
 def test_missing_config_is_null_and_writer_has_canonical_bytes(tmp_path: Path) -> None:
@@ -193,17 +197,23 @@ def test_reader_rebuilds_missing_flow_graph_for_early_v1_compatibility() -> None
     summary = cast(dict[str, object], document["summary"])
     summary.pop("flow_nodes")
     summary.pop("flow_edges")
+    document.pop("precedence")
+    summary.pop("precedence_providers")
+    summary.pop("precedence_conflicts")
 
     parsed = parse_json_report(json.dumps(document))
 
     assert parsed.flow_graph.model_dump(mode="json") == expected
     assert parsed.summary.flow_nodes == len(parsed.flow_graph.nodes)
     assert parsed.summary.flow_edges == len(parsed.flow_graph.edges)
+    assert parsed.summary.precedence_providers == len(parsed.precedence.providers)
+    assert parsed.summary.precedence_conflicts == len(parsed.precedence.conflicts)
 
 
 def test_reader_rejects_missing_graph_when_legacy_summary_is_not_an_object() -> None:
     document = payload()
     document.pop("flow_graph")
+    document.pop("precedence")
     document["summary"] = []
 
     with pytest.raises(ValueError, match="invalid runtime-contract JSON report"):
@@ -267,11 +277,14 @@ def test_exact_d1_12_legacy_normalizes_and_reserializes_canonical() -> None:
     canonical = payload()
     inputs = canonical.pop("inputs")
     canonical.pop("flow_graph")
+    canonical.pop("precedence")
     canonical.pop("metadata")
     canonical.pop("schema_version")
     summary = cast(dict[str, object], canonical["summary"])
     summary.pop("flow_nodes")
     summary.pop("flow_edges")
+    summary.pop("precedence_providers")
+    summary.pop("precedence_conflicts")
     assert isinstance(inputs, dict)
     legacy = canonical | {
         "root": inputs["root"],
@@ -302,6 +315,29 @@ def test_reader_rejects_flow_graph_inconsistent_with_contract() -> None:
 
     with pytest.raises(ValueError, match="invalid runtime-contract JSON report"):
         parse_json_report(json.dumps(document))
+
+
+def test_reader_rebuilds_missing_precedence_and_rejects_tampering() -> None:
+    document = payload()
+    expected = document.pop("precedence")
+    summary = cast(dict[str, object], document["summary"])
+    summary.pop("precedence_providers")
+    summary.pop("precedence_conflicts")
+    parsed = parse_json_report(json.dumps(document))
+    assert parsed.precedence.model_dump(mode="json") == expected
+
+    tampered = cast(
+        dict[str, object],
+        json.loads(
+            run_scan(ScanRequest(path=Path("examples/scan-flow"), output_format="json")).rendered
+        ),
+    )
+    precedence = cast(dict[str, object], tampered["precedence"])
+    precedence["providers"] = []
+    tampered_summary = cast(dict[str, object], tampered["summary"])
+    tampered_summary["precedence_providers"] = 0
+    with pytest.raises(ValueError, match="invalid runtime-contract JSON report"):
+        parse_json_report(json.dumps(tampered))
 
 
 def test_golden_snapshot_is_exact_and_repeatable() -> None:

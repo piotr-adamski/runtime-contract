@@ -34,3 +34,5 @@ source line contents.
 `Contract` remains the facts-only source of truth. The separate `runtime_contract.flow` API derives
 an immutable query graph from those facts without changing their identities or semantics. A
 `ScanResult` validates that its graph is exactly the graph implied by its embedded contract.
+The separate precedence analysis follows the same rule: it is derived, immutable, value-blind,
+and rejected when it does not exactly match the embedded contract.

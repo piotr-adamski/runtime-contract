@@ -162,6 +162,15 @@ PUBLIC_EXPORTS = {
         "NormalizationErrorCode",
         "normalize_observations",
     ),
+    "runtime_contract.precedence": (
+        "PrecedenceAnalysis",
+        "PrecedenceReason",
+        "PrecedenceRelation",
+        "ProviderConflict",
+        "ProviderDisposition",
+        "ProviderPrecedence",
+        "analyze_precedence",
+    ),
     "runtime_contract.scan": (
         "ReportInputs",
         "ReportMetadata",

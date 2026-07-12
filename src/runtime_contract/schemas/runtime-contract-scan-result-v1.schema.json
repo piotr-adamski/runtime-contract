@@ -520,6 +520,49 @@
       "title": "Phase",
       "type": "string"
     },
+    "PrecedenceAnalysis": {
+      "additionalProperties": false,
+      "properties": {
+        "conflicts": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProviderConflict"
+          },
+          "title": "Conflicts",
+          "type": "array"
+        },
+        "providers": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ProviderPrecedence"
+          },
+          "title": "Providers",
+          "type": "array"
+        }
+      },
+      "title": "PrecedenceAnalysis",
+      "type": "object"
+    },
+    "PrecedenceReason": {
+      "enum": [
+        "compose_explicit_over_env_file",
+        "kubernetes_env_over_env_from",
+        "later_source_declaration",
+        "independent_environments",
+        "unordered_sources",
+        "cross_platform"
+      ],
+      "title": "PrecedenceReason",
+      "type": "string"
+    },
+    "PrecedenceRelation": {
+      "enum": [
+        "overrides",
+        "incomparable"
+      ],
+      "title": "PrecedenceRelation",
+      "type": "string"
+    },
     "Profile": {
       "enum": [
         "default",
@@ -593,6 +636,64 @@
       "title": "Provider",
       "type": "object"
     },
+    "ProviderConflict": {
+      "additionalProperties": false,
+      "properties": {
+        "config_key_id": {
+          "title": "Config Key Id",
+          "type": "string"
+        },
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "left_provider_id": {
+          "title": "Left Provider Id",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/$defs/PrecedenceReason"
+        },
+        "relation": {
+          "$ref": "#/$defs/PrecedenceRelation"
+        },
+        "right_provider_id": {
+          "title": "Right Provider Id",
+          "type": "string"
+        },
+        "winner_provider_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Winner Provider Id"
+        }
+      },
+      "required": [
+        "left_provider_id",
+        "right_provider_id",
+        "config_key_id",
+        "relation",
+        "reason"
+      ],
+      "title": "ProviderConflict",
+      "type": "object"
+    },
+    "ProviderDisposition": {
+      "enum": [
+        "active",
+        "overridden",
+        "incomparable"
+      ],
+      "title": "ProviderDisposition",
+      "type": "string"
+    },
     "ProviderMechanism": {
       "enum": [
         "env_example",
@@ -606,6 +707,32 @@
       ],
       "title": "ProviderMechanism",
       "type": "string"
+    },
+    "ProviderPrecedence": {
+      "additionalProperties": false,
+      "properties": {
+        "conflict_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Conflict Ids",
+          "type": "array"
+        },
+        "disposition": {
+          "$ref": "#/$defs/ProviderDisposition"
+        },
+        "provider_id": {
+          "title": "Provider Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider_id",
+        "disposition"
+      ],
+      "title": "ProviderPrecedence",
+      "type": "object"
     },
     "ProviderRole": {
       "enum": [
@@ -860,6 +987,16 @@
           "title": "Partial Files",
           "type": "integer"
         },
+        "precedence_conflicts": {
+          "default": 0,
+          "title": "Precedence Conflicts",
+          "type": "integer"
+        },
+        "precedence_providers": {
+          "default": 0,
+          "title": "Precedence Providers",
+          "type": "integer"
+        },
         "providers": {
           "default": 0,
           "title": "Providers",
@@ -1002,6 +1139,13 @@
     },
     "metadata": {
       "$ref": "#/$defs/ReportMetadata"
+    },
+    "precedence": {
+      "$ref": "#/$defs/PrecedenceAnalysis",
+      "default": {
+        "conflicts": [],
+        "providers": []
+      }
     },
     "schema_id": {
       "const": "runtime-contract/v1",

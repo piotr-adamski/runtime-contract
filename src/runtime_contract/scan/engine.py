@@ -35,6 +35,7 @@ from runtime_contract.domain import Contract, Profile, Severity, SourceLocation
 from runtime_contract.flow import build_flow_graph
 from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
 from runtime_contract.normalization import NormalizationError, normalize_observations
+from runtime_contract.precedence import analyze_precedence
 from runtime_contract.scan.models import (
     ReportInputs,
     ReportMetadata,
@@ -287,6 +288,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         )
         contract = Contract()
     flow_graph = build_flow_graph(contract)
+    precedence = analyze_precedence(contract)
     status = (
         ScanStatus.FAILED
         if counts["failed"]
@@ -312,6 +314,8 @@ def run_scan(request: ScanRequest) -> ScanRun:
         providers=len(contract.providers),
         flow_nodes=len(flow_graph.nodes),
         flow_edges=len(flow_graph.edges),
+        precedence_providers=len(precedence.providers),
+        precedence_conflicts=len(precedence.conflicts),
         diagnostics=len(diagnostics_tuple),
         candidate_kinds=candidate_kinds,
         skipped_reasons=(
@@ -339,6 +343,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         summary=summary,
         contract=contract,
         flow_graph=flow_graph,
+        precedence=precedence,
         diagnostics=diagnostics_tuple,
         findings=(),
         files=tuple(sorted(files, key=lambda item: item.path.encode("utf-8"))),

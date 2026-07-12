@@ -56,7 +56,9 @@ The JSON report is the versioned public automation API `runtime-contract/v1` wit
 `schema_version: 1`. Its required top-level fields are `schema_id`, `schema_version`, `metadata`,
 `inputs`, `status`, `summary`, `contract`, `diagnostics`, `findings`, and `files`. The optional
 `flow_graph` field is derived deterministically from canonical fact IDs and is rebuilt when an
-early v1 document omits it. Consumers and providers remain exclusively inside the facts-only
+early v1 document omits it. The optional `precedence` field records value-blind provider
+dispositions and pairwise conflicts and is rebuilt under the same compatibility rule. Consumers
+and providers remain exclusively inside the facts-only
 `contract`; findings have their public typed shape but remain empty until the rules engine is
 implemented.
 
@@ -179,6 +181,13 @@ environment, and phase context remains on each edge; unresolved bulk providers t
 environment and never claim a key. `ScanResult` rejects a supplied graph that differs from the
 graph derived from its embedded contract; the strict reader reconstructs the graph when an early
 v1 report omits it.
+
+The pure `runtime_contract.precedence` API marks providers `active`, `overridden`, or
+`incomparable` and returns both provider IDs, an optional winner, and a closed reason code. Compose
+`environment` overrides a same-service `env_file`; Kubernetes `env` overrides same-workload
+`envFrom`; later declarations win only inside one ordered source file. Independent environments,
+unordered files, and synthetic cross-platform contexts remain incomparable. No global platform
+order is guessed.
 
 `JavaScriptTypeScriptAnalyzer` uses the Python Tree-sitter bindings and distributed JavaScript,
 TypeScript, and TSX grammars for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`, and `.tsx`.

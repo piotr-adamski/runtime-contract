@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from runtime_contract.analysis import AnalysisDiagnostic
 from runtime_contract.domain import Contract, Finding
 from runtime_contract.flow import FlowGraph, build_flow_graph
+from runtime_contract.precedence import PrecedenceAnalysis, analyze_precedence
 
 
 class ScanModel(BaseModel):
@@ -60,6 +61,8 @@ class ScanSummary(ScanModel):
     providers: int = 0
     flow_nodes: int = 0
     flow_edges: int = 0
+    precedence_providers: int = 0
+    precedence_conflicts: int = 0
     diagnostics: int = 0
     findings: int = 0
     candidate_kinds: dict[str, int] = Field(default_factory=dict)
@@ -103,6 +106,7 @@ class ScanResult(ScanModel):
     summary: ScanSummary
     contract: Contract
     flow_graph: FlowGraph = FlowGraph()
+    precedence: PrecedenceAnalysis = PrecedenceAnalysis()
     diagnostics: tuple[AnalysisDiagnostic, ...]
     findings: tuple[Finding, ...]
     files: tuple[ScanFile, ...]
@@ -135,6 +139,8 @@ class ScanResult(ScanModel):
             "providers": len(self.contract.providers),
             "flow_nodes": len(self.flow_graph.nodes),
             "flow_edges": len(self.flow_graph.edges),
+            "precedence_providers": len(self.precedence.providers),
+            "precedence_conflicts": len(self.precedence.conflicts),
             "diagnostics": len(self.diagnostics),
             "findings": len(self.findings),
         }
@@ -143,6 +149,8 @@ class ScanResult(ScanModel):
                 raise ValueError(f"summary.{name} is inconsistent")
         if self.flow_graph != build_flow_graph(self.contract):
             raise ValueError("flow_graph is inconsistent with contract")
+        if self.precedence != analyze_precedence(self.contract):
+            raise ValueError("precedence is inconsistent with contract")
         if self.status is ScanStatus.COMPLETE and (
             self.summary.partial_files or self.summary.failed_files
         ):

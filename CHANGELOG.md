@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Add explicit value-blind provider precedence and conflict analysis for dotenv, Dockerfile,
+  Compose, and Kubernetes, preserving incomparable independent environments instead of inventing
+  a global platform order.
 - Add a deterministic, value-blind source-to-sink graph derived from canonical fact IDs, with
   consumer, delivery, declaration, and environment queries that preserve component and phase
   boundaries and remain backward-compatible with early v1 reports.

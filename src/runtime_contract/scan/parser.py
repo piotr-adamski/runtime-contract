@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from runtime_contract.domain import Contract
 from runtime_contract.flow import build_flow_graph
+from runtime_contract.precedence import analyze_precedence
 from runtime_contract.scan.models import ScanResult
 
 _LEGACY_KEYS = {
@@ -94,12 +95,13 @@ def parse_json_report(value: str | bytes) -> ScanResult:
         schema_version = document.get("schema_version")
         if type(schema_version) is not int or schema_version != 1:
             raise _InvalidReport
-        if "flow_graph" not in document:
+        if "flow_graph" not in document or "precedence" not in document:
             contract = Contract.model_validate_json(
                 json.dumps(document.get("contract"), ensure_ascii=False, allow_nan=False),
                 strict=True,
             )
             graph = build_flow_graph(contract)
+            precedence = analyze_precedence(contract)
             summary = document.get("summary")
             if not isinstance(summary, dict):
                 raise _InvalidReport
@@ -107,8 +109,11 @@ def parse_json_report(value: str | bytes) -> ScanResult:
                 **summary,
                 "flow_nodes": len(graph.nodes),
                 "flow_edges": len(graph.edges),
+                "precedence_providers": len(precedence.providers),
+                "precedence_conflicts": len(precedence.conflicts),
             }
-            document["flow_graph"] = graph.model_dump(mode="json")
+            document.setdefault("flow_graph", graph.model_dump(mode="json"))
+            document.setdefault("precedence", precedence.model_dump(mode="json"))
         return ScanResult.model_validate_json(
             json.dumps(document, ensure_ascii=False, allow_nan=False), strict=True
         )
