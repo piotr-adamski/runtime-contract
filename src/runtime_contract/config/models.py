@@ -259,6 +259,14 @@ class Severity(StrEnum):
 class SeverityOverride(ScopedRule):
     rule: RuleId
     severity: Severity
+    reason: Annotated[str, Field(min_length=1)]
+
+    @field_validator("reason")
+    @classmethod
+    def non_blank_reason(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("reason must not be blank")
+        return value
 
 
 class Suppression(ConfigModel):

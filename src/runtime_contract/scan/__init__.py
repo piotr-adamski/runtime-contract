@@ -2,6 +2,7 @@
 
 from runtime_contract.scan.engine import ScanRequest, ScanRun, run_scan, write_atomic
 from runtime_contract.scan.models import (
+    PolicyRecord,
     ReportInputs,
     ReportMetadata,
     ScanFile,
@@ -14,6 +15,7 @@ from runtime_contract.scan.renderers import render
 from runtime_contract.scan.schema import schema_bytes
 
 __all__ = [
+    "PolicyRecord",
     "ReportInputs",
     "ReportMetadata",
     "ScanFile",

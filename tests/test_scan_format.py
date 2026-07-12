@@ -122,6 +122,7 @@ def test_canonical_shape_metadata_inputs_null_empty_and_no_host_data() -> None:
     assert value["schema_version"] == 1
     assert value["metadata"] == {
         "command": "scan",
+        "policy": [],
         "tool": "runtime-contract",
         "tool_version": "0.1.0.dev0",
     }

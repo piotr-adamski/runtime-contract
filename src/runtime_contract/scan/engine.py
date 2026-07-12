@@ -6,6 +6,7 @@ import os
 import tempfile
 from contextlib import suppress
 from dataclasses import dataclass
+from datetime import date
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Literal
@@ -31,6 +32,7 @@ from runtime_contract.compose import MAX_COMPOSE_BYTES, ComposeInput, ComposePro
 from runtime_contract.config.execution import EffectiveExecution, resolve_execution
 from runtime_contract.config.loader import ConfigDocument, load_config
 from runtime_contract.config.models import RuntimeContractConfig
+from runtime_contract.config.models import Severity as ConfigSeverity
 from runtime_contract.config.policy import ConfigPolicy
 from runtime_contract.discovery import CandidateKind, DiscoveryError, discover
 from runtime_contract.domain import (
@@ -38,6 +40,7 @@ from runtime_contract.domain import (
     Contract,
     Environment,
     EnvironmentKind,
+    Finding,
     Profile,
     SecretSource,
     SensitivityReason,
@@ -56,6 +59,7 @@ from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
 from runtime_contract.normalization import NormalizationError, normalize_observations
 from runtime_contract.precedence import analyze_precedence
 from runtime_contract.scan.models import (
+    PolicyRecord,
     ReportInputs,
     ReportMetadata,
     ScanFile,
@@ -428,7 +432,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
     flow_graph = build_flow_graph(contract)
     precedence = analyze_precedence(contract)
     diagnostics_tuple = tuple(sorted(diagnostics, key=lambda item: item.id))
-    findings = tuple(
+    evaluated_findings = tuple(
         sorted(
             (
                 *evaluate_required_not_provided(contract),
@@ -442,6 +446,13 @@ def run_scan(request: ScanRequest) -> ScanRun:
             ),
             key=lambda item: item.id,
         )
+    )
+    findings, policy_records = _apply_policy(
+        evaluated_findings,
+        contract,
+        policy,
+        environment=execution.value.environment,
+        on_date=date.today(),
     )
     status = (
         ScanStatus.FAILED
@@ -484,7 +495,11 @@ def run_scan(request: ScanRequest) -> ScanRun:
     scan_result = ScanResult(
         schema_id="runtime-contract/v1",
         schema_version=1,
-        metadata=ReportMetadata(tool_version=tool_version, command=request.command),
+        metadata=ReportMetadata(
+            tool_version=tool_version,
+            command=request.command,
+            policy=policy_records,
+        ),
         inputs=ReportInputs(
             config=config_label,
             environment=execution.value.environment,
@@ -515,6 +530,88 @@ def run_scan(request: ScanRequest) -> ScanRun:
     ):
         exit_code = 1
     return ScanRun(scan_result, rendered, output, exit_code)
+
+
+def _apply_policy(
+    findings: tuple[Finding, ...],
+    contract: Contract,
+    policy: ConfigPolicy,
+    *,
+    environment: str | None,
+    on_date: date,
+) -> tuple[tuple[Finding, ...], tuple[PolicyRecord, ...]]:
+    keys = {item.id: item for item in contract.config_keys}
+    records: dict[tuple[str, str], PolicyRecord] = {}
+    retained: list[Finding] = []
+    used_suppressions: set[str] = set()
+    expired = {item.id for item in policy.expired_suppression_warnings(on_date=on_date)}
+    for index, item in enumerate(policy.document.config.suppressions):
+        if item.id in expired:
+            records[("expired", item.id)] = PolicyRecord(
+                id=item.id,
+                rule_id=item.rule.value,
+                status="expired",
+                reason=item.reason,
+                pointer=f"/suppressions/{index}",
+            )
+    for finding in findings:
+        configured, applied = policy.severity(
+            finding.rule_id,
+            ConfigSeverity(finding.severity.value),
+            root=finding.component,
+            environment=environment,
+        )
+        effective = Severity(configured.value)
+        current = finding
+        if applied is not None:
+            index = int(applied.pointer.rsplit("/", 1)[1])
+            override = policy.document.config.severity_overrides[index]
+            records[("severity_overridden", applied.pointer)] = PolicyRecord(
+                id=applied.pointer,
+                rule_id=finding.rule_id.value,
+                status="severity_overridden",
+                reason=override.reason,
+                pointer=applied.pointer,
+                original_severity=finding.severity,
+                effective_severity=effective,
+            )
+            current = Finding.model_validate(
+                finding.model_dump() | {"id": "", "severity": effective}
+            )
+        key = keys.get(current.config_key_id or "")
+        suppression = policy.suppression(
+            current.rule_id,
+            variable=key.name if key is not None else None,
+            path=current.primary_location.path,
+            root=current.component,
+            environment=environment,
+            on_date=on_date,
+        )
+        if suppression.suppressed:
+            assert suppression.id and suppression.reason and suppression.pointer
+            used_suppressions.add(suppression.id)
+            records[("suppressed", suppression.id)] = PolicyRecord(
+                id=suppression.id,
+                rule_id=current.rule_id.value,
+                status="suppressed",
+                reason=suppression.reason,
+                pointer=suppression.pointer,
+            )
+            continue
+        retained.append(current)
+    for index, item in enumerate(policy.document.config.suppressions):
+        if item.id not in used_suppressions and item.id not in expired:
+            records[("unused", item.id)] = PolicyRecord(
+                id=item.id,
+                rule_id=item.rule.value,
+                status="unused",
+                reason=item.reason,
+                pointer=f"/suppressions/{index}",
+            )
+    return (
+        tuple(sorted(retained, key=lambda item: item.id)),
+        tuple(sorted(records.values(), key=lambda item: (item.status, item.id, item.pointer))),
+    )
 
 
 def write_atomic(root: Path, output: Path, content: str) -> None:

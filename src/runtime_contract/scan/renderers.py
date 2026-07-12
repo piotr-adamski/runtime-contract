@@ -95,6 +95,18 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
                 f"{finding_key.name if finding_key else '-'}  {finding.phase.value}  "
                 f"{location.path}{position}"
             )
+    if result.metadata.policy:
+        lines.extend(["", "Policy"])
+        for record in result.metadata.policy:
+            severity = (
+                f" {record.original_severity.value}->{record.effective_severity.value}"
+                if record.original_severity is not None and record.effective_severity is not None
+                else ""
+            )
+            lines.append(
+                f"  {record.status} {record.rule_id} {record.id}{severity} "
+                f"{record.pointer} reason={record.reason}"
+            )
     if verbosity >= 1:
         lines.extend(["", "Files"])
         for item in result.files:
@@ -240,6 +252,7 @@ def render_sarif(result: ScanResult) -> str:
                     "status": result.status.value,
                     "summary": result.summary.model_dump(mode="json"),
                     "selected_roots": list(result.inputs.selected_roots),
+                    "policy": [item.model_dump(mode="json") for item in result.metadata.policy],
                 },
             }
         ],

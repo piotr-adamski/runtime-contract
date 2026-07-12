@@ -6,7 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from runtime_contract.analysis import AnalysisDiagnostic
-from runtime_contract.domain import Contract, Finding
+from runtime_contract.domain import Contract, Finding, Severity
 from runtime_contract.flow import FlowGraph, build_flow_graph
 from runtime_contract.precedence import PrecedenceAnalysis, analyze_precedence
 
@@ -25,6 +25,28 @@ class ReportMetadata(ScanModel):
     tool: Literal["runtime-contract"] = "runtime-contract"
     tool_version: str | None
     command: Literal["scan", "check"] = "scan"
+    policy: tuple["PolicyRecord", ...] = ()
+
+
+class PolicyRecord(ScanModel):
+    id: str
+    rule_id: str
+    status: Literal["severity_overridden", "suppressed", "unused", "expired"]
+    reason: str
+    pointer: str
+    original_severity: Severity | None = None
+    effective_severity: Severity | None = None
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> "PolicyRecord":
+        if not self.id or not self.reason.strip() or not self.pointer.startswith("/"):
+            raise ValueError("policy metadata requires id, reason, and JSON pointer")
+        severity_status = self.status == "severity_overridden"
+        if severity_status != (
+            self.original_severity is not None and self.effective_severity is not None
+        ):
+            raise ValueError("only severity override records carry severity fields")
+        return self
 
 
 class ReportInputs(ScanModel):

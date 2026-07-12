@@ -62,6 +62,7 @@ classifications:
 severity_overrides:
   - rule: RTC001
     severity: warning
+    reason: development environment accepts a warning during migration
     roots:
       - test_app
 suppressions:
