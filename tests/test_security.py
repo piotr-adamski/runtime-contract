@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
 import traceback
 from pathlib import Path
 
@@ -111,3 +113,83 @@ def test_cli_and_suppressed_traceback_never_render_exception_canary(
     except typer.Exit as error:
         rendered = "".join(traceback.format_exception(error))
     assert CANARY not in rendered
+
+
+def _tree_snapshot(root: Path) -> dict[str, tuple[int, int, str]]:
+    return {
+        path.relative_to(root).as_posix(): (
+            path.stat().st_mode,
+            path.stat().st_mtime_ns,
+            hashlib.sha256(path.read_bytes()).hexdigest(),
+        )
+        for path in root.rglob("*")
+        if path.is_file()
+    }
+
+
+def test_all_commands_without_output_preserve_the_complete_source_tree(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text('import os\nos.getenv("DATABASE_URL")\n')
+    (tmp_path / ".env.example").write_text("DATABASE_URL=<database-url>\n")
+    before = _tree_snapshot(tmp_path)
+    runner = CliRunner()
+    commands = (
+        ["scan", str(tmp_path), "--format", "json"],
+        ["check", str(tmp_path), "--format", "json"],
+        ["explain", "RTC001", str(tmp_path), "--format", "json"],
+        ["diff", str(tmp_path), str(tmp_path), "--format", "json"],
+    )
+    for command in commands:
+        result = runner.invoke(app, command)
+        assert result.exit_code in {0, 1}
+        assert _tree_snapshot(tmp_path) == before
+
+
+def test_oversized_python_and_javascript_fail_closed_without_reading(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for name in ("large.py", "large.ts"):
+        path = tmp_path / name
+        path.write_bytes(b"x" * (4 * 1_048_576 + 1))
+
+    original = Path.read_bytes
+
+    def guarded_read(path: Path) -> bytes:
+        if path.name in {"large.py", "large.ts"}:
+            raise AssertionError("oversized source was read")
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", guarded_read)
+    result = CliRunner().invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert result.exit_code == 2
+    assert result.stderr == ""
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "failed"
+    assert [item["code"] for item in payload["diagnostics"]] == [
+        "safety_limit",
+        "safety_limit",
+    ]
+
+
+def test_public_security_contract_covers_threats_data_controls_and_reporting() -> None:
+    model = (REPO / "docs/security-and-privacy.md").read_text(encoding="utf-8")
+    policy = (REPO / "SECURITY.md").read_text(encoding="utf-8")
+    for section in (
+        "## Threat model",
+        "## Data read",
+        "## Data emitted",
+        "## Security controls",
+        "## Telemetry and external transmission",
+        "## Residual limitations",
+    ):
+        assert section in model
+    for contract in (
+        "SafeLoader",
+        "traversal",
+        "symlink",
+        "denial of service",
+        "no telemetry",
+        "no active pentest",
+    ):
+        assert contract.casefold() in model.casefold()
+    assert "Private Vulnerability Reporting" in policy
+    assert "docs/security-and-privacy.md" in policy

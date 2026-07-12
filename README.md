@@ -221,6 +221,9 @@ source candidates are identity-checked immediately before reading. Public techni
 through one redaction boundary that retains neither exception text, arguments, causes, reprs, nor
 tracebacks. Reports are read-only unless the caller explicitly selects an atomic `--output` path.
 
+The complete threat model, read/emission inventory, parser controls, telemetry statement, and
+residual risks are documented in the [security and privacy model](docs/security-and-privacy.md).
+
 Sensitivity classification is deterministic and value-blind. `classify_sensitivity()` recognizes
 terminal name forms such as `*_TOKEN`, `*_PASSWORD`, `*_SECRET`, `*_PRIVATE_KEY`, `*_API_KEY`,
 `*APIKEY`, and `*_CREDENTIAL(S)` across underscore, hyphen, dot, whitespace, and camel-case

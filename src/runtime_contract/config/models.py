@@ -69,6 +69,37 @@ def _validate_globs(value: list[str]) -> list[str]:
     return [_validate_glob(item) for item in value]
 
 
+def _quantifier_risk(value: str) -> tuple[int, bool]:
+    escaped = False
+    in_class = False
+    unbounded = 0
+    adjacent = False
+    previous_quantifier = False
+    for character in value:
+        if escaped:
+            escaped = False
+            previous_quantifier = False
+        elif character == "\\":
+            escaped = True
+            previous_quantifier = False
+        elif character == "[":
+            in_class = True
+            previous_quantifier = False
+        elif character == "]":
+            in_class = False
+            previous_quantifier = False
+        elif not in_class and character in "*+":
+            unbounded += 1
+            adjacent |= previous_quantifier
+            previous_quantifier = True
+        elif not in_class and character == "?":
+            adjacent |= previous_quantifier
+            previous_quantifier = True
+        else:
+            previous_quantifier = False
+    return unbounded, adjacent
+
+
 class RootTarget(ConfigModel):
     """A named scan target relative to the logical project root."""
 
@@ -211,12 +242,14 @@ class PatternRule(ScopedRule):
     def valid_regex(cls, value: str | None) -> str | None:
         if value is None:
             return None
+        unbounded_quantifiers, adjacent_quantifiers = _quantifier_risk(value)
         if (
             "\0" in value
             or "(" in value
             or ")" in value
             or re.search(r"\\[1-9]", value)
-            or re.search(r"(?:[*+?]|\{\d+(?:,\d*)?\}){2}", value)
+            or adjacent_quantifiers
+            or unbounded_quantifiers > 1
         ):
             raise ValueError("must be a bounded regular expression without advanced constructs")
         re.compile(value, flags=re.ASCII)

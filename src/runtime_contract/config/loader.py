@@ -14,6 +14,8 @@ from yaml.tokens import AliasToken, AnchorToken, DocumentStartToken, TagToken
 
 from runtime_contract.config.models import RuntimeContractConfig, SourceType
 
+MAX_CONFIG_BYTES = 1_048_576
+
 
 @dataclass(frozen=True, order=True, slots=True)
 class ConfigError:
@@ -122,6 +124,11 @@ def _syntax_error(error: BaseException) -> ConfigValidationError:
 
 def parse_strict_yaml(text: str) -> tuple[object, dict[str, tuple[int, int]]]:
     """Parse one safe YAML document after rejecting non-data YAML features."""
+
+    if len(text.encode("utf-8")) > MAX_CONFIG_BYTES:
+        raise ConfigValidationError(
+            [ConfigError("/", "config_size", 1, 1, "Configuration exceeds the safety limit.")]
+        )
 
     try:
         tokens = list(yaml.scan(text))
@@ -337,6 +344,10 @@ def load_config(
                     "/", "config_unsafe", 1, 1, "Configuration path is not a safe regular file."
                 )
             ]
+        )
+    if resolved_metadata.st_size > MAX_CONFIG_BYTES:
+        raise ConfigValidationError(
+            [ConfigError("/", "config_size", 1, 1, "Configuration exceeds the safety limit.")]
         )
     try:
         text = resolved.read_text(encoding="utf-8")

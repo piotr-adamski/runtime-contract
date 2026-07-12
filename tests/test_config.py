@@ -391,12 +391,39 @@ def test_explicit_exact_classification_conflicts_and_reasons_fail_closed(
         "{regex: '(?=X)X', classification: sensitive}",
         "{regex: '^(X+)+$', classification: sensitive}",
         "{regex: 'X++', classification: sensitive}",
+        "{regex: '^A*A*A*A*A*B$', classification: sensitive}",
         "{regex: '^X$', classification: public}",
         "{pattern: X, classification: sensitive}\n    - {pattern: X, classification: public, reason: conflict}",
     ],
 )
 def test_pattern_selector_and_regex_safety_fail_closed(tmp_path: Path, rule: str) -> None:
     assert error_for(tmp_path, f"version: 1\nclassifications:\n  patterns:\n    - {rule}\n").errors
+
+
+def test_oversized_configuration_fails_before_reading_or_parsing(tmp_path: Path) -> None:
+    config = tmp_path / "runtime-contract.yaml"
+    config.write_bytes(b"version: 1\n#" + b"x" * 1_048_576)
+    with pytest.raises(ConfigValidationError) as caught:
+        load_config(tmp_path, require=True)
+    assert caught.value.errors[0].code == "config_size"
+
+    with pytest.raises(ConfigValidationError) as parsed:
+        parse_strict_yaml("#" + "x" * 1_048_576)
+    assert parsed.value.errors[0].code == "config_size"
+
+
+def test_regex_quantifier_guard_understands_classes_and_escapes(tmp_path: Path) -> None:
+    write_config(
+        tmp_path,
+        """version: 1
+classifications:
+  patterns:
+    - {regex: '^[*+A-Z]+\\+$', classification: sensitive}
+""",
+    )
+    document = load_config(tmp_path, require=True)
+    assert document is not None
+    assert document.config.classifications.patterns[0].regex == r"^[*+A-Z]+\+$"
 
 
 def test_explicit_null_regex_is_accepted_and_unused_rule_lists_are_precise(
