@@ -3,18 +3,27 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 
+from runtime_contract.analysis import AnalysisDiagnostic, DiagnosticCode
 from runtime_contract.domain import (
     Consumer,
     Contract,
     EvidenceKind,
     Finding,
+    Phase,
     ProviderChannel,
     ProviderRole,
     SensitivityConfidence,
     Severity,
+    SourceLocation,
 )
-from runtime_contract.precedence import PrecedenceAnalysis, ProviderDisposition
+from runtime_contract.precedence import (
+    PrecedenceAnalysis,
+    PrecedenceReason,
+    PrecedenceRelation,
+    ProviderDisposition,
+)
 from runtime_contract.rules import RuleId
 
 
@@ -168,7 +177,132 @@ def evaluate_unsafe_secret_sources(contract: Contract, /) -> tuple[Finding, ...]
     return tuple(sorted(findings, key=lambda item: item.id))
 
 
+def evaluate_ambiguities(
+    contract: Contract,
+    precedence: PrecedenceAnalysis,
+    diagnostics: tuple[AnalysisDiagnostic, ...],
+    component_by_path: Mapping[str, str],
+    /,
+) -> tuple[Finding, ...]:
+    """Evaluate grouped RTC006/RTC007 findings without duplicating resolved overrides."""
+
+    findings = [*_dynamic_findings(diagnostics, component_by_path)]
+    providers = {item.id: item for item in contract.providers}
+    conflicts: dict[tuple[str, str, Phase, str], set[SourceLocation]] = defaultdict(set)
+    for conflict in precedence.conflicts:
+        if (
+            conflict.relation is not PrecedenceRelation.INCOMPARABLE
+            or conflict.reason is PrecedenceReason.INDEPENDENT_ENVIRONMENTS
+        ):
+            continue
+        left = providers[conflict.left_provider_id]
+        right = providers[conflict.right_provider_id]
+        environment_id = left.environment_id if left.environment_id == right.environment_id else ""
+        conflicts[
+            (left.component, conflict.config_key_id, left.phase, environment_id or "")
+        ].update((left.location, right.location))
+    for (component, key_id, phase, environment_id), locations in sorted(conflicts.items()):
+        evidence = tuple(locations)
+        primary = min(evidence, key=_location_sort_key)
+        findings.append(
+            Finding(
+                rule_id=RuleId.RTC007,
+                severity=Severity.WARNING,
+                component=component,
+                environment_id=environment_id or None,
+                config_key_id=key_id,
+                phase=phase,
+                primary_location=primary,
+                evidence_locations=evidence,
+                parameters=(
+                    ("issue", "competing_sources"),
+                    ("provider_count", str(len(evidence))),
+                ),
+            )
+        )
+    findings.extend(_duplicate_findings(diagnostics, component_by_path))
+    return tuple(sorted(findings, key=lambda item: item.id))
+
+
+def _dynamic_findings(
+    diagnostics: tuple[AnalysisDiagnostic, ...], component_by_path: Mapping[str, str]
+) -> tuple[Finding, ...]:
+    groups: dict[tuple[str, Phase], set[SourceLocation]] = defaultdict(set)
+    for item in diagnostics:
+        if item.code is not DiagnosticCode.DYNAMIC_NAME:
+            continue
+        parameters = dict(item.parameters)
+        phase = (
+            Phase.BUILD
+            if parameters.get("access_kind") == "vite_import_meta_env"
+            else Phase.RUNTIME
+        )
+        component = component_by_path.get(item.primary_location.path, "default")
+        groups[(component, phase)].add(item.primary_location)
+    findings = []
+    for (component, phase), locations in sorted(groups.items()):
+        evidence = tuple(locations)
+        primary = min(evidence, key=_location_sort_key)
+        findings.append(
+            Finding(
+                rule_id=RuleId.RTC006,
+                severity=Severity.WARNING,
+                component=component,
+                phase=phase,
+                primary_location=primary,
+                evidence_locations=evidence,
+                parameters=(
+                    ("issue", "dynamic_reference"),
+                    ("location_count", str(len(evidence))),
+                ),
+            )
+        )
+    return tuple(findings)
+
+
+def _duplicate_findings(
+    diagnostics: tuple[AnalysisDiagnostic, ...], component_by_path: Mapping[str, str]
+) -> tuple[Finding, ...]:
+    groups: dict[str, set[SourceLocation]] = defaultdict(set)
+    for item in diagnostics:
+        codes = dict(item.parameters).values()
+        if not any("duplicate" in value or value == "merge_conflict" for value in codes):
+            continue
+        component = component_by_path.get(item.primary_location.path, "default")
+        groups[component].add(item.primary_location)
+    findings = []
+    for component, locations in sorted(groups.items()):
+        evidence = tuple(locations)
+        primary = min(evidence, key=_location_sort_key)
+        findings.append(
+            Finding(
+                rule_id=RuleId.RTC007,
+                severity=Severity.INFO,
+                component=component,
+                phase=Phase.NOT_APPLICABLE,
+                primary_location=primary,
+                evidence_locations=evidence,
+                parameters=(
+                    ("issue", "duplicate_declaration"),
+                    ("location_count", str(len(evidence))),
+                ),
+            )
+        )
+    return tuple(findings)
+
+
+def _location_sort_key(location: SourceLocation) -> tuple[str, int, int, int, int]:
+    return (
+        location.path,
+        location.start_line or 0,
+        location.start_column or 0,
+        location.end_line or 0,
+        location.end_column or 0,
+    )
+
+
 __all__ = [
+    "evaluate_ambiguities",
     "evaluate_required_not_provided",
     "evaluate_unsafe_secret_sources",
     "evaluate_unused_providers",

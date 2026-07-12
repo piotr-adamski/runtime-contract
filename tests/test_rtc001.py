@@ -99,7 +99,8 @@ def test_dynamic_reference_remains_partial_without_a_guessed_rtc001(tmp_path: Pa
     assert result.exit_code == 2
     payload = json.loads(result.stdout)
     assert payload["status"] == "partial"
-    assert payload["findings"] == []
+    assert all(item["rule_id"] != "RTC001" for item in payload["findings"])
+    assert [item["rule_id"] for item in payload["findings"]] == ["RTC006"]
 
 
 def test_text_and_sarif_render_the_rtc001_finding_without_values(tmp_path: Path) -> None:
