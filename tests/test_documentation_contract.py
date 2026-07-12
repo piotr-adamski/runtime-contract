@@ -79,6 +79,8 @@ def test_github_code_scanning_example_is_minimal_and_fail_closed() -> None:
 
     assert "contents: read" in workflow
     assert "security-events: write" in workflow
+    assert "pull_request:" not in workflow
+    assert "workflow_dispatch:" in workflow
     assert "runtime-contract check ." in workflow
     assert "--format sarif" in workflow
     assert "upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9" in workflow

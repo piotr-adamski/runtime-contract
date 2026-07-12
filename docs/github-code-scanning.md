@@ -10,6 +10,10 @@ The workflow needs only the built-in `GITHUB_TOKEN`. Its top-level permissions a
 `contents: read` and `security-events: write`; no repository or third-party secret is required.
 All third-party actions are pinned to commit SHAs.
 
+The example runs for pushes to `main` and by manual dispatch. It intentionally does not request
+write-capable Code Scanning permissions on pull-request workflows, where forked contributions
+receive a read-only token.
+
 `runtime-contract check` exits `1` after writing a complete SARIF report when active error findings
 exist. The scan step accepts `0` and `1`, so findings still reach Code Scanning. Exit `2` remains a
 workflow failure because it means no reliable result was produced. The upload and short-lived audit
