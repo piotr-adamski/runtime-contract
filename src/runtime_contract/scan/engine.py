@@ -45,7 +45,7 @@ from runtime_contract.domain import (
     SourceLocation,
 )
 from runtime_contract.errors import PublicError
-from runtime_contract.evaluation import evaluate_required_not_provided
+from runtime_contract.evaluation import evaluate_required_not_provided, evaluate_unused_providers
 from runtime_contract.flow import build_flow_graph
 from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
 from runtime_contract.normalization import NormalizationError, normalize_observations
@@ -420,7 +420,19 @@ def run_scan(request: ScanRequest) -> ScanRun:
         )
     flow_graph = build_flow_graph(contract)
     precedence = analyze_precedence(contract)
-    findings = evaluate_required_not_provided(contract)
+    findings = tuple(
+        sorted(
+            (
+                *evaluate_required_not_provided(contract),
+                *evaluate_unused_providers(
+                    contract,
+                    precedence,
+                    has_dynamic_uncertainty=bool(counts["partial"] or counts["failed"]),
+                ),
+            ),
+            key=lambda item: item.id,
+        )
+    )
     status = (
         ScanStatus.FAILED
         if counts["failed"]
