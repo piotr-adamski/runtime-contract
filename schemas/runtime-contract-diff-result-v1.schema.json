@@ -1,0 +1,312 @@
+{
+  "$defs": {
+    "AnalysisDiagnostic": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/DiagnosticCode"
+        },
+        "id": {
+          "default": "",
+          "title": "Id",
+          "type": "string"
+        },
+        "parameters": {
+          "default": [],
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "primary_location": {
+          "$ref": "#/$defs/SourceLocation"
+        },
+        "related_locations": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SourceLocation"
+          },
+          "title": "Related Locations",
+          "type": "array"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuleId"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "primary_location"
+      ],
+      "title": "AnalysisDiagnostic",
+      "type": "object"
+    },
+    "DiagnosticCode": {
+      "enum": [
+        "invalid_encoding",
+        "syntax_error",
+        "dynamic_name",
+        "unsupported_construct",
+        "partial_analysis",
+        "analyzer_not_registered",
+        "analyzer_contract",
+        "filesystem_mutation",
+        "normalization_error",
+        "read_error",
+        "safety_limit",
+        "unsupported_k8s_resource",
+        "unused_classification_rule",
+        "custom_settings_source"
+      ],
+      "title": "DiagnosticCode",
+      "type": "string"
+    },
+    "DiffInput": {
+      "additionalProperties": false,
+      "properties": {
+        "environment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Environment"
+        },
+        "kind": {
+          "enum": [
+            "directory",
+            "report"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "environment"
+      ],
+      "title": "DiffInput",
+      "type": "object"
+    },
+    "DiffMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "const": "diff",
+          "title": "Command",
+          "type": "string"
+        },
+        "policy": {
+          "maxItems": 0,
+          "minItems": 0,
+          "title": "Policy",
+          "type": "array"
+        },
+        "tool": {
+          "const": "runtime-contract",
+          "title": "Tool",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tool Version"
+        }
+      },
+      "required": [
+        "tool",
+        "tool_version",
+        "command",
+        "policy"
+      ],
+      "title": "DiffMetadata",
+      "type": "object"
+    },
+    "RuleId": {
+      "description": "Identifiers shared by findings, configuration, and JSON Schema.",
+      "enum": [
+        "RTC001",
+        "RTC002",
+        "RTC003",
+        "RTC004",
+        "RTC005",
+        "RTC006",
+        "RTC007",
+        "RTC008",
+        "RTC009",
+        "RTC010",
+        "RTC011",
+        "RTC012"
+      ],
+      "title": "RuleId",
+      "type": "string"
+    },
+    "Severity": {
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "SourceLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "end_column": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Column"
+        },
+        "end_line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Line"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "start_column": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Column"
+        },
+        "start_line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Line"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "SourceLocation",
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/piotr-adamski/runtime-contract/main/schemas/runtime-contract-diff-result-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "changes": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "type": "object"
+      },
+      "title": "Changes",
+      "type": "object"
+    },
+    "diagnostics": {
+      "items": {
+        "$ref": "#/$defs/AnalysisDiagnostic"
+      },
+      "title": "Diagnostics",
+      "type": "array"
+    },
+    "left": {
+      "$ref": "#/$defs/DiffInput"
+    },
+    "metadata": {
+      "$ref": "#/$defs/DiffMetadata"
+    },
+    "right": {
+      "$ref": "#/$defs/DiffInput"
+    },
+    "schema_id": {
+      "const": "runtime-contract/v1",
+      "title": "Schema Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "identical",
+        "different"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_id",
+    "schema_version",
+    "metadata",
+    "status",
+    "diagnostics",
+    "left",
+    "right",
+    "changes"
+  ],
+  "title": "DiffReport",
+  "type": "object"
+}
