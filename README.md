@@ -4,6 +4,77 @@
 
 Static, local CLI for finding inconsistencies between environment variables used in application code and how they are documented and supplied at build and runtime.
 
+`runtime-contract` answers a practical question before deployment: does every application
+component receive the environment variables it consumes, in the right target and phase? It scans
+source and deployment files as data, reports missing or conflicting delivery, and never executes
+the analyzed project.
+
+## Five-minute quickstart
+
+Requires Python 3.11 or newer. Until the first PyPI release, install from a checked-out source tree;
+the same commands accept `runtime-contract` from PyPI after v0.1.0 is published.
+
+Isolated application install with pipx:
+
+```console
+pipx install .
+runtime-contract --version
+```
+
+Or install into an active virtual environment with pip:
+
+```console
+python -m pip install .
+runtime-contract --version
+```
+
+Run the bundled, domain-neutral example from the repository root:
+
+```console
+runtime-contract scan examples/scan-flow
+runtime-contract check examples/scan-flow
+```
+
+`scan` prints the complete inventory and findings. It exits `0` for complete analysis even when
+findings exist. `check` runs the same analysis but exits `1` when an active `error` finding exists,
+which is the expected result for this deliberately inconsistent example. Exit `2` means the result
+is not reliable because of invalid input, configuration, usage, or a technical failure.
+
+For machine-readable output:
+
+```console
+runtime-contract scan examples/scan-flow --format json --output scan.json
+runtime-contract check examples/scan-flow --format sarif --output runtime-contract.sarif
+```
+
+Minimal GitHub Actions step:
+
+```yaml
+- name: Check environment-variable delivery
+  run: |
+    python -m pip install runtime-contract
+    runtime-contract check .
+```
+
+The CI snippet becomes directly installable from PyPI with v0.1.0. Before publication, replace the
+install target with the checked-out package or a verified wheel produced by this repository.
+
+## Scope and non-goals
+
+v0.1 analyzes Python, JavaScript/TypeScript, `.env.example`, Dockerfile, Docker Compose, and plain
+Kubernetes YAML/JSON. It emits terminal text, canonical JSON, or SARIF 2.1.0 and operates offline.
+
+It does not execute or import application code, load real `.env*` files, resolve secret values,
+contact Docker or Kubernetes, render Helm/Kustomize, invoke Git, modify analyzed files, or send
+telemetry. It is a static contract checker, not a deployment engine, secret manager, runtime
+monitor, or general-purpose SAST scanner.
+
+## Project status
+
+The v0.1 feature set is release-candidate complete and remains on version `0.1.0.dev0` until the
+release workflow publishes the immutable v0.1.0 artifacts. All supported commands are implemented:
+`scan`, `check`, `explain`, and `diff`.
+
 Kubernetes manifests are traversed statically and locally from caller-provided YAML (including
 multi-document streams) or JSON. Supported workload kinds are `Pod`, `Deployment`,
 `StatefulSet`, `DaemonSet`, `Job`, and `CronJob`; traversal inventories `containers` and
@@ -27,13 +98,12 @@ requests that unmarked-document behavior.
 
 An independent open-source project maintained by Piotr Adamski.
 
-The public test fixture at `tests/fixtures/full-stack` combines every planned input family and
+The public test fixture at `tests/fixtures/full-stack` combines every supported input family and
 documents valid flows, a missing delivery, an unused provider, competing deliveries, and a
 sensitive key delivered through ConfigMap. Its machine-readable golden file is deliberately not a
-Kubernetes-discoverable `.json` input. D2.14 records the current fail-closed normalization conflict;
-the following integration milestone owns resolving it into the expected graph.
+Kubernetes-discoverable `.json` input.
 
-The planned v0.1.0 inputs are:
+The v0.1.0 inputs are:
 
 - Python;
 - JavaScript and TypeScript;
@@ -134,7 +204,8 @@ and the golden document is
 [`examples/reports/runtime-contract-v1.json`](examples/reports/runtime-contract-v1.json).
 
 A newer v1 reader must accept older v1 documents. Public `parse_json_report(str | bytes)` accepts
-the exact flat D1.12 shape and normalizes it to D1.13; writers emit only the canonical shape. A new
+the original flat v1 shape and normalizes it to the canonical nested v1 model; writers emit only
+the canonical shape. A new
 optional v1 field is permitted only with a deterministic default for older documents. Removing,
 renaming, retyping, changing meaning or requiredness, identity or sorting, `null` interpretation,
 or an enum in a way that changes automation interpretation requires `runtime-contract/v2`. Version
@@ -293,12 +364,12 @@ reports a partial result for damaged syntax; dynamic computed names, computed de
 and rest destructuring also produce partial diagnostics instead of guessed keys.
 
 Dynamic environment-variable names are not guessed and produce a partial analysis diagnostic.
-The analyzer intentionally does not follow aliases created by assignment, resolve key names from
-variables, propagate values between modules, handle mapping mutation methods such as `setdefault`
-or `update`, or detect Pydantic settings. The JavaScript/TypeScript analyzer likewise does not
-follow aliases or constants and does not inspect `import.meta.env`, Deno, Bun, dotenv, bundlers, or
-framework-specific APIs. No analyzer imports or executes analyzed project code. Pydantic Settings,
-`import.meta.env`, and findings remain future work.
+The Python analyzer intentionally does not follow aliases created by assignment, resolve key names
+from variables, propagate values between modules, or handle mapping mutation methods such as
+`setdefault` or `update`. It recognizes the supported static Pydantic Settings forms but reports
+custom source hooks as dynamic. The JavaScript/TypeScript analyzer likewise does not follow aliases
+or constants and does not inspect `import.meta.env`, Deno, Bun, dotenv, bundlers, or
+framework-specific APIs. No analyzer imports or executes analyzed project code.
 
 `KubernetesAnalyzer` creates one `kubernetes_workload` environment per stable
 `namespace/Kind/name` target. It analyzes all Kubernetes candidates in one selected component as a
@@ -327,6 +398,8 @@ uv sync --locked --all-groups
 ## Project information
 
 - Maintainer: Piotr Adamski
+- Repository: [piotr-adamski/runtime-contract](https://github.com/piotr-adamski/runtime-contract)
+- Questions and bug reports: [GitHub Issues](https://github.com/piotr-adamski/runtime-contract/issues)
 - License: [Apache-2.0](LICENSE)
 - Changes: [CHANGELOG.md](CHANGELOG.md)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
