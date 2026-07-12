@@ -168,6 +168,8 @@ DEFAULT_EXCLUDED_DIRECTORIES = frozenset(
     }
 )
 
+DEFAULT_EXCLUDED_DIRECTORY_PREFIXES = (".next.",)
+
 _CODE_SUFFIXES = {
     ".py": CandidateKind.PYTHON,
     ".js": CandidateKind.JAVASCRIPT,
@@ -339,7 +341,10 @@ def _discover_scope(
                 continue
 
             ignored = _ignored(job.ignore_layers, raw_relative, is_directory)
-            default_excluded = is_directory and entry.name in DEFAULT_EXCLUDED_DIRECTORIES
+            default_excluded = is_directory and (
+                entry.name in DEFAULT_EXCLUDED_DIRECTORIES
+                or entry.name.startswith(DEFAULT_EXCLUDED_DIRECTORY_PREFIXES)
+            )
             if is_directory:
                 if (ignored or default_excluded) and not _include_can_match_descendant(
                     config.include, raw_relative
@@ -624,6 +629,8 @@ def _include_can_match_descendant(patterns: Sequence[str], directory: str) -> bo
 
 
 def _classify(name: str) -> CandidateKind | None:
+    if name in {"pnpm-lock.yaml", "pnpm-lock.yml"}:
+        return None
     if name == ".env.example":
         return CandidateKind.ENV_EXAMPLE
     if name == "Dockerfile" or name.startswith("Dockerfile."):
