@@ -57,6 +57,16 @@ def test_portable_artifact_and_platform_path_checks_are_required() -> None:
     assert "e2e_wheel.py" in step_text
 
 
+def test_sdist_smoke_asserts_the_frozen_project_version() -> None:
+    project = tomllib.loads((WORKFLOW.parents[2] / "pyproject.toml").read_text(encoding="utf-8"))
+    step_text = "\n".join(
+        str(step.get("run", "")) for step in workflow()["jobs"]["compatibility"]["steps"]
+    )
+
+    assert f'== "{project["project"]["version"]}"' in step_text
+    assert ".dev0" not in step_text
+
+
 def test_minimum_constraints_equal_project_lower_bounds() -> None:
     project = tomllib.loads((WORKFLOW.parents[2] / "pyproject.toml").read_text(encoding="utf-8"))
     expected = {
