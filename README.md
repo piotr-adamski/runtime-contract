@@ -198,6 +198,11 @@ It canonicalizes relative source locations, deduplicates identical facts, reject
 invalid references with typed technical errors, and returns a deterministic facts-only `Contract`.
 See [`docs/normalization-api.md`](docs/normalization-api.md).
 
+The immutable `runtime_contract.rules` API publishes the complete `RTC001`–`RTC012` catalog with
+stable names, default severities, rationale, and manual remediation. Technical parser and safety
+diagnostics remain a separate `runtime_contract.analysis.DIAGNOSTIC_CATALOG`. See
+[`docs/rule-catalog.md`](docs/rule-catalog.md) for the compatibility policy and full table.
+
 The pure `runtime_contract.flow` API derives a value-blind source-to-sink graph from a canonical
 `Contract`. It connects consumer → configuration key → delivery provider → declaration provider
 and delivery provider → environment using fact IDs, never variable-name matching. Component,

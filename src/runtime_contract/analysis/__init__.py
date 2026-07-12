@@ -1,5 +1,10 @@
 """Public, language-independent analyzer extension contract."""
 
+from runtime_contract.analysis.catalog import (
+    DIAGNOSTIC_CATALOG,
+    DiagnosticDefinition,
+    diagnostic_severity,
+)
 from runtime_contract.analysis.dockerfile import DockerfileAnalyzer
 from runtime_contract.analysis.dotenv import DotenvAnalyzer
 from runtime_contract.analysis.javascript_typescript import JavaScriptTypeScriptAnalyzer
@@ -33,6 +38,7 @@ from runtime_contract.analysis.registry import (
 from runtime_contract.analysis.resolver import ConfigPolicyClassificationResolver
 
 __all__ = [
+    "DIAGNOSTIC_CATALOG",
     "AnalysisCompleteness",
     "AnalysisDiagnostic",
     "AnalysisResult",
@@ -50,6 +56,7 @@ __all__ = [
     "ConfigPolicyClassificationResolver",
     "DecisionSource",
     "DiagnosticCode",
+    "DiagnosticDefinition",
     "DiagnosticParameter",
     "DockerfileAnalyzer",
     "DotenvAnalyzer",
@@ -64,5 +71,6 @@ __all__ = [
     "KubernetesAnalyzer",
     "KubernetesProjectAnalysis",
     "PythonAstAnalyzer",
+    "diagnostic_severity",
 ]
 from runtime_contract.analysis.compose import ComposeAnalyzer

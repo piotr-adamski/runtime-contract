@@ -1,0 +1,14 @@
+[
+  {"id":"RTC001","name":"REQUIRED_NOT_PROVIDED","title":"Required variable not provided","default_severity":"error"},
+  {"id":"RTC002","name":"SECRET_LITERAL","title":"Secret has a literal value","default_severity":"error"},
+  {"id":"RTC003","name":"PRIVATE_KEY_CONTENT","title":"Private-key content detected","default_severity":"error"},
+  {"id":"RTC004","name":"UNDOCUMENTED_VARIABLE","title":"Variable is not documented","default_severity":"warning"},
+  {"id":"RTC005","name":"UNUSED_DECLARATION","title":"Declaration has no consumer","default_severity":"warning"},
+  {"id":"RTC006","name":"DYNAMIC_REFERENCE","title":"Variable reference is dynamic","default_severity":"warning"},
+  {"id":"RTC007","name":"CONFLICTING_DEFAULT","title":"Static defaults conflict","default_severity":"warning"},
+  {"id":"RTC008","name":"OPTIONAL_NOT_PROVIDED","title":"Optional variable not provided","default_severity":"info"},
+  {"id":"RTC009","name":"DELIVERY_UNVERIFIABLE","title":"Bulk delivery cannot be verified","default_severity":"error"},
+  {"id":"RTC010","name":"PHASE_MISMATCH","title":"Delivery phase does not match","default_severity":"error"},
+  {"id":"RTC011","name":"CUSTOM_SETTINGS_SOURCE","title":"Custom Settings source is dynamic","default_severity":"warning"},
+  {"id":"RTC012","name":"UNSUPPORTED_K8S_RESOURCE","title":"Kubernetes resource is unsupported","default_severity":"info"}
+]
