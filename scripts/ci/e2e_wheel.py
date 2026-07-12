@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -18,6 +19,13 @@ class Outcome:
     code: int
     stdout: str
     stderr: str
+
+
+ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def plain(value: str) -> str:
+    return ANSI_ESCAPE.sub("", value)
 
 
 def run(binary: Path, cwd: Path, *arguments: str) -> Outcome:
@@ -52,7 +60,7 @@ def require(outcome: Outcome, code: int, *, report: bool) -> None:
 def require_help(outcome: Outcome, *fragments: str) -> None:
     if outcome.code or not outcome.stdout or outcome.stderr:
         raise RuntimeError("installed CLI help did not use stdout exclusively")
-    if any(fragment not in outcome.stdout for fragment in fragments):
+    if any(fragment not in plain(outcome.stdout) for fragment in fragments):
         raise RuntimeError("installed CLI help is missing a required first-use fragment")
 
 
@@ -106,11 +114,11 @@ def main() -> int:
             )
         typo = run(binary, workspace, "sacn")
         require(typo, 2, report=False)
-        if "Did you mean 'scan'?" not in typo.stderr:
+        if "Did you mean 'scan'?" not in plain(typo.stderr):
             raise RuntimeError("installed CLI did not suggest the intended command")
         option_typo = run(binary, workspace, "scan", "--formt", "json")
         require(option_typo, 2, report=False)
-        if "Possible options: --format" not in option_typo.stderr:
+        if "Possible options: --format" not in plain(option_typo.stderr):
             raise RuntimeError("installed CLI did not suggest the intended option")
 
         for output_format in ("text", "json", "sarif"):
