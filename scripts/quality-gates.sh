@@ -283,6 +283,9 @@ smoke_distribution() {
 
 wheel=$(find dist -maxdepth 1 -type f -name '*.whl' -print)
 sdist=$(find dist -maxdepth 1 -type f -name '*.tar.gz' -print)
+stage "Python 3.14 wheel four-command E2E"
+uv run --python 3.14 python scripts/ci/e2e_wheel.py \
+  --wheel "$wheel" --python 3.14 --fixture tests/fixtures/full-stack
 stage "Python 3.14 sdist smoke"
 smoke_distribution 3.14 "$sdist" "sdist"
 
