@@ -43,6 +43,8 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
         f"  Consumers: {summary.consumers}",
         f"  Flow nodes: {summary.flow_nodes}",
         f"  Flow edges: {summary.flow_edges}",
+        f"  Precedence providers: {summary.precedence_providers}",
+        f"  Precedence conflicts: {summary.precedence_conflicts}",
         f"  Diagnostics: {summary.diagnostics}",
     ]
     if result.contract.consumers:
