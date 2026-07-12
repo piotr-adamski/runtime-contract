@@ -1,0 +1,12 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Deterministic generated analysis fixtures contain synthetic hashes and key markers."
+paths = [
+  '''^examples/demo/outputs/.*\.(json|sarif)$''',
+  '''^examples/reports/.*\.json$''',
+  '''^tests/analysis/fixtures/.*\.json$''',
+  '''^tests/analysis/golden/.*\.json$''',
+  '''^tests/fixtures/domain/.*\.json$''',
+]

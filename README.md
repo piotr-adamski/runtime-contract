@@ -106,6 +106,11 @@ requests that unmarked-document behavior.
 
 An independent open-source project maintained by Piotr Adamski.
 
+Dependencies and pinned GitHub Actions are checked weekly by Dependabot. Every pull request and
+`main` push runs locked-dependency auditing, high-confidence static analysis, and a redacted
+full-history secret scan. Release provenance and attestations belong to the immutable publication
+workflow; they are not claimed before that workflow exists.
+
 The public test fixture at `tests/fixtures/full-stack` combines every supported input family and
 documents valid flows, a missing delivery, an unused provider, competing deliveries, and a
 sensitive key delivered through ConfigMap. Its machine-readable golden file is deliberately not a
