@@ -15,8 +15,7 @@ listed as planned scope, not as a product defect. No open risk is rated critical
 
 | ID | Description | Severity | Status | Impact | Control or mitigation | Owner | Target milestone | Evidence or test |
 |---|---|---|---|---|---|---|---|---|
-| LIMIT-002 | The rules engine and generated RTC findings are not implemented. | none | planned | `findings` remains an empty typed sequence. | `ScanResult` already owns the stable typed findings seam. | Maintainer | later v0.1.0 work | scan schema and `tests/test_scan_format.py` |
-| LIMIT-003 | `check`, `explain`, and `diff` remain fail-closed placeholders. | none | planned | These commands exit 2 and cannot be mistaken for successful analysis. | CLI placeholder regression tests. | Maintainer | later v0.1.0 work | `tests/test_cli.py` |
+| LIMIT-003 | `explain` and `diff` remain fail-closed placeholders. | none | planned | These commands exit 2 and cannot be mistaken for successful analysis. | CLI placeholder regression tests. | Maintainer | later v0.1.0 work | `tests/test_cli.py` |
 | LIMIT-004 | There is no tag, GitHub Release, PyPI publication, deployment, telemetry, or network reporting. | none | planned | Installation remains build-from-source or artifact based. | Local-only operation and explicit release gates. | Maintainer | release milestone | README status and clean-install smoke |
 
 ## Closed D1.15 regressions
@@ -34,3 +33,9 @@ listed as planned scope, not as a product defect. No open risk is rated critical
 | REG-004 | Analyzer-local sensitivity decisions could disagree for the same key when Kubernetes Secret metadata was stronger than a name heuristic. | high | closed | Strict normalization failed and discarded the otherwise valid project contract. | A deterministic project reconciliation selects explicit configuration first, then structural Secret metadata, while the normalizer remains strict for every other conflict. | Maintainer | D2.15 | `tests/test_full_stack_fixture.py`, `tests/test_scan.py` |
 | REG-005 | End-to-end scan analyzed Compose files independently instead of applying caller-ordered multi-file project semantics. | high | closed | Overrides and merged services could be represented as unrelated providers. | Compose candidates are resolved once per explicit component root with fail-closed per-file reporting and the existing size limit. | Maintainer | D2.15 | `tests/test_full_stack_fixture.py`, `test_engine_failures_return_failed_reports_and_continue` |
 | REG-006 | Approved v0.1 parser scope lacked Pydantic Settings v1/v2 and static `import.meta.env`. | high | closed | A full-stack scan could miss runtime requirements or classify Vite requirements in the wrong phase. | Static alias/prefix parsing, custom-source diagnostics, Vite builtin exclusions, build/runtime phase tests, and no source execution. | Maintainer | D2.15 | `tests/analysis/test_python_ast.py`, `tests/analysis/test_javascript_typescript.py` |
+
+## Closed D3.07 CLI regressions
+
+| ID | Description | Severity | Status | Impact | Control or mitigation | Owner | Target milestone | Evidence or test |
+|---|---|---|---|---|---|---|---|---|
+| REG-007 | Public documentation still described `check` and the rules engine as placeholders after both became operational. | medium | closed | CI users could ignore a supported command or misinterpret its process status. | One documented `0/1/2` matrix aligned with executable tests for clean, warning/info, active error, policy, partial, configuration, and usage cases. | Maintainer | D3.07 | `tests/test_check.py`, `README.md` |
