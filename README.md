@@ -176,7 +176,9 @@ The pure `runtime_contract.flow` API derives a value-blind source-to-sink graph 
 `Contract`. It connects consumer → configuration key → delivery provider → declaration provider
 and delivery provider → environment using fact IDs, never variable-name matching. Component,
 environment, and phase context remains on each edge; unresolved bulk providers target only their
-environment and never claim a key. See [`docs/source-to-sink-graph.md`](docs/source-to-sink-graph.md).
+environment and never claim a key. `ScanResult` rejects a supplied graph that differs from the
+graph derived from its embedded contract; the strict reader reconstructs the graph when an early
+v1 report omits it.
 
 `JavaScriptTypeScriptAnalyzer` uses the Python Tree-sitter bindings and distributed JavaScript,
 TypeScript, and TSX grammars for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`, and `.tsx`.
