@@ -176,6 +176,15 @@ jobs:
           PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError, DockerfileAnalyzer; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver and DockerfileAnalyzer'
           PYTHONPATH= "$temp_dir/venv/bin/python" -c 'from runtime_contract.normalization import NormalizationError, NormalizationErrorCode, normalize_observations; assert normalize_observations(()).model_dump_json() and NormalizationError and NormalizationErrorCode'
 
+      - name: Run four-command E2E from the wheel
+        env:
+          PYTHON_VERSION: ${{ matrix.python }}
+        run: |
+          set -euo pipefail
+          wheel=$(find "$GITHUB_WORKSPACE/artifact" -maxdepth 1 -type f -name '*.whl' -print)
+          uv run --python "$PYTHON_VERSION" python scripts/ci/e2e_wheel.py \
+            --wheel "$wheel" --python "$PYTHON_VERSION" --fixture tests/fixtures/full-stack
+
       - name: Smoke-test the sdist on Python 3.14
         if: matrix.python == '3.14'
         run: |
