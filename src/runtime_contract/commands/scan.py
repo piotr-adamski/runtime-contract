@@ -9,11 +9,12 @@ from runtime_contract.config.loader import ConfigValidationError
 from runtime_contract.discovery import DiscoveryError
 from runtime_contract.normalization import NormalizationError
 from runtime_contract.scan import ScanRequest, run_scan, write_atomic
+from runtime_contract.security import redact_exception
 
 
 def _fail(message: str) -> None:
     typer.echo(f"Error: {message}.", err=True)
-    raise typer.Exit(code=2)
+    raise typer.Exit(code=2) from None
 
 
 def scan(
@@ -89,7 +90,6 @@ def scan(
     except typer.Exit:
         raise
     except (DiscoveryError, NormalizationError, RuntimeError, ValueError) as error:
-        message = str(error) or "scan failed"
-        _fail(message)
+        _fail(redact_exception(error).message)
     if run.exit_code:
         raise typer.Exit(code=run.exit_code)

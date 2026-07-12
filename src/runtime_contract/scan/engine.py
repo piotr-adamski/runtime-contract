@@ -32,6 +32,7 @@ from runtime_contract.config.models import RuntimeContractConfig
 from runtime_contract.config.policy import ConfigPolicy
 from runtime_contract.discovery import CandidateKind, DiscoveryError, discover
 from runtime_contract.domain import Contract, Profile, Severity, SourceLocation
+from runtime_contract.errors import PublicError
 from runtime_contract.flow import build_flow_graph
 from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
 from runtime_contract.normalization import NormalizationError, normalize_observations
@@ -76,7 +77,7 @@ def _unique(values: tuple[str, ...]) -> tuple[str, ...]:
 
 def _document(root: Path, requested: Path | None) -> tuple[ConfigDocument, bool]:
     if requested is not None and (requested.is_absolute() or ".." in requested.parts):
-        raise ValueError("configuration path must remain relative to the project root")
+        raise PublicError("configuration path must remain relative to the project root")
     document = load_config(root, require=requested is not None, config_path=requested)
     if document is not None:
         return document, True
@@ -94,7 +95,7 @@ def _selected_roots(document: ConfigDocument, request: ScanRequest) -> tuple[str
         selected = tuple(available)
     unknown = [name for name in selected if name not in available]
     if unknown:
-        raise ValueError(f"unknown root: {unknown[0]}; available roots: {', '.join(available)}")
+        raise PublicError(f"unknown root: {unknown[0]}; available roots: {', '.join(available)}")
     return selected
 
 
@@ -128,9 +129,9 @@ def run_scan(request: ScanRequest) -> ScanRun:
     try:
         root = request.path.resolve(strict=True)
     except OSError:
-        raise ValueError("project path is inaccessible") from None
+        raise PublicError("project path is inaccessible") from None
     if not root.is_dir():
-        raise ValueError("project path must be a readable directory")
+        raise PublicError("project path must be a readable directory")
     document, has_config = _document(root, request.config)
     execution: EffectiveExecution = resolve_execution(
         document.config,

@@ -673,4 +673,5 @@ def _sort_key(path: str) -> bytes:
 
 
 def _raise(code: DiscoveryErrorCode, message: str, cause: BaseException) -> NoReturn:
-    raise DiscoveryError(code, message) from cause
+    del cause
+    raise DiscoveryError(code, message) from None
