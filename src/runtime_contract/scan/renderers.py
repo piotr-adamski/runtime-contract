@@ -64,7 +64,7 @@ def render_text(
         "Root: .",
         f"Config: {result.inputs.config or '-'}",
         f"Environment: {result.inputs.environment or '-'}",
-        f"Selected roots: {', '.join(result.inputs.selected_roots)}",
+        f"Selected roots: {', '.join(result.inputs.selected_roots) or '-'}",
         "",
         "Summary",
         f"  Candidates: {summary.candidates}",
