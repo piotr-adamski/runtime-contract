@@ -25,10 +25,10 @@ from runtime_contract.domain import (
     Provider,
     ProviderMechanism,
     ProviderRole,
-    SecretSource,
     Severity,
     SourceLocation,
 )
+from runtime_contract.sensitivity import classify_sensitivity
 
 MAX_DOCKERFILE_BYTES = 1_048_576
 MAX_LOGICAL_INSTRUCTION = 262_144
@@ -41,7 +41,6 @@ MAX_HEREDOC_LINES = 100_000
 
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _INSTRUCTION = re.compile(r"([A-Za-z]+)(?:[ \t]+(.*))?\Z", re.DOTALL)
-_SECRET_NAME = re.compile(r"(?:^|_)(?:TOKEN|PASSWORD|SECRET|PRIVATE_KEY)$")
 _SUBSTITUTION = re.compile(
     r"\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*(?:(?::-|:\+|-|\+)[^}]*)?\})"
 )
@@ -391,22 +390,18 @@ class _Parser:
             self._limit("declarations", position)
             return
         resolved = self.input.resolver.classify(name)
-        heuristic_secret = bool(_SECRET_NAME.search(name))
-        secret = resolved.secret if resolved.secret is not None else heuristic_secret
-        secret_source = (
-            SecretSource.CONFIG_OVERRIDE
-            if resolved.secret is not None
-            else SecretSource.HEURISTIC
-            if heuristic_secret
-            else SecretSource.NOT_SECRET
-        )
+        sensitivity = classify_sensitivity(name, override=resolved.secret)
         key = ConfigKey(
             name=name,
             component=self.input.component,
-            secret=secret,
-            secret_source=secret_source,
+            secret=sensitivity.sensitive,
+            secret_source=sensitivity.source,
+            sensitivity_reason=sensitivity.reason,
+            sensitivity_confidence=sensitivity.confidence,
             allow_literal=(
-                resolved.allow_literal if resolved.allow_literal is not None else not secret
+                resolved.allow_literal
+                if resolved.allow_literal is not None
+                else not sensitivity.sensitive
             ),
         )
         environment = Environment(

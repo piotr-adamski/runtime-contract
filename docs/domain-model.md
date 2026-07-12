@@ -31,6 +31,13 @@ The model stores names, safe identifiers, relative locations, and structural fac
 stores environment-variable values, secret values, literal fallback values, source snippets, or
 source line contents.
 
+`ConfigKey` exposes the value-blind sensitivity decision as `secret`, `secret_source`,
+`sensitivity_reason`, and `sensitivity_confidence`. Reasons distinguish configuration overrides,
+recognized terminal name families, Kubernetes Secret metadata, and no match. Confidence is
+`certain` for explicit overrides and structural Secret metadata, `high` for bounded name
+heuristics, and `none` for a negative result. These fields do not participate in `ConfigKey`
+identity, which remains component plus exact key name.
+
 `Contract` remains the facts-only source of truth. The separate `runtime_contract.flow` API derives
 an immutable query graph from those facts without changing their identities or semantics. A
 `ScanResult` validates that its graph is exactly the graph implied by its embedded contract.

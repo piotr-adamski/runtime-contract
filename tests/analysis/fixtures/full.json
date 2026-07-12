@@ -4,7 +4,12 @@
     {
       "code": "unsupported_construct",
       "id": "diagnostic-61db5d64b60111fa6a5b557cd0cc7cccbcc8504f62376e8895d75c672a433e47",
-      "parameters": [["construct", "computed_access"]],
+      "parameters": [
+        [
+          "construct",
+          "computed_access"
+        ]
+      ],
       "primary_location": {
         "end_column": null,
         "end_line": null,
@@ -35,6 +40,8 @@
         "name": "API_KEY",
         "secret": true,
         "secret_source": "heuristic",
+        "sensitivity_confidence": "none",
+        "sensitivity_reason": "no_match",
         "severity_override": null
       },
       "fact_kind": "config_key"

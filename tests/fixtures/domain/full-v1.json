@@ -7,6 +7,8 @@
       "name": "API_KEY",
       "secret": true,
       "secret_source": "heuristic",
+      "sensitivity_confidence": "none",
+      "sensitivity_reason": "no_match",
       "severity_override": null
     }
   ],

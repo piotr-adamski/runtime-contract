@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -27,7 +26,6 @@ from runtime_contract.domain import (
     ProviderMechanism,
     ProviderRole,
     RuleId,
-    SecretSource,
     Severity,
 )
 from runtime_contract.kubernetes import (
@@ -35,13 +33,13 @@ from runtime_contract.kubernetes import (
     KubernetesDiagnosticCode,
     KubernetesEnvFromSource,
     KubernetesEnvFromSourceKind,
+    KubernetesEnvSourceKind,
     KubernetesInput,
     KubernetesLoadStatus,
     KubernetesObjectKind,
     traverse_kubernetes_workloads,
 )
-
-_SECRET_NAME = re.compile(r"(?:^|_)(?:TOKEN|PASSWORD|SECRET|PRIVATE_KEY)$")
+from runtime_contract.sensitivity import classify_sensitivity
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,7 +108,11 @@ class KubernetesAnalyzer:
                 _observation(FactKind.ENVIRONMENT, environment),
             )
             for binding in context.env:
-                key = _config_key(first, binding.name)
+                key = _config_key(
+                    first,
+                    binding.name,
+                    secret_metadata=(binding.source_kind is KubernetesEnvSourceKind.SECRET_KEY_REF),
+                )
                 keys.setdefault(key.id, _observation(FactKind.CONFIG_KEY, key))
                 providers.append(
                     _observation(
@@ -140,7 +142,11 @@ class KubernetesAnalyzer:
                     providers.append(_bulk_provider(first, environment, source))
                     continue
                 for object_key in resolved.keys:
-                    key = _config_key(first, f"{source.prefix}{object_key.name}")
+                    key = _config_key(
+                        first,
+                        f"{source.prefix}{object_key.name}",
+                        secret_metadata=object_kind is KubernetesObjectKind.SECRET,
+                    )
                     keys.setdefault(key.id, _observation(FactKind.CONFIG_KEY, key))
                     providers.append(
                         _observation(
@@ -175,23 +181,22 @@ def _analysis_completeness(status: KubernetesLoadStatus) -> AnalysisCompleteness
     return AnalysisCompleteness(status.value)
 
 
-def _config_key(input: AnalyzerInput, name: str) -> ConfigKey:
+def _config_key(input: AnalyzerInput, name: str, *, secret_metadata: bool = False) -> ConfigKey:
     resolved = input.resolver.classify(name)
-    heuristic_secret = bool(_SECRET_NAME.search(name))
-    secret = resolved.secret if resolved.secret is not None else heuristic_secret
+    sensitivity = classify_sensitivity(
+        name, override=resolved.secret, secret_metadata=secret_metadata
+    )
     return ConfigKey(
         name=name,
         component=input.component,
-        secret=secret,
-        secret_source=(
-            SecretSource.CONFIG_OVERRIDE
-            if resolved.secret is not None
-            else SecretSource.HEURISTIC
-            if heuristic_secret
-            else SecretSource.NOT_SECRET
-        ),
+        secret=sensitivity.sensitive,
+        secret_source=sensitivity.source,
+        sensitivity_reason=sensitivity.reason,
+        sensitivity_confidence=sensitivity.confidence,
         allow_literal=(
-            resolved.allow_literal if resolved.allow_literal is not None else not secret
+            resolved.allow_literal
+            if resolved.allow_literal is not None
+            else not sensitivity.sensitive
         ),
     )
 

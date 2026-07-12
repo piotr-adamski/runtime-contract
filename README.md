@@ -85,6 +85,15 @@ versions evolve independently; older readers need not read newer v1 documents.
 Local-only operation without telemetry or data transmission remains a project requirement. There is
 currently no release or PyPI publication.
 
+Sensitivity classification is deterministic and value-blind. `classify_sensitivity()` recognizes
+terminal name forms such as `*_TOKEN`, `*_PASSWORD`, `*_SECRET`, `*_PRIVATE_KEY`, `*_API_KEY`,
+`*APIKEY`, and `*_CREDENTIAL(S)` across underscore, hyphen, dot, whitespace, and camel-case
+separators. Explicit configuration overrides take priority; Kubernetes Secret references and
+resolved Secret `envFrom` keys are classified from structural metadata. Every `ConfigKey` records
+the classification reason and confidence. Bounded negative forms such as `TOKEN_COUNT`,
+`PASSWORD_LENGTH`, `SECRET_NAME`, and `CREDENTIAL_TYPE` remain non-secret to reduce obvious false
+positives. Values, fragments, lengths, hashes, and contents are never inspected by this classifier.
+
 The strict local configuration contract is documented in
 [`docs/runtime-contract-yaml.md`](docs/runtime-contract-yaml.md). Validate it without scanning:
 

@@ -61,6 +61,24 @@ class SecretSource(StrEnum):
     NOT_SECRET = "not_secret"
 
 
+class SensitivityReason(StrEnum):
+    CONFIG_OVERRIDE = "config_override"
+    TOKEN = "token"
+    PASSWORD = "password"
+    SECRET = "secret"
+    PRIVATE_KEY = "private_key"
+    API_KEY = "api_key"
+    CREDENTIAL = "credential"
+    SECRET_METADATA = "secret_metadata"
+    NO_MATCH = "no_match"
+
+
+class SensitivityConfidence(StrEnum):
+    CERTAIN = "certain"
+    HIGH = "high"
+    NONE = "none"
+
+
 class ConsumerAccessKind(StrEnum):
     PYTHON_OS_ENVIRON = "python_os_environ"
     PYTHON_OS_ENVIRON_GET = "python_os_environ_get"
@@ -150,6 +168,8 @@ class ConfigKey(DomainModel):
     secret_source: SecretSource
     allow_literal: bool
     severity_override: Severity | None = None
+    sensitivity_reason: SensitivityReason = SensitivityReason.NO_MATCH
+    sensitivity_confidence: SensitivityConfidence = SensitivityConfidence.NONE
 
     @field_validator("name")
     @classmethod

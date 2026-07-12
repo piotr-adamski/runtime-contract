@@ -145,6 +145,8 @@ PUBLIC_EXPORTS = {
         "RuleId",
         "SafeIdentifier",
         "SecretSource",
+        "SensitivityConfidence",
+        "SensitivityReason",
         "Severity",
         "SourceLocation",
     ),
@@ -185,6 +187,12 @@ PUBLIC_EXPORTS = {
         "run_scan",
         "schema_bytes",
         "write_atomic",
+    ),
+    "runtime_contract.sensitivity": (
+        "SensitivityClassification",
+        "SensitivityConfidence",
+        "SensitivityReason",
+        "classify_sensitivity",
     ),
 }
 

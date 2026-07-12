@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-
 from runtime_contract.analysis.models import (
     AnalysisCompleteness,
     AnalysisDiagnostic,
@@ -34,11 +32,9 @@ from runtime_contract.domain import (
     Provider,
     ProviderMechanism,
     ProviderRole,
-    SecretSource,
     Severity,
 )
-
-_SECRET_NAME = re.compile(r"(?:^|_)(?:TOKEN|PASSWORD|SECRET|PRIVATE_KEY)$")
+from runtime_contract.sensitivity import classify_sensitivity
 
 
 class ComposeAnalyzer:
@@ -128,21 +124,18 @@ def _append_service_observations(
     assert isinstance(service, ComposeService)
     for binding in service.bindings:
         resolved = input.resolver.classify(binding.name)
-        heuristic_secret = bool(_SECRET_NAME.search(binding.name))
-        secret = resolved.secret if resolved.secret is not None else heuristic_secret
+        sensitivity = classify_sensitivity(binding.name, override=resolved.secret)
         key = ConfigKey(
             name=binding.name,
             component=input.component,
-            secret=secret,
-            secret_source=(
-                SecretSource.CONFIG_OVERRIDE
-                if resolved.secret is not None
-                else SecretSource.HEURISTIC
-                if heuristic_secret
-                else SecretSource.NOT_SECRET
-            ),
+            secret=sensitivity.sensitive,
+            secret_source=sensitivity.source,
+            sensitivity_reason=sensitivity.reason,
+            sensitivity_confidence=sensitivity.confidence,
             allow_literal=(
-                resolved.allow_literal if resolved.allow_literal is not None else not secret
+                resolved.allow_literal
+                if resolved.allow_literal is not None
+                else not sensitivity.sensitive
             ),
         )
         keys.setdefault(key.id, _observation(FactKind.CONFIG_KEY, key))
