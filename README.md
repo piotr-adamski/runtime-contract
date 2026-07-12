@@ -52,6 +52,13 @@ runtime-contract scan PATH --format json --output report.json
 runtime-contract scan . --format sarif --output reports/runtime-contract.sarif
 ```
 
+Human-readable text groups findings by severity and component, includes source locations and safe
+manual suggestions, and never renders provider values. `--color auto|always|never` controls ANSI
+color (`auto` requires a TTY and respects `NO_COLOR`), `--no-emoji` disables TTY symbols, and
+`--width 40..240` provides deterministic wrapping for narrow terminals. Non-TTY CI output is plain
+by default. These terminal options do not change JSON or SARIF bytes and are available for both
+`scan` and `check`.
+
 `scan` returns 0 only for complete analysis and 2 for partial, failed, or technically invalid
 analysis. Partial and failed runs still emit their structured report so callers can inspect the
 safe evidence; they are never represented as successful process exits. `scan` never returns 1.

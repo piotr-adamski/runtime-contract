@@ -1,5 +1,8 @@
 """The check command backed by the same scan engine."""
 
+import os
+import shutil
+import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -31,11 +34,27 @@ def check(
     ] = None,
     fail_on: Annotated[str | None, typer.Option(help="Failure threshold override.")] = None,
     report: Annotated[Path | None, typer.Option(help="Relative report path override.")] = None,
+    color: Annotated[str, typer.Option(help="Terminal color: auto, always, or never.")] = "auto",
+    no_emoji: Annotated[bool, typer.Option("--no-emoji", help="Disable terminal symbols.")] = False,
+    width: Annotated[
+        int | None, typer.Option(help="Terminal width override (40-240 columns).")
+    ] = None,
 ) -> None:
     """Check a project and exit one when a reliable result has error findings."""
 
     if output is not None and report is not None:
         _fail("--output and --report cannot be used together")
+    if color not in {"auto", "always", "never"}:
+        _fail("--color must be auto, always, or never")
+    if width is not None and not 40 <= width <= 240:
+        _fail("--width must be between 40 and 240")
+    is_tty = sys.stdout.isatty() and output is None and report is None
+    terminal_color = color == "always" or (
+        color == "auto" and is_tty and "NO_COLOR" not in os.environ
+    )
+    terminal_width = max(
+        40, min(240, width or shutil.get_terminal_size(fallback=(100, 24)).columns)
+    )
     try:
         run = run_scan(
             ScanRequest(
@@ -47,6 +66,9 @@ def check(
                 report=report,
                 fail_on=fail_on,
                 command="check",
+                terminal_color=terminal_color,
+                terminal_emoji=is_tty and not no_emoji,
+                terminal_width=terminal_width,
             )
         )
         if run.output_path is not None:
