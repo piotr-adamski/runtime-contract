@@ -108,7 +108,7 @@ fi
 stage "Formatting, lint, and typing"
 uv run --python 3.14 ruff format --check .
 uv run --python 3.14 ruff check .
-uv run --python 3.14 mypy --strict src tests
+uv run --python 3.14 mypy --strict src tests scripts/ci/profile_monorepo.py
 
 stage "Configuration schema and examples"
 uv run --python 3.14 python scripts/generate_config_schema.py --check
@@ -116,6 +116,8 @@ uv run --python 3.14 python scripts/generate_analysis_schema.py --check
 uv run --python 3.14 python scripts/generate_scan_schema.py --check
 uv run --python 3.14 python scripts/generate_diff_schema.py --check
 uv run --python 3.14 python scripts/generate_output_goldens.py --check
+uv run --python 3.14 python scripts/ci/profile_monorepo.py \
+  --components 500 --runs 3 --max-median-seconds 8
 uv run --python 3.14 python -c \
   'from runtime_contract.scan.schema import generate_schema_bytes; assert generate_schema_bytes() == generate_schema_bytes()'
 uv run --python 3.14 runtime-contract config validate examples/minimal
