@@ -14,6 +14,7 @@ PUBLIC_EXPORTS = {
         "discover",
     ),
     "runtime_contract.analysis": (
+        "DIAGNOSTIC_CATALOG",
         "AnalysisCompleteness",
         "AnalysisDiagnostic",
         "AnalysisResult",
@@ -31,6 +32,7 @@ PUBLIC_EXPORTS = {
         "ConfigPolicyClassificationResolver",
         "DecisionSource",
         "DiagnosticCode",
+        "DiagnosticDefinition",
         "DiagnosticParameter",
         "DockerfileAnalyzer",
         "DotenvAnalyzer",
@@ -45,6 +47,7 @@ PUBLIC_EXPORTS = {
         "KubernetesAnalyzer",
         "KubernetesProjectAnalysis",
         "PythonAstAnalyzer",
+        "diagnostic_severity",
     ),
     "runtime_contract.compose": (
         "MAX_ACTIVE_PROFILES",
@@ -155,6 +158,13 @@ PUBLIC_EXPORTS = {
         "SourceLocation",
     ),
     "runtime_contract.errors": ("PublicError",),
+    "runtime_contract.rules": (
+        "RULE_CATALOG",
+        "RuleDefinition",
+        "RuleId",
+        "RuleSeverity",
+        "get_rule",
+    ),
     "runtime_contract.flow": (
         "FlowEdge",
         "FlowEdgeKind",
