@@ -1,6 +1,8 @@
 """End-to-end D1.12 scan flow tests."""
 
+import base64
 import builtins
+import gzip
 import hashlib
 import importlib.metadata
 import json
@@ -840,8 +842,20 @@ def test_sarif_diagnostic_region_and_metadata_fallback(
         Path("tests/fixtures/sarif/sarif-schema-2.1.0.json").read_text(encoding="utf-8")
     )
     jsonschema.Draft4Validator(sarif_schema).validate(payload)
+    driver = payload["runs"][0]["tool"]["driver"]
+    assert [item["id"] for item in driver["rules"] if item["id"].startswith("RTC")] == [
+        f"RTC{number:03d}" for number in range(1, 13)
+    ]
+    assert all(
+        item["defaultConfiguration"]["level"] in {"error", "warning", "note"}
+        for item in driver["rules"]
+        if item["id"].startswith("RTC")
+    )
     physical = payload["runs"][0]["results"][0]["locations"][0]["physicalLocation"]
     assert physical["region"] == {"startColumn": 1, "startLine": 2}
+    assert physical["artifactLocation"] == {"uri": "app.py", "uriBaseId": "PROJECTROOT"}
+    fingerprint = payload["runs"][0]["results"][0]["partialFingerprints"]
+    assert re.fullmatch(r"RTC006-[0-9a-f]{64}", fingerprint["runtimeContract/v1"])
     assert payload["runs"][0]["tool"]["driver"]["semanticVersion"] == "0.1.0-dev.0"
 
     def missing(_: str) -> str:
@@ -853,6 +867,32 @@ def test_sarif_diagnostic_region_and_metadata_fallback(
     assert json.loads(fallback.stdout)["runs"][0]["tool"]["driver"]["semanticVersion"] == (
         "0.0.0-unknown"
     )
+
+
+def test_sarif_code_scanning_upload_fixture_is_offline_value_safe_and_valid(tmp_path: Path) -> None:
+    write(tmp_path / "app.py", 'import os\nos.environ["REQUIRED"]\n')
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "sarif"])
+    assert result.exit_code == 0
+    sarif = json.loads(result.stdout)
+    schema = json.loads(
+        Path("tests/fixtures/sarif/sarif-schema-2.1.0.json").read_text(encoding="utf-8")
+    )
+    jsonschema.Draft4Validator(schema).validate(sarif)
+    finding = sarif["runs"][0]["results"][0]
+    assert finding["ruleId"] == "RTC001"
+    assert finding["locations"][0]["physicalLocation"]["region"]["startLine"] == 2
+    assert re.fullmatch(
+        r"RTC001-[0-9a-f]{64}", finding["partialFingerprints"]["runtimeContract/v1"]
+    )
+
+    upload = json.loads(
+        Path("tests/fixtures/sarif/github-code-scanning-upload.json").read_text(encoding="utf-8")
+    )
+    upload["sarif"] = base64.b64encode(gzip.compress(result.stdout_bytes)).decode("ascii")
+    decoded = json.loads(gzip.decompress(base64.b64decode(upload["sarif"])))
+    jsonschema.Draft4Validator(schema).validate(decoded)
+    serialized = json.dumps(upload, sort_keys=True)
+    assert "SECRET" not in serialized and "TOKEN" not in serialized
 
 
 def test_environment_selects_roots_and_profile(project: Path) -> None:

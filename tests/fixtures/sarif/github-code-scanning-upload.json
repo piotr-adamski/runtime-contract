@@ -1,0 +1,6 @@
+{
+  "checkout_uri": "file:///github/workspace/",
+  "commit_sha": "0000000000000000000000000000000000000000",
+  "ref": "refs/heads/runtime-contract-fixture",
+  "sarif": "<gzip-base64-sarif>"
+}

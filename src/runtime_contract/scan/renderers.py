@@ -8,7 +8,7 @@ import textwrap
 from typing import Any
 
 from runtime_contract.domain import Severity
-from runtime_contract.rules import get_rule
+from runtime_contract.rules import RULE_CATALOG, get_rule
 from runtime_contract.scan.models import ScanResult, ScanStatus
 
 
@@ -220,18 +220,23 @@ def render_sarif(result: ScanResult) -> str:
         )
         for item in result.diagnostics
     }
+    sarif_levels = {"info": "note", "warning": "warning", "error": "error"}
     rules: list[dict[str, Any]] = [
-        {"id": rule_id, "name": name} for rule_id, name in sorted(diagnostic_rule_pairs)
-    ]
-    rules.extend(
         {
-            "id": finding.rule_id.value,
-            "name": get_rule(finding.rule_id).name,
-            "shortDescription": {"text": get_rule(finding.rule_id).title},
-            "help": {"text": get_rule(finding.rule_id).remediation},
+            "id": definition.id.value,
+            "name": definition.name,
+            "shortDescription": {"text": definition.title},
+            "fullDescription": {"text": definition.rationale},
+            "help": {"text": definition.remediation},
+            "defaultConfiguration": {"level": sarif_levels[definition.default_severity]},
         }
-        for finding in result.findings
-        if finding.rule_id.value not in {item["id"] for item in rules}
+        for definition in RULE_CATALOG.values()
+    ]
+    catalog_ids = {item["id"] for item in rules}
+    rules.extend(
+        {"id": rule_id, "name": name}
+        for rule_id, name in sorted(diagnostic_rule_pairs)
+        if rule_id not in catalog_ids
     )
     rules.sort(key=lambda item: item["id"])
     levels = {Severity.INFO: "note", Severity.WARNING: "warning", Severity.ERROR: "error"}
@@ -256,6 +261,7 @@ def render_sarif(result: ScanResult) -> str:
                 "level": levels[diagnostic.severity],
                 "message": {"text": diagnostic.code.value.replace("_", " ")},
                 "locations": [{"physicalLocation": diagnostic_physical}],
+                "partialFingerprints": {"runtimeContract/v1": diagnostic.id},
             }
         )
     for finding in result.findings:
@@ -274,6 +280,7 @@ def render_sarif(result: ScanResult) -> str:
                 "level": levels[finding.severity],
                 "message": {"text": get_rule(finding.rule_id).title},
                 "locations": [{"physicalLocation": finding_physical}],
+                "partialFingerprints": {"runtimeContract/v1": finding.id},
                 "properties": {
                     "component": finding.component,
                     "environment_id": finding.environment_id or "",
