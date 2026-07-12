@@ -35,6 +35,6 @@
     "delivered_keys": ["BUILD_REVISION", "CONFLICTING_MODE", "DATABASE_URL", "EXTRA_PROVIDER", "OPTIONAL_MODE", "PUBLIC_URL", "SERVICE_TOKEN"],
     "declared_keys": ["DATABASE_URL", "OPTIONAL_MODE", "SERVICE_TOKEN", "UNUSED_DECLARATION"]
   },
-  "current_pre_d2_15_diagnostics": ["normalization_error"],
+  "expected_diagnostics": [],
   "forbidden_terms": ["brillnet", "pulsar", "crewshift", "tenant"]
 }

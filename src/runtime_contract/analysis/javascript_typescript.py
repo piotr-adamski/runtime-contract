@@ -64,6 +64,7 @@ _FUNCTION_TYPES = frozenset(
         "generator_function",
     }
 )
+_VITE_BUILTINS = frozenset({"MODE", "BASE_URL", "PROD", "DEV", "SSR"})
 
 
 class JavaScriptTypeScriptAnalyzer:
@@ -128,19 +129,39 @@ class _Visitor:
             return
         if _direct_process_env(obj, self.input.content) and not self._shadowed(obj):
             self._record(_text(prop, self.input.content), node)
+        elif _direct_import_meta_env(obj, self.input.content):
+            self._record(
+                _text(prop, self.input.content),
+                node,
+                access_kind=ConsumerAccessKind.VITE_IMPORT_META_ENV,
+                phase=Phase.BUILD,
+            )
 
     def _subscript(self, node: Node) -> None:
         obj = node.child_by_field_name("object")
         index = node.child_by_field_name("index")
-        if obj is None or index is None or not _direct_process_env(obj, self.input.content):
+        if obj is None or index is None:
             return
-        if self._shadowed(obj):
+        process_env = _direct_process_env(obj, self.input.content)
+        import_meta_env = _direct_import_meta_env(obj, self.input.content)
+        if not process_env and not import_meta_env:
+            return
+        if process_env and self._shadowed(obj):
             return
         name = _string_literal(index, self.input.content)
         if name is None:
             self.add_diagnostic(DiagnosticCode.DYNAMIC_NAME, _location(self.input, node))
         else:
-            self._record(name, node)
+            self._record(
+                name,
+                node,
+                access_kind=(
+                    ConsumerAccessKind.VITE_IMPORT_META_ENV
+                    if import_meta_env
+                    else ConsumerAccessKind.NODE_PROCESS_ENV
+                ),
+                phase=Phase.BUILD if import_meta_env else Phase.RUNTIME,
+            )
 
     def _destructuring(self, node: Node) -> None:
         pattern = node.child_by_field_name("name")
@@ -149,14 +170,17 @@ class _Visitor:
             pattern is None
             or pattern.type != "object_pattern"
             or value is None
-            or not _direct_process_env(value, self.input.content)
-            or self._shadowed(value)
+            or not (
+                _direct_process_env(value, self.input.content)
+                or _direct_import_meta_env(value, self.input.content)
+            )
+            or (_direct_process_env(value, self.input.content) and self._shadowed(value))
         ):
             return
         for child in pattern.named_children:
             if child.type in {"shorthand_property_identifier_pattern", "object_assignment_pattern"}:
                 name_node = child.child_by_field_name("left") or child
-                self._record(_text(name_node, self.input.content), child)
+                self._record_env_kind(_text(name_node, self.input.content), child, value)
             elif child.type == "pair_pattern":
                 key = child.child_by_field_name("key")
                 if key is None or key.type == "computed_property_name":
@@ -168,7 +192,7 @@ class _Visitor:
                             DiagnosticCode.DYNAMIC_NAME, _location(self.input, child)
                         )
                     else:
-                        self._record(name, child)
+                        self._record_env_kind(name, child, value)
             else:
                 self.add_diagnostic(DiagnosticCode.DYNAMIC_NAME, _location(self.input, child))
 
@@ -180,7 +204,29 @@ class _Visitor:
             scope = _nearest_scope(scope.parent) if scope.parent is not None else None
         return False
 
-    def _record(self, name: str, node: Node) -> None:
+    def _record_env_kind(self, name: str, node: Node, env: Node) -> None:
+        is_import_meta = _direct_import_meta_env(env, self.input.content)
+        self._record(
+            name,
+            node,
+            access_kind=(
+                ConsumerAccessKind.VITE_IMPORT_META_ENV
+                if is_import_meta
+                else ConsumerAccessKind.NODE_PROCESS_ENV
+            ),
+            phase=Phase.BUILD if is_import_meta else Phase.RUNTIME,
+        )
+
+    def _record(
+        self,
+        name: str,
+        node: Node,
+        *,
+        access_kind: ConsumerAccessKind = ConsumerAccessKind.NODE_PROCESS_ENV,
+        phase: Phase = Phase.RUNTIME,
+    ) -> None:
+        if access_kind is ConsumerAccessKind.VITE_IMPORT_META_ENV and name in _VITE_BUILTINS:
+            return
         resolved = self.input.resolver.classify(name)
         if resolved.ignored:
             return
@@ -208,10 +254,10 @@ class _Visitor:
         consumer = Consumer(
             config_key_id=key.id,
             component=self.input.component,
-            phase=Phase.RUNTIME,
+            phase=phase,
             required=required,
             requirement_source=requirement_source,
-            access_kind=ConsumerAccessKind.NODE_PROCESS_ENV,
+            access_kind=access_kind,
             location=_location(self.input, node),
             has_literal_fallback=False,
         )
@@ -276,6 +322,18 @@ def _direct_process_env(node: Node, source: bytes) -> bool:
         and _text(_unwrap(obj), source) == "process"
         and _text(prop, source) == "env"
     )
+
+
+def _direct_import_meta_env(node: Node, source: bytes) -> bool:
+    current = _unwrap(node)
+    if current.type != "member_expression":
+        return False
+    obj = current.child_by_field_name("object")
+    prop = current.child_by_field_name("property")
+    if obj is None or prop is None or _text(prop, source) != "env":
+        return False
+    meta = _unwrap(obj)
+    return meta.type == "meta_property" and _text(meta, source) == "import.meta"
 
 
 def _text(node: Node, source: bytes) -> str:

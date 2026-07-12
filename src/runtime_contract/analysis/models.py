@@ -46,6 +46,7 @@ class DiagnosticCode(StrEnum):
     SAFETY_LIMIT = "safety_limit"
     UNSUPPORTED_K8S_RESOURCE = "unsupported_k8s_resource"
     UNUSED_CLASSIFICATION_RULE = "unused_classification_rule"
+    CUSTOM_SETTINGS_SOURCE = "custom_settings_source"
 
 
 class Confidence(StrEnum):
@@ -123,6 +124,7 @@ DIAGNOSTIC_SEVERITY: dict[DiagnosticCode, Severity] = {
     DiagnosticCode.SAFETY_LIMIT: Severity.ERROR,
     DiagnosticCode.UNSUPPORTED_K8S_RESOURCE: Severity.INFO,
     DiagnosticCode.UNUSED_CLASSIFICATION_RULE: Severity.WARNING,
+    DiagnosticCode.CUSTOM_SETTINGS_SOURCE: Severity.WARNING,
 }
 
 
@@ -190,6 +192,7 @@ _LOSS_CODES = frozenset(
         DiagnosticCode.UNSUPPORTED_CONSTRUCT,
         DiagnosticCode.PARTIAL_ANALYSIS,
         DiagnosticCode.SAFETY_LIMIT,
+        DiagnosticCode.CUSTOM_SETTINGS_SOURCE,
     }
 )
 

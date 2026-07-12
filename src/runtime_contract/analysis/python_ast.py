@@ -77,6 +77,9 @@ class _Visitor(ast.NodeVisitor):
         self.scopes: list[dict[str, str]] = [{}]
         self.observations: dict[str, FactObservation] = {}
         self.diagnostics: dict[str, AnalysisDiagnostic] = {}
+        self.base_settings_names: set[str] = set()
+        self.field_names: set[str] = set()
+        self.settings_config_names: set[str] = set()
 
     def result(self) -> AnalysisResult:
         completeness = (
@@ -125,6 +128,13 @@ class _Visitor(ast.NodeVisitor):
                     )
                 continue
             bound = alias.asname or alias.name
+            if node.level == 0 and node.module in {"pydantic", "pydantic_settings"}:
+                if alias.name == "BaseSettings":
+                    self.base_settings_names.add(bound)
+                elif alias.name == "Field":
+                    self.field_names.add(bound)
+                elif alias.name == "SettingsConfigDict":
+                    self.settings_config_names.add(bound)
             binding = _SHADOWED
             if node.module == "os" and node.level == 0:
                 if alias.name == "getenv":
@@ -295,6 +305,11 @@ class _Visitor(ast.NodeVisitor):
         self.scopes.pop()
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        if any(
+            isinstance(base, ast.Name) and base.id in self.base_settings_names
+            for base in node.bases
+        ):
+            self._record_settings_class(node)
         for item in (*node.decorator_list, *node.bases):
             self.visit(item)
         for keyword in node.keywords:
@@ -304,6 +319,89 @@ class _Visitor(ast.NodeVisitor):
         for statement in node.body:
             self.visit(statement)
         self.scopes.pop()
+
+    def _record_settings_class(self, node: ast.ClassDef) -> None:
+        prefix = ""
+        for statement in node.body:
+            if isinstance(statement, ast.ClassDef) and statement.name == "Config":
+                prefix = _literal_assignment(statement.body, "env_prefix") or prefix
+            elif isinstance(statement, ast.Assign) and any(
+                isinstance(target, ast.Name) and target.id == "model_config"
+                for target in statement.targets
+            ):
+                prefix = _settings_prefix(statement.value, self.settings_config_names) or prefix
+
+        for statement in node.body:
+            if isinstance(
+                statement, (ast.FunctionDef, ast.AsyncFunctionDef)
+            ) and statement.name in {
+                "customise_sources",
+                "settings_customise_sources",
+            }:
+                self.add_diagnostic(
+                    DiagnosticCode.CUSTOM_SETTINGS_SOURCE,
+                    _location(self.input.path, statement),
+                    ConsumerAccessKind.PYDANTIC_SETTINGS,
+                )
+            if not isinstance(statement, ast.AnnAssign) or not isinstance(
+                statement.target, ast.Name
+            ):
+                continue
+            name = _field_alias(statement.value, self.field_names)
+            if name is None:
+                name = f"{prefix}{statement.target.id}".upper()
+            self._record_pydantic(
+                name,
+                statement,
+                required=_field_required(statement.value, self.field_names),
+                has_literal=not _field_required(statement.value, self.field_names),
+            )
+
+    def _record_pydantic(
+        self, name: str, node: ast.AnnAssign, *, required: bool, has_literal: bool
+    ) -> None:
+        resolved = self.input.resolver.classify(name)
+        if resolved.ignored:
+            return
+        sensitivity = classify_sensitivity(name, override=resolved.secret)
+        key = ConfigKey(
+            name=name,
+            component=self.input.component,
+            secret=sensitivity.sensitive,
+            secret_source=sensitivity.source,
+            sensitivity_reason=sensitivity.reason,
+            sensitivity_confidence=sensitivity.confidence,
+            allow_literal=(
+                resolved.allow_literal
+                if resolved.allow_literal is not None
+                else not sensitivity.sensitive
+            ),
+        )
+        if resolved.required is not None:
+            required = resolved.required
+        consumer = Consumer(
+            config_key_id=key.id,
+            component=self.input.component,
+            phase=Phase.RUNTIME,
+            required=required,
+            requirement_source=(
+                RequirementSource.CONFIG_OVERRIDE
+                if resolved.required is not None
+                else RequirementSource.LITERAL_FALLBACK
+                if has_literal
+                else RequirementSource.DETECTED_DEFAULT
+            ),
+            access_kind=ConsumerAccessKind.PYDANTIC_SETTINGS,
+            location=_location(self.input.path, node),
+            has_literal_fallback=has_literal,
+        )
+        self.observations.setdefault(
+            key.id,
+            FactObservation(fact_kind=FactKind.CONFIG_KEY, confidence=Confidence.EXACT, fact=key),
+        )
+        self.observations[consumer.id] = FactObservation(
+            fact_kind=FactKind.CONSUMER, confidence=Confidence.EXACT, fact=consumer
+        )
 
     def visit_Assign(self, node: ast.Assign) -> None:
         self.visit(node.value)
@@ -350,6 +448,59 @@ class _Visitor(ast.NodeVisitor):
         elif isinstance(target, (ast.Tuple, ast.List)):
             for item in target.elts:
                 self._shadow_target(item)
+
+
+def _literal_string(node: ast.expr | None) -> str | None:
+    return node.value if isinstance(node, ast.Constant) and type(node.value) is str else None
+
+
+def _literal_assignment(statements: list[ast.stmt], name: str) -> str | None:
+    for statement in statements:
+        if not isinstance(statement, ast.Assign):
+            continue
+        if any(isinstance(target, ast.Name) and target.id == name for target in statement.targets):
+            return _literal_string(statement.value)
+    return None
+
+
+def _settings_prefix(node: ast.expr, config_names: set[str]) -> str | None:
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        if node.func.id not in config_names:
+            return None
+        return next(
+            (_literal_string(item.value) for item in node.keywords if item.arg == "env_prefix"),
+            None,
+        )
+    if isinstance(node, ast.Dict):
+        for key, value in zip(node.keys, node.values, strict=True):
+            if _literal_string(key) == "env_prefix":
+                return _literal_string(value)
+    return None
+
+
+def _field_alias(node: ast.expr | None, field_names: set[str]) -> str | None:
+    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+        return None
+    if node.func.id not in field_names:
+        return None
+    for preferred in ("validation_alias", "alias", "env"):
+        for keyword in node.keywords:
+            if keyword.arg == preferred:
+                return _literal_string(keyword.value)
+    return None
+
+
+def _field_required(node: ast.expr | None, field_names: set[str]) -> bool:
+    if node is None:
+        return True
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in field_names
+        and bool(node.args)
+        and isinstance(node.args[0], ast.Constant)
+        and node.args[0].value is Ellipsis
+    )
 
 
 def _location(path: str, node: ast.AST) -> SourceLocation:

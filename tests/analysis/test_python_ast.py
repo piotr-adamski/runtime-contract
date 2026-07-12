@@ -7,6 +7,7 @@ import codecs
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 
 import jsonschema
 import pytest
@@ -27,6 +28,7 @@ from runtime_contract.domain import (
     ConfigKey,
     Consumer,
     ConsumerAccessKind,
+    Phase,
     Profile,
     RequirementSource,
     SecretSource,
@@ -405,6 +407,96 @@ class Child(object, metaclass=type):
         "LAMBDA",
         "CLASS_BODY",
     }
+
+
+def test_pydantic_v1_and_v2_settings_fields_aliases_and_prefixes() -> None:
+    source = """
+from pydantic import BaseSettings as V1Settings, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Legacy(V1Settings):
+    token: str = Field(..., alias="LEGACY_TOKEN")
+    class Config:
+        env_prefix = "APP_"
+
+class Current(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="SERVICE_")
+    endpoint: str
+    region: str = "eu"
+    credential: str = Field(validation_alias="SERVICE_CREDENTIAL")
+"""
+    result = analyze(source)
+    keys = {item.name for item in facts(result, ConfigKey)}
+    consumers = facts(result, Consumer)
+    assert keys == {
+        "LEGACY_TOKEN",
+        "SERVICE_ENDPOINT",
+        "SERVICE_REGION",
+        "SERVICE_CREDENTIAL",
+    }
+    assert all(item.access_kind is ConsumerAccessKind.PYDANTIC_SETTINGS for item in consumers)
+    assert all(item.phase is Phase.RUNTIME for item in consumers)
+    assert {item.required for item in consumers} == {False, True}
+
+
+def test_pydantic_custom_sources_are_reported_without_execution() -> None:
+    result = analyze(
+        """
+from pydantic_settings import BaseSettings
+class Settings(BaseSettings):
+    value: str
+    @classmethod
+    def settings_customise_sources(cls, *sources):
+        raise RuntimeError("must never execute")
+"""
+    )
+    assert DiagnosticCode.CUSTOM_SETTINGS_SOURCE in {item.code for item in result.diagnostics}
+    assert result.completeness is AnalysisCompleteness.PARTIAL
+
+
+def test_pydantic_settings_honor_ignore_and_required_overrides() -> None:
+    source = "from pydantic_settings import BaseSettings\nclass Settings(BaseSettings):\n    value: str = 'x'\n"
+    ignored = analyze(
+        source,
+        Resolver(
+            EffectiveClassification(
+                ignored=True,
+            )
+        ),
+    )
+    assert not ignored.observations
+    required = analyze(
+        source,
+        Resolver(
+            EffectiveClassification(
+                required=True,
+                required_source=DecisionSource.CONFIG_OVERRIDE,
+            )
+        ),
+    )
+    assert facts(required, Consumer)[0].required is True
+
+
+def test_pydantic_helper_edge_cases_are_deterministic() -> None:
+    module = ast.parse(
+        "pass\nConfig = object()\nmodel_config = {'env_prefix': 'DICT_', 'other': 1}\n"
+        "other = Factory(env_prefix='NOPE_')\nvalue = Other(alias='IGNORED')\n"
+    )
+    assert python_ast._literal_assignment(module.body[:2], "missing") is None
+    dictionary = cast(ast.Assign, module.body[2]).value
+    assert python_ast._settings_prefix(dictionary, set()) == "DICT_"
+    assert python_ast._settings_prefix(ast.Dict(keys=[], values=[]), set()) is None
+    wrong_config = cast(ast.Assign, module.body[3]).value
+    assert python_ast._settings_prefix(wrong_config, {"SettingsConfigDict"}) is None
+    wrong_field = cast(ast.Assign, module.body[4]).value
+    assert python_ast._field_alias(wrong_field, {"Field"}) is None
+    assert (
+        python_ast._field_alias(
+            ast.Call(func=ast.Name(id="Field"), args=[], keywords=[]), {"Field"}
+        )
+        is None
+    )
+    assert python_ast._field_alias(ast.Constant(value="plain"), {"Field"}) is None
 
 
 def test_partial_analysis_on_ast_recursion(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -26,12 +26,21 @@ from runtime_contract.analysis import (
 )
 from runtime_contract.analysis.dockerfile import MAX_DOCKERFILE_BYTES
 from runtime_contract.analysis.dotenv import MAX_DOTENV_BYTES
+from runtime_contract.compose import MAX_COMPOSE_BYTES, ComposeInput, ComposeProjectInput
 from runtime_contract.config.execution import EffectiveExecution, resolve_execution
 from runtime_contract.config.loader import ConfigDocument, load_config
 from runtime_contract.config.models import RuntimeContractConfig
 from runtime_contract.config.policy import ConfigPolicy
 from runtime_contract.discovery import CandidateKind, DiscoveryError, discover
-from runtime_contract.domain import Contract, Profile, Severity, SourceLocation
+from runtime_contract.domain import (
+    ConfigKey,
+    Contract,
+    Profile,
+    SecretSource,
+    SensitivityReason,
+    Severity,
+    SourceLocation,
+)
 from runtime_contract.errors import PublicError
 from runtime_contract.flow import build_flow_graph
 from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
@@ -125,6 +134,46 @@ def _file_size_diagnostic(path: str) -> AnalysisDiagnostic:
     )
 
 
+def _reconcile_config_keys(
+    observations: list[FactObservation],
+) -> list[FactObservation]:
+    """Make one project-wide classification decision for each key identity.
+
+    Analyzer-local structural metadata may legitimately be stronger than a name
+    heuristic. Explicit configuration remains authoritative in either direction.
+    The normalizer stays strict and still rejects every other same-ID conflict.
+    """
+
+    keys: dict[str, list[ConfigKey]] = {}
+    for observation in observations:
+        if isinstance(observation.fact, ConfigKey):
+            keys.setdefault(observation.fact.id, []).append(observation.fact)
+
+    canonical: dict[str, ConfigKey] = {}
+    for key_id, candidates in keys.items():
+        configured = [
+            item for item in candidates if item.secret_source is SecretSource.CONFIG_OVERRIDE
+        ]
+        pool = configured or candidates
+        selected = max(
+            pool,
+            key=lambda item: (
+                item.sensitivity_reason is SensitivityReason.SECRET_METADATA,
+                item.secret,
+                item.sensitivity_confidence.value,
+                item.model_dump_json(),
+            ),
+        )
+        canonical[key_id] = selected
+
+    return [
+        observation.model_copy(update={"fact": canonical[observation.fact.id]})
+        if isinstance(observation.fact, ConfigKey)
+        else observation
+        for observation in observations
+    ]
+
+
 def run_scan(request: ScanRequest) -> ScanRun:
     try:
         root = request.path.resolve(strict=True)
@@ -153,13 +202,14 @@ def run_scan(request: ScanRequest) -> ScanRun:
         config_document=document if has_config else None,
     )
     kubernetes_analyzer = KubernetesAnalyzer()
+    compose_analyzer = ComposeAnalyzer()
     registry = AnalyzerRegistry(
         (
             PythonAstAnalyzer(),
             JavaScriptTypeScriptAnalyzer(),
             DotenvAnalyzer(),
             DockerfileAnalyzer(),
-            ComposeAnalyzer(),
+            compose_analyzer,
             kubernetes_analyzer,
         )
     )
@@ -169,6 +219,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
     files: list[ScanFile] = []
     counts = {"complete": 0, "partial": 0, "failed": 0, "analyzed": 0, "skipped": 0}
     kubernetes_projects: dict[str, list[AnalyzerInput]] = {}
+    compose_projects: dict[str, list[AnalyzerInput]] = {}
     supported = {
         CandidateKind.PYTHON,
         CandidateKind.JAVASCRIPT,
@@ -200,6 +251,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         size_limit = {
             CandidateKind.ENV_EXAMPLE: MAX_DOTENV_BYTES,
             CandidateKind.DOCKERFILE: MAX_DOCKERFILE_BYTES,
+            CandidateKind.COMPOSE: MAX_COMPOSE_BYTES,
             CandidateKind.KUBERNETES: MAX_KUBERNETES_BYTES,
         }.get(item.kind)
         if size_limit is not None:
@@ -237,6 +289,9 @@ def run_scan(request: ScanRequest) -> ScanRun:
         if item.kind is CandidateKind.KUBERNETES:
             kubernetes_projects.setdefault(item.root_name, []).append(analyzer_input)
             continue
+        if item.kind is CandidateKind.COMPOSE:
+            compose_projects.setdefault(item.root_name, []).append(analyzer_input)
+            continue
         try:
             result = registry.analyze(analyzer_input)
         except AnalyzerExecutionError:
@@ -250,6 +305,38 @@ def run_scan(request: ScanRequest) -> ScanRun:
         )
         observations.extend(result.observations)
         diagnostics.extend(result.diagnostics)
+    for project_inputs in compose_projects.values():
+        source = ComposeProjectInput(
+            files=tuple(
+                ComposeInput(path=project_input.path, content=project_input.content)
+                for project_input in project_inputs
+            )
+        )
+        try:
+            compose_result = compose_analyzer.analyze_project(source, project_inputs[0])
+        except Exception:
+            for project_input in project_inputs:
+                counts["failed"] += 1
+                diagnostics.append(
+                    _technical_diagnostic(DiagnosticCode.ANALYZER_CONTRACT, project_input.path)
+                )
+                files.append(
+                    ScanFile(
+                        path=project_input.path, kind=project_input.kind.value, status="failed"
+                    )
+                )
+            continue
+        for project_input in project_inputs:
+            counts[compose_result.completeness.value] += 1
+            files.append(
+                ScanFile(
+                    path=project_input.path,
+                    kind=project_input.kind.value,
+                    status=compose_result.completeness.value,
+                )
+            )
+        observations.extend(compose_result.observations)
+        diagnostics.extend(compose_result.diagnostics)
     for project_inputs in kubernetes_projects.values():
         try:
             project = kubernetes_analyzer.analyze_project(project_inputs)
@@ -281,7 +368,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         observations.extend(project.result.observations)
         diagnostics.extend(project.result.diagnostics)
     try:
-        contract = normalize_observations(observations)
+        contract = normalize_observations(_reconcile_config_keys(observations))
     except NormalizationError:
         counts["failed"] += 1
         diagnostics.append(
