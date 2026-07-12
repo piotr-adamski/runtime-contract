@@ -1,5 +1,14 @@
 {
   "$defs": {
+    "ClassificationDecision": {
+      "enum": [
+        "sensitive",
+        "public",
+        "ignore"
+      ],
+      "title": "ClassificationDecision",
+      "type": "string"
+    },
     "Classifications": {
       "additionalProperties": false,
       "properties": {
@@ -119,6 +128,17 @@
     "PatternRule": {
       "additionalProperties": false,
       "properties": {
+        "classification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClassificationDecision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "environments": {
           "items": {
             "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
@@ -128,9 +148,43 @@
           "type": "array"
         },
         "pattern": {
-          "minLength": 1,
-          "title": "Pattern",
-          "type": "string"
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pattern"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "regex": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regex"
         },
         "required": {
           "anyOf": [
@@ -165,9 +219,6 @@
           "title": "Secret"
         }
       },
-      "required": [
-        "pattern"
-      ],
       "title": "PatternRule",
       "type": "object"
     },
@@ -244,6 +295,17 @@
     "SeverityOverride": {
       "additionalProperties": false,
       "properties": {
+        "classification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClassificationDecision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "environments": {
           "items": {
             "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$",
@@ -434,6 +496,17 @@
           ],
           "default": null,
           "title": "Allow Literal"
+        },
+        "classification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClassificationDecision"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "environments": {
           "items": {

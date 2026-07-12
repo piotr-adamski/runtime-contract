@@ -324,6 +324,107 @@ classifications:
     assert [item.scope for item in result.applied] == ["pattern", "pattern", "exact", "exact"]
 
 
+def test_explicit_classification_glob_regex_scope_and_audit(tmp_path: Path) -> None:
+    write_config(
+        tmp_path,
+        """version: 1
+environments:
+  prod: {roots: [default]}
+classifications:
+  variables:
+    FALSE_POSITIVE: {classification: public, reason: documented exception}
+    INTERNAL_HANDLE: {classification: sensitive}
+    UNUSED_KEY: {classification: ignore, reason: generated upstream}
+  patterns:
+    - {pattern: "INTERNAL_*", classification: ignore, reason: broad generated family}
+    - {pattern: "*_TOKEN", classification: sensitive, environments: [prod]}
+    - {regex: "^PUBLIC_[A-Z0-9_]+$", classification: public, reason: public contract}
+""",
+    )
+    document = load_config(tmp_path, require=True)
+    assert document is not None
+    policy = ConfigPolicy(document)
+    assert policy.classify("CUSTOM_TOKEN", environment="prod").secret is True
+    public = policy.classify("PUBLIC_ENDPOINT")
+    assert public.secret is False and public.reason == "public contract"
+    false_positive = policy.classify("FALSE_POSITIVE")
+    assert false_positive.secret is False and false_positive.reason == "documented exception"
+    internal = policy.classify("INTERNAL_HANDLE")
+    assert internal.secret is True and internal.ignored is False
+    ignored = policy.classify("UNUSED_KEY")
+    assert ignored.ignored is True and ignored.secret is None
+    unused = ConfigPolicy(document).unused_classification_rules(
+        (
+            ("CUSTOM_TOKEN", "default", "prod"),
+            ("PUBLIC_ENDPOINT", "default", None),
+            ("FALSE_POSITIVE", "default", None),
+            ("INTERNAL_HANDLE", "default", None),
+        )
+    )
+    assert [item.pointer for item in unused] == ["/classifications/variables/UNUSED_KEY"]
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        "{classification: public}",
+        "{classification: ignore}",
+        "{classification: sensitive, secret: false}",
+        "{classification: public, secret: true, reason: conflict}",
+        "{classification: ignore, required: false, reason: conflict}",
+        "{classification: ignore, allow_literal: false, reason: conflict}",
+    ],
+)
+def test_explicit_exact_classification_conflicts_and_reasons_fail_closed(
+    tmp_path: Path, rule: str
+) -> None:
+    assert error_for(
+        tmp_path, f"version: 1\nclassifications:\n  variables:\n    KEY: {rule}\n"
+    ).errors
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        "{pattern: X, regex: X, classification: sensitive}",
+        "{classification: sensitive}",
+        "{regex: '(?=X)X', classification: sensitive}",
+        "{regex: '^(X+)+$', classification: sensitive}",
+        "{regex: 'X++', classification: sensitive}",
+        "{regex: '^X$', classification: public}",
+        "{pattern: X, classification: sensitive}\n    - {pattern: X, classification: public, reason: conflict}",
+    ],
+)
+def test_pattern_selector_and_regex_safety_fail_closed(tmp_path: Path, rule: str) -> None:
+    assert error_for(tmp_path, f"version: 1\nclassifications:\n  patterns:\n    - {rule}\n").errors
+
+
+def test_explicit_null_regex_is_accepted_and_unused_rule_lists_are_precise(
+    tmp_path: Path,
+) -> None:
+    write_config(
+        tmp_path,
+        """version: 1
+environments:
+  prod: {roots: [default]}
+  dev: {roots: [default]}
+classifications:
+  variables:
+    SCOPED:
+      - {classification: sensitive, environments: [prod]}
+      - {classification: public, reason: development fixture, environments: [dev]}
+  patterns:
+    - {pattern: "GLOB_*", regex: null, classification: sensitive}
+""",
+    )
+    document = load_config(tmp_path, require=True)
+    assert document is not None
+    unused = ConfigPolicy(document).unused_classification_rules(
+        (("SCOPED", "default", "prod"), ("GLOB_KEY", "default", None))
+    )
+    assert [item.pointer for item in unused] == ["/classifications/variables/SCOPED/1"]
+
+
 @pytest.mark.parametrize(
     "body",
     [

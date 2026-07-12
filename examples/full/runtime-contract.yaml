@@ -37,7 +37,7 @@ environments:
 classifications:
   variables:
     DATABASE_URL:
-      secret: true
+      classification: sensitive
       required: true
     LOCAL_TEST_TOKEN:
       - secret: true
@@ -52,10 +52,13 @@ classifications:
           - development
   patterns:
     - pattern: "*_CREDENTIAL"
-      secret: true
+      classification: sensitive
       required: true
     - pattern: "OPTIONAL_*_CREDENTIAL"
       required: false
+    - regex: "^PUBLIC_[A-Z0-9_]+$"
+      classification: public
+      reason: Publicly documented integration identifier
 severity_overrides:
   - rule: RTC001
     severity: warning

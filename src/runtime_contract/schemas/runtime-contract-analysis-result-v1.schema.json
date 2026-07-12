@@ -212,7 +212,8 @@
         "normalization_error",
         "read_error",
         "safety_limit",
-        "unsupported_k8s_resource"
+        "unsupported_k8s_resource",
+        "unused_classification_rule"
       ],
       "title": "DiagnosticCode",
       "type": "string"

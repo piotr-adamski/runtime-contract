@@ -30,6 +30,7 @@ RootName = Annotated[StrictStr, Field(pattern=ROOT_NAME_PATTERN)]
 VariableName = Annotated[StrictStr, Field(pattern=VARIABLE_NAME_PATTERN)]
 RelativePath = Annotated[str, Field(min_length=1)]
 GlobPattern = Annotated[str, Field(min_length=1)]
+RegexPattern = Annotated[StrictStr, Field(min_length=1, max_length=256)]
 
 
 class ConfigModel(BaseModel):
@@ -129,7 +130,14 @@ class EnvironmentProfile(ConfigModel):
         return value
 
 
+class ClassificationDecision(StrEnum):
+    SENSITIVE = "sensitive"
+    PUBLIC = "public"
+    IGNORE = "ignore"
+
+
 class ScopedRule(ConfigModel):
+    classification: ClassificationDecision | None = None
     secret: StrictBool | None = None
     required: StrictBool | None = None
     roots: list[RootName] = Field(default_factory=list)
@@ -142,6 +150,23 @@ class ScopedRule(ConfigModel):
             raise ValueError("must not contain duplicates")
         return value
 
+    @model_validator(mode="after")
+    def compatible_classification(self) -> Self:
+        expected = (
+            True
+            if self.classification is ClassificationDecision.SENSITIVE
+            else False
+            if self.classification is ClassificationDecision.PUBLIC
+            else None
+        )
+        if expected is not None and self.secret is not None and self.secret is not expected:
+            raise ValueError("classification conflicts with secret")
+        if self.classification is ClassificationDecision.IGNORE and any(
+            value is not None for value in (self.secret, self.required)
+        ):
+            raise ValueError("ignore cannot be combined with secret or required")
+        return self
+
 
 class VariableRule(ScopedRule):
     allow_literal: StrictBool | None = None
@@ -151,6 +176,13 @@ class VariableRule(ScopedRule):
     def reason_for_literal(self) -> Self:
         if self.allow_literal is True and (self.reason is None or not self.reason.strip()):
             raise ValueError("allow_literal true requires a non-empty reason")
+        if self.classification in {
+            ClassificationDecision.PUBLIC,
+            ClassificationDecision.IGNORE,
+        } and (self.reason is None or not self.reason.strip()):
+            raise ValueError("public and ignore classifications require a non-empty reason")
+        if self.classification is ClassificationDecision.IGNORE and self.allow_literal is not None:
+            raise ValueError("ignore cannot be combined with allow_literal")
         return self
 
 
@@ -168,13 +200,54 @@ class VariableRuleList(RootModel[list[VariableRule]]):
 
 
 class PatternRule(ScopedRule):
-    pattern: GlobPattern
-    _pattern = field_validator("pattern")(_validate_glob)
+    pattern: GlobPattern | None = None
+    regex: RegexPattern | None = None
+    reason: StrictStr | None = None
+
+    _pattern = field_validator("pattern")(_validate_optional_glob)
+
+    @field_validator("regex")
+    @classmethod
+    def valid_regex(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if (
+            "\0" in value
+            or "(" in value
+            or ")" in value
+            or re.search(r"\\[1-9]", value)
+            or re.search(r"(?:[*+?]|\{\d+(?:,\d*)?\}){2}", value)
+        ):
+            raise ValueError("must be a bounded regular expression without advanced constructs")
+        re.compile(value, flags=re.ASCII)
+        return value
+
+    @model_validator(mode="after")
+    def one_selector_and_reason(self) -> Self:
+        if (self.pattern is None) == (self.regex is None):
+            raise ValueError("exactly one of pattern or regex is required")
+        if self.classification in {
+            ClassificationDecision.PUBLIC,
+            ClassificationDecision.IGNORE,
+        } and (self.reason is None or not self.reason.strip()):
+            raise ValueError("public and ignore classifications require a non-empty reason")
+        return self
 
 
 class Classifications(ConfigModel):
     variables: dict[VariableName, VariableRule | VariableRuleList] = Field(default_factory=dict)
     patterns: list[PatternRule] = Field(default_factory=list)
+
+    @field_validator("patterns")
+    @classmethod
+    def unique_pattern_scopes(cls, value: list[PatternRule]) -> list[PatternRule]:
+        identities = [
+            (item.pattern, item.regex, tuple(item.roots), tuple(item.environments))
+            for item in value
+        ]
+        if len(set(identities)) != len(identities):
+            raise ValueError("classification pattern selectors and scopes must be unique")
+        return value
 
 
 class Severity(StrEnum):

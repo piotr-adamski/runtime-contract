@@ -113,6 +113,8 @@ class KubernetesAnalyzer:
                     binding.name,
                     secret_metadata=(binding.source_kind is KubernetesEnvSourceKind.SECRET_KEY_REF),
                 )
+                if key is None:
+                    continue
                 keys.setdefault(key.id, _observation(FactKind.CONFIG_KEY, key))
                 providers.append(
                     _observation(
@@ -147,6 +149,8 @@ class KubernetesAnalyzer:
                         f"{source.prefix}{object_key.name}",
                         secret_metadata=object_kind is KubernetesObjectKind.SECRET,
                     )
+                    if key is None:
+                        continue
                     keys.setdefault(key.id, _observation(FactKind.CONFIG_KEY, key))
                     providers.append(
                         _observation(
@@ -181,8 +185,12 @@ def _analysis_completeness(status: KubernetesLoadStatus) -> AnalysisCompleteness
     return AnalysisCompleteness(status.value)
 
 
-def _config_key(input: AnalyzerInput, name: str, *, secret_metadata: bool = False) -> ConfigKey:
+def _config_key(
+    input: AnalyzerInput, name: str, *, secret_metadata: bool = False
+) -> ConfigKey | None:
     resolved = input.resolver.classify(name)
+    if resolved.ignored:
+        return None
     sensitivity = classify_sensitivity(
         name, override=resolved.secret, secret_metadata=secret_metadata
     )

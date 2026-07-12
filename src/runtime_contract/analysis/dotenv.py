@@ -252,6 +252,8 @@ class _Parser:
 
     def _record(self, name: str, line: int, column: int) -> None:
         resolved = self.input.resolver.classify(name)
+        if resolved.ignored:
+            return
         sensitivity = classify_sensitivity(name, override=resolved.secret)
         allow_literal = (
             resolved.allow_literal

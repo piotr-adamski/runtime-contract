@@ -124,6 +124,8 @@ def _append_service_observations(
     assert isinstance(service, ComposeService)
     for binding in service.bindings:
         resolved = input.resolver.classify(binding.name)
+        if resolved.ignored:
+            continue
         sensitivity = classify_sensitivity(binding.name, override=resolved.secret)
         key = ConfigKey(
             name=binding.name,

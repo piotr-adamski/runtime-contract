@@ -94,6 +94,10 @@ PUBLIC_EXPORTS = {
         "load_compose",
         "resolve_compose_project",
     ),
+    "runtime_contract.config": (
+        "ClassificationDecision",
+        "RuntimeContractConfig",
+    ),
     "runtime_contract.kubernetes": (
         "MAX_ENV_ENTRIES",
         "MAX_ENV_FROM_ENTRIES",

@@ -103,6 +103,7 @@ def test_fact_kind_must_match_concrete_model(wrong_kind: FactKind) -> None:
         (DiagnosticCode.UNSUPPORTED_CONSTRUCT, Severity.WARNING),
         (DiagnosticCode.PARTIAL_ANALYSIS, Severity.WARNING),
         (DiagnosticCode.ANALYZER_NOT_REGISTERED, Severity.ERROR),
+        (DiagnosticCode.UNUSED_CLASSIFICATION_RULE, Severity.WARNING),
     ],
 )
 def test_each_diagnostic_code_has_constant_severity_and_stable_id(
