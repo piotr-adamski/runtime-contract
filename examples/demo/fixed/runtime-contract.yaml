@@ -1,0 +1,15 @@
+version: 1
+exclude:
+  - "outputs/**"
+classifications:
+  variables:
+    DATABASE_URL:
+      classification: sensitive
+      required: false
+    SERVICE_TOKEN:
+      classification: sensitive
+      required: false
+    PUBLIC_URL:
+      classification: public
+      required: false
+      reason: Public demo endpoint

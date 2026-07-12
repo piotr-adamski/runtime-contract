@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-config
+data:
+  PUBLIC_URL: https://example.invalid
+  SERVICE_TOKEN: unsafe-demo-literal
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-api
+spec:
+  selector:
+    matchLabels: {app: demo-api}
+  template:
+    metadata:
+      labels: {app: demo-api}
+    spec:
+      containers:
+        - name: api
+          image: example.invalid/demo-api:1
+          env:
+            - name: DATABASE_URL
+              value: unsafe-demo-literal

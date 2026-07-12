@@ -1,0 +1,85 @@
+runtime-contract scan
+
+Root: .
+Config: runtime-contract.yaml
+Environment: -
+Selected roots: default
+
+Summary
+  Candidates: 6
+  Analyzed: 6
+  Skipped: 0
+  Config keys: 5
+  Consumers: 3
+  Flow nodes: 22
+  Flow edges: 24
+  Precedence providers: 10
+  Precedence conflicts: 2
+  Diagnostics: 0
+  Findings: 14
+
+Consumers
+  default  SERVICE_TOKEN  app/settings.py:4:17  required  secret
+  default  DATABASE_URL  app/settings.py:3:16  required  secret
+  default  PUBLIC_URL  web/config.ts:1:26  required  plain
+
+Findings
+  ERROR (11)
+    default
+      RTC001 Required variable not provided
+        at app/settings.py:4:17 | target=web key=SERVICE_TOKEN phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or explicitly make the
+                    requirement optional.
+      RTC001 Required variable not provided
+        at web/config.ts:1:26 | target=default/Deployment/demo-api key=PUBLIC_URL phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or explicitly make the
+                    requirement optional.
+      RTC001 Required variable not provided
+        at app/settings.py:4:17 | target=default key=SERVICE_TOKEN phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or explicitly make the
+                    requirement optional.
+      RTC001 Required variable not provided
+        at app/settings.py:3:16 | target=default key=DATABASE_URL phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or explicitly make the
+                    requirement optional.
+      RTC001 Required variable not provided
+        at web/config.ts:1:26 | target=default key=PUBLIC_URL phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or explicitly make the
+                    requirement optional.
+      RTC001 Required variable not provided
+        at app/settings.py:3:16 | target=web key=DATABASE_URL phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or explicitly make the
+                    requirement optional.
+      RTC001 Required variable not provided
+        at app/settings.py:4:17 | target=default/Deployment/demo-api key=SERVICE_TOKEN phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or explicitly make the
+                    requirement optional.
+      RTC001 Required variable not provided
+        at web/config.ts:1:26 | target=api key=PUBLIC_URL phase=runtime
+        suggestion: Provide the variable to every selected target in the required phase, or explicitly make the
+                    requirement optional.
+      RTC002 Secret has a literal value
+        at compose.yaml:8:7 | target=api key=DATABASE_URL phase=runtime
+        suggestion: Replace the literal with an empty or approved placeholder, pass-through reference, or secret-backed
+                    delivery.
+      RTC002 Secret has a literal value
+        at kubernetes.yaml:24:21 | target=default/Deployment/demo-api key=DATABASE_URL phase=runtime
+        suggestion: Replace the literal with an empty or approved placeholder, pass-through reference, or secret-backed
+                    delivery.
+      RTC002 Secret has a literal value
+        at compose.yaml:9:7 | target=api key=SERVICE_TOKEN phase=runtime
+        suggestion: Replace the literal with an empty or approved placeholder, pass-through reference, or secret-backed
+                    delivery.
+  WARNING (3)
+    default
+      RTC005 Declaration has no consumer
+        at Dockerfile:3:5 | target=default key=APP_MODE phase=runtime
+        suggestion: Remove the stale declaration or confirm and document the unsupported consumption pattern.
+      RTC005 Declaration has no consumer
+        at Dockerfile:2:5 | target=default key=BUILD_REVISION phase=build
+        suggestion: Remove the stale declaration or confirm and document the unsupported consumption pattern.
+      RTC005 Declaration has no consumer
+        at compose.yaml:6:9 | target=api key=BUILD_REVISION phase=build
+        suggestion: Remove the stale declaration or confirm and document the unsupported consumption pattern.
+
+Result: complete — 3 consumers, 5 config keys

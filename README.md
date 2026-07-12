@@ -245,6 +245,7 @@ Canonical references:
 
 - [CLI options and exit/stream contract](docs/cli-reference.md)
 - [configuration fields and suppressions](docs/runtime-contract-yaml.md)
+- [offline broken/fixed full-stack demo](examples/demo/README.md)
 - [terminal, JSON, SARIF, heuristics, and static-analysis limits](docs/output-formats.md)
 - [RTC001–RTC012 reasons, examples, and remediation](docs/rules.md)
 
