@@ -1,0 +1,8 @@
+version: 1
+roots:
+  example: examples/scan-flow
+classifications:
+  variables:
+    DATABASE_URL:
+      secret: true
+      required: true

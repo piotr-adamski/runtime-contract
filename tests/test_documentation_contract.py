@@ -71,3 +71,18 @@ def test_cli_and_format_references_cover_public_contract() -> None:
         "Limits of static analysis",
     ):
         assert contract in formats
+
+
+def test_github_code_scanning_example_is_minimal_and_fail_closed() -> None:
+    workflow = (ROOT / ".github/workflows/code-scanning.yml").read_text(encoding="utf-8")
+    guide = (ROOT / "docs/github-code-scanning.md").read_text(encoding="utf-8")
+
+    assert "contents: read" in workflow
+    assert "security-events: write" in workflow
+    assert "runtime-contract check ." in workflow
+    assert "--format sarif" in workflow
+    assert "upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9" in workflow
+    assert "retention-days: 7" in workflow
+    assert "if [[ $status -gt 1 ]]" in workflow
+    assert "secrets." not in workflow
+    assert "GITHUB_TOKEN" in guide

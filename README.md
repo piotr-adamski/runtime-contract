@@ -59,6 +59,9 @@ Minimal GitHub Actions step:
 The CI snippet becomes directly installable from PyPI with v0.1.0. Before publication, replace the
 install target with the checked-out package or a verified wheel produced by this repository.
 
+For line-level GitHub Code Scanning alerts, minimal permissions, SARIF retention, and correct
+handling of findings exit `1`, use the complete [Code Scanning example](docs/github-code-scanning.md).
+
 ## Scope and non-goals
 
 v0.1 analyzes Python, JavaScript/TypeScript, `.env.example`, Dockerfile, Docker Compose, and plain
