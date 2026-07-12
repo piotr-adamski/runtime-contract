@@ -85,6 +85,7 @@ def test_github_code_scanning_example_is_minimal_and_fail_closed() -> None:
     assert "--format sarif" in workflow
     assert "upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9" in workflow
     assert "retention-days: 7" in workflow
+    assert "uv tool install --python 3.14 ." in workflow
     assert "if [[ $status -gt 1 ]]" in workflow
     assert "secrets." not in workflow
     assert "GITHUB_TOKEN" in guide
