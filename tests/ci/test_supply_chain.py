@@ -40,3 +40,24 @@ def test_gitleaks_allowlist_is_limited_to_generated_json_fixtures() -> None:
     assert "useDefault = true" in config
     assert "src/" not in config
     assert "README" not in config
+
+
+def test_publish_workflow_is_oidc_only_tag_bound_and_pinned() -> None:
+    path = ROOT / ".github/workflows/publish.yml"
+    workflow = yaml.safe_load(path.read_text())
+    text = path.read_text()
+    build = workflow["jobs"]["build"]
+    publish = workflow["jobs"]["publish"]
+
+    assert workflow["permissions"] == {"contents": "read"}
+    assert workflow[True] == {"release": {"types": ["published"]}}
+    assert "v0.1.0" in build["if"] and "target_commitish == 'main'" in build["if"]
+    assert publish["environment"]["name"] == "pypi"
+    assert publish["permissions"] == {"id-token": "write"}
+    assert re.search(r"(?m)^\s+(password|user|username|api-token):", text) is None
+    assert "PYPI_API_TOKEN" not in text
+    assert "quality-gates.sh" in text and "SHA256SUMS" in text and "attestations: true" in text
+    for job in workflow["jobs"].values():
+        for step in job["steps"]:
+            if action := step.get("uses"):
+                assert SHA_ACTION.fullmatch(action)
