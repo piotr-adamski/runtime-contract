@@ -856,7 +856,7 @@ def test_sarif_diagnostic_region_and_metadata_fallback(
     assert physical["artifactLocation"] == {"uri": "app.py", "uriBaseId": "PROJECTROOT"}
     fingerprint = payload["runs"][0]["results"][0]["partialFingerprints"]
     assert re.fullmatch(r"RTC006-[0-9a-f]{64}", fingerprint["runtimeContract/v1"])
-    assert payload["runs"][0]["tool"]["driver"]["semanticVersion"] == "0.1.0-dev.0"
+    assert payload["runs"][0]["tool"]["driver"]["semanticVersion"] == "0.1.0"
 
     def missing(_: str) -> str:
         raise importlib.metadata.PackageNotFoundError

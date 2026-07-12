@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "runtime-contract"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "Static, local CLI for checking environment-variable delivery contracts."
 readme = "README.md"
 requires-python = ">=3.11"

@@ -93,12 +93,12 @@ def test_cli_typo_errors_suggest_the_intended_command_or_option(
 
 
 def test_version_uses_distribution_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(importlib.metadata, "version", lambda name: "0.1.0.dev0")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "0.1.0")
 
     result = runner.invoke(app, ["--version"])
 
     assert result.exit_code == 0
-    assert result.stdout == "runtime-contract 0.1.0.dev0\n"
+    assert result.stdout == "runtime-contract 0.1.0\n"
     assert result.stderr == ""
 
 

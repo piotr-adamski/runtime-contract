@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+No changes yet. New features are frozen until after v0.1.0; only release-blocking correctness,
+security, packaging, or publication fixes may be added to the v0.1.0 release commit.
+
+## [0.1.0] - 2026-07-13
+
 - Run the supported Python matrix on Linux, macOS, and Windows, add minimum/latest dependency
   jobs, normalize checkout text to LF, stabilize Windows file identity, and make artifact checksum,
   entry-point, Unicode-path, and encoding E2E checks portable.
@@ -70,3 +75,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Extended clean wheel and sdist verification with `uv pip check`, real artifact-installed `scan`
   smokes, packaged-schema validation, deterministic output checks, and private-artifact rejection.
 - Aligned analyzer API documentation and this changelog with the implemented D1.01–D1.15 state.
+
+[Unreleased]: https://github.com/piotr-adamski/runtime-contract/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/piotr-adamski/runtime-contract/releases/tag/v0.1.0
