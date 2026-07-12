@@ -46,6 +46,7 @@ from runtime_contract.domain import (
 )
 from runtime_contract.errors import PublicError
 from runtime_contract.evaluation import (
+    evaluate_ambiguities,
     evaluate_required_not_provided,
     evaluate_unsafe_secret_sources,
     evaluate_unused_providers,
@@ -246,6 +247,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
     )
     policy = ConfigPolicy(document)
     observations: list[FactObservation] = []
+    component_by_path: dict[str, str] = {}
     diagnostics: list[AnalysisDiagnostic] = []
     files: list[ScanFile] = []
     counts = {"complete": 0, "partial": 0, "failed": 0, "analyzed": 0, "skipped": 0}
@@ -260,6 +262,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         CandidateKind.KUBERNETES,
     }
     for item in discovery.candidates:
+        component_by_path[item.path] = item.root_name
         if item.kind not in supported:
             counts["skipped"] += 1
             files.append(
@@ -424,10 +427,12 @@ def run_scan(request: ScanRequest) -> ScanRun:
         )
     flow_graph = build_flow_graph(contract)
     precedence = analyze_precedence(contract)
+    diagnostics_tuple = tuple(sorted(diagnostics, key=lambda item: item.id))
     findings = tuple(
         sorted(
             (
                 *evaluate_required_not_provided(contract),
+                *evaluate_ambiguities(contract, precedence, diagnostics_tuple, component_by_path),
                 *evaluate_unsafe_secret_sources(contract),
                 *evaluate_unused_providers(
                     contract,
@@ -445,7 +450,6 @@ def run_scan(request: ScanRequest) -> ScanRun:
         if counts["partial"]
         else ScanStatus.COMPLETE
     )
-    diagnostics_tuple = tuple(sorted(diagnostics, key=lambda item: item.id))
     candidate_kinds = {
         kind.value: sum(1 for item in discovery.candidates if item.kind is kind)
         for kind in CandidateKind

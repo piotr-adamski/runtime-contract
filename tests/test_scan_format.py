@@ -347,6 +347,6 @@ def test_golden_snapshot_is_exact_and_repeatable() -> None:
     assert first == second == golden
     value = json.loads(golden)
     assert value["diagnostics"]
-    assert {item["rule_id"] for item in value["findings"]} == {"RTC001"}
+    assert {item["rule_id"] for item in value["findings"]} == {"RTC001", "RTC006"}
     assert value["contract"]["providers"] == []
     assert {item["component"] for item in value["contract"]["consumers"]} == {"api", "web"}
