@@ -191,6 +191,7 @@ PUBLIC_EXPORTS = {
         "analyze_precedence",
     ),
     "runtime_contract.scan": (
+        "PolicyRecord",
         "ReportInputs",
         "ReportMetadata",
         "ScanFile",

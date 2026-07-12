@@ -183,6 +183,7 @@ class ConfigPolicy:
         environment: str | None = None,
         on_date: date,
     ) -> SuppressionResult:
+        expired_match: SuppressionResult | None = None
         for index, item in enumerate(self.document.config.suppressions):
             if item.rule is not rule_id:
                 continue
@@ -193,14 +194,17 @@ class ConfigPolicy:
             if not _matches(item.roots, item.environments, root, environment):
                 continue
             expired = item.expires is not None and item.expires < on_date
-            return SuppressionResult(
+            result = SuppressionResult(
                 not expired,
                 item.id,
                 item.reason,
                 expired,
                 f"/suppressions/{index}",
             )
-        return SuppressionResult(False)
+            if not expired:
+                return result
+            expired_match = result
+        return expired_match or SuppressionResult(False)
 
     def expired_suppression_warnings(
         self, *, on_date: date

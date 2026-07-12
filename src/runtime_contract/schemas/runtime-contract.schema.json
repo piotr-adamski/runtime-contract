@@ -314,6 +314,11 @@
           "title": "Environments",
           "type": "array"
         },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
         "required": {
           "anyOf": [
             {
@@ -355,7 +360,8 @@
       },
       "required": [
         "rule",
-        "severity"
+        "severity",
+        "reason"
       ],
       "title": "SeverityOverride",
       "type": "object"

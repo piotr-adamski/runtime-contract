@@ -465,7 +465,7 @@ def test_cross_section_and_duplicate_selector_errors(tmp_path: Path, text: str) 
 def test_rule_registry_drives_override_and_schema_enum(tmp_path: Path) -> None:
     error = error_for(
         tmp_path,
-        "version: 1\nseverity_overrides:\n  - {rule: UNKNOWN, severity: error}\n",
+        "version: 1\nseverity_overrides:\n  - {rule: UNKNOWN, severity: error, reason: test}\n",
     )
     assert error.errors
     schema_text = generate_schema_bytes().decode()
@@ -478,8 +478,8 @@ def test_severity_override_is_last_matching_and_has_location(tmp_path: Path) -> 
         tmp_path,
         """version: 1
 severity_overrides:
-  - {rule: RTC001, severity: warning}
-  - {rule: RTC001, severity: info}
+  - {rule: RTC001, severity: warning, reason: first policy}
+  - {rule: RTC001, severity: info, reason: final policy}
 """,
     )
     document = load_config(tmp_path, require=True)
@@ -499,8 +499,8 @@ classifications:
   variables:
     TOKEN: {secret: true, environments: [prod]}
 severity_overrides:
-  - {rule: RTC002, severity: warning}
-  - {rule: RTC001, severity: info, environments: [prod]}
+  - {rule: RTC002, severity: warning, reason: scoped test}
+  - {rule: RTC001, severity: info, reason: prod policy, environments: [prod]}
 """,
     )
     document = load_config(tmp_path, require=True)

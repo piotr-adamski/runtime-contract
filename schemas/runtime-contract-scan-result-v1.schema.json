@@ -530,6 +530,68 @@
       "title": "Phase",
       "type": "string"
     },
+    "PolicyRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "effective_severity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "original_severity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Severity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "pointer": {
+          "title": "Pointer",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "severity_overridden",
+            "suppressed",
+            "unused",
+            "expired"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "rule_id",
+        "status",
+        "reason",
+        "pointer"
+      ],
+      "title": "PolicyRecord",
+      "type": "object"
+    },
     "PrecedenceAnalysis": {
       "additionalProperties": false,
       "properties": {
@@ -850,6 +912,14 @@
           ],
           "title": "Command",
           "type": "string"
+        },
+        "policy": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PolicyRecord"
+          },
+          "title": "Policy",
+          "type": "array"
         },
         "tool": {
           "const": "runtime-contract",
