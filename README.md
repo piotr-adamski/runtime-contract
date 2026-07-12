@@ -22,8 +22,8 @@ requests that unmarked-document behavior.
 
 > **Status:** `runtime-contract scan` and `runtime-contract check` perform deterministic static
 > Python, JavaScript/TypeScript, `.env.example`, Dockerfile, Docker Compose, and Kubernetes analysis
-> end to end. `explain` provides offline rule and finding guidance; `diff` remains a fail-closed
-> placeholder.
+> end to end. `explain` provides offline rule and finding guidance; `diff` compares semantic
+> contracts from two directories or two saved reports.
 
 An independent open-source project maintained by Piotr Adamski.
 
@@ -83,6 +83,20 @@ The explanation includes rationale, default and effective severity, an example, 
 remediation, documentation, and finding locations where applicable. Unknown IDs, missing findings,
 invalid reports, and incomplete scans exit `2`. `diff` remains fail closed with exit code `2` until
 its implementation milestone.
+
+Compare two project directories or two canonical JSON reports without invoking Git:
+
+```text
+runtime-contract diff BEFORE AFTER
+runtime-contract diff before.json after.json --format json
+runtime-contract diff BEFORE AFTER --environment prod --output contract-diff.json
+```
+
+The deterministic result groups added, removed, and changed consumers, providers,
+classifications, and findings. Semantic identities use component/key/phase/target/mechanism and
+relative paths; generated IDs, array order, line shifts, and absolute host paths do not create
+noise. A successful comparison returns `0` even when differences exist. Invalid, mixed-kind, or
+incomplete inputs return `2`.
 
 The JSON report is the versioned public automation API `runtime-contract/v1` with integer
 `schema_version: 1`. Its required top-level fields are `schema_id`, `schema_version`, `metadata`,
