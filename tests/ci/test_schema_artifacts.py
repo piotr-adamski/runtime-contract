@@ -6,7 +6,11 @@ from pathlib import Path
 
 import pytest
 
-from scripts.ci.verify_artifacts import distribution_schema, validate_no_private_artifacts
+from scripts.ci.verify_artifacts import (
+    distribution_schema,
+    validate_metadata,
+    validate_no_private_artifacts,
+)
 
 
 def test_built_wheel_and_sdist_contain_the_tracked_schema(tmp_path: Path) -> None:
@@ -40,3 +44,24 @@ def test_distribution_rejects_private_build_artifacts(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="private build artifacts"):
         validate_no_private_artifacts((wheel, wheel))
+
+
+@pytest.mark.parametrize("private_name", [".env.production", ".pypirc", "signing-key.pem"])
+def test_distribution_rejects_secret_or_private_names(tmp_path: Path, private_name: str) -> None:
+    wheel = tmp_path / "fixture.whl"
+    with zipfile.ZipFile(wheel, "w") as archive:
+        archive.writestr("runtime_contract/__init__.py", "")
+        archive.writestr(private_name, "redacted-test-value")
+
+    with pytest.raises(ValueError, match="private build artifacts"):
+        validate_no_private_artifacts((wheel, wheel))
+
+
+def test_built_distributions_have_complete_public_metadata(tmp_path: Path) -> None:
+    subprocess.run(
+        ["uv", "build", "--out-dir", str(tmp_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    validate_metadata((next(tmp_path.glob("*.whl")), next(tmp_path.glob("*.tar.gz"))))

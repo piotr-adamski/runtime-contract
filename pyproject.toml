@@ -12,6 +12,22 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{ name = "Piotr Adamski" }]
 maintainers = [{ name = "Piotr Adamski" }]
+keywords = ["cli", "configuration", "devops", "environment-variables", "static-analysis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
 dependencies = [
     "pathspec>=1.0.4,<2",
     "pydantic>=2.13.4,<3",
@@ -21,6 +37,12 @@ dependencies = [
     "tree-sitter-typescript>=0.23.2,<0.24",
     "typer>=0.26.8,<1",
 ]
+
+[project.urls]
+Changelog = "https://github.com/piotr-adamski/runtime-contract/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/piotr-adamski/runtime-contract#readme"
+Issues = "https://github.com/piotr-adamski/runtime-contract/issues"
+Repository = "https://github.com/piotr-adamski/runtime-contract"
 
 [project.scripts]
 runtime-contract = "runtime_contract.cli:main"
@@ -32,7 +54,9 @@ dev = [
     "mypy>=2.2,<3",
     "pytest>=9.1.1,<10",
     "pytest-cov>=7.1,<8",
+    "pipx>=1.8.0,<2",
     "ruff>=0.15.21,<0.16",
+    "twine>=6.2.0,<7",
     "types-jsonschema>=4.26,<5",
     "types-pyyaml>=6.0.12.20250915,<7",
 ]
