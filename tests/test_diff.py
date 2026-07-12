@@ -6,9 +6,12 @@ import json
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
+from pydantic import ValidationError
 from typer.testing import CliRunner
 
 from runtime_contract.cli import app
+from runtime_contract.diff_report import DiffReport
 
 runner = CliRunner()
 
@@ -37,13 +40,65 @@ def test_directory_diff_reports_semantic_changes_and_never_exits_one(tmp_path: P
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["status"] == "different"
-    assert payload["schema_id"] == "runtime-contract/diff/v1"
+    assert payload["schema_id"] == "runtime-contract/v1"
+    assert payload["schema_version"] == 1
+    assert payload["metadata"]["command"] == "diff"
+    assert payload["metadata"]["tool"] == "runtime-contract"
+    assert payload["diagnostics"] == []
     assert payload["changes"]["consumers"]["changed"]
     assert payload["changes"]["consumers"]["added"]
     assert payload["changes"]["classifications"]["added"]
     assert payload["changes"]["classifications"]["removed"]
     assert payload["changes"]["findings"]
     assert "/tmp/" not in result.stdout
+    schema = json.loads(Path("schemas/runtime-contract-diff-result-v1.schema.json").read_text())
+    Draft202012Validator(schema).validate(payload)
+
+
+def test_json_envelope_is_shared_by_scan_check_and_diff(tmp_path: Path) -> None:
+    write(tmp_path, "app.py", 'import os\nos.environ["REQUIRED"]\n')
+    scan_result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    check_result = runner.invoke(app, ["check", str(tmp_path), "--format", "json"])
+    diff_result = runner.invoke(app, ["diff", str(tmp_path), str(tmp_path), "--format", "json"])
+    assert scan_result.exit_code == diff_result.exit_code == 0
+    assert check_result.exit_code == 1
+    payloads = [json.loads(item.stdout) for item in (scan_result, check_result, diff_result)]
+    for command, payload in zip(("scan", "check", "diff"), payloads, strict=True):
+        assert payload["schema_id"] == "runtime-contract/v1"
+        assert payload["schema_version"] == 1
+        assert payload["metadata"]["command"] == command
+        assert isinstance(payload["diagnostics"], list)
+    assert all(item.stderr == "" for item in (scan_result, check_result, diff_result))
+    scan_schema = json.loads(
+        Path("schemas/runtime-contract-scan-result-v1.schema.json").read_text()
+    )
+    diff_schema = json.loads(
+        Path("schemas/runtime-contract-diff-result-v1.schema.json").read_text()
+    )
+    Draft202012Validator(scan_schema).validate(payloads[0])
+    Draft202012Validator(scan_schema).validate(payloads[1])
+    Draft202012Validator(diff_schema).validate(payloads[2])
+
+
+def test_diff_report_rejects_incomplete_or_contradictory_changes(tmp_path: Path) -> None:
+    write(tmp_path, "app.py", 'import os\nos.getenv("KEY")\n')
+    result = runner.invoke(app, ["diff", str(tmp_path), str(tmp_path), "--format", "json"])
+    assert result.exit_code == 0
+    document = json.loads(result.stdout)
+
+    missing_category = json.loads(result.stdout)
+    del missing_category["changes"]["findings"]
+    with pytest.raises(ValidationError, match="every canonical category"):
+        DiffReport.model_validate_json(json.dumps(missing_category))
+
+    missing_action = json.loads(result.stdout)
+    del missing_action["changes"]["findings"]["changed"]
+    with pytest.raises(ValidationError, match="added, removed, and changed"):
+        DiffReport.model_validate_json(json.dumps(missing_action))
+
+    document["status"] = "different"
+    with pytest.raises(ValidationError, match="status contradicts changes"):
+        DiffReport.model_validate_json(json.dumps(document))
 
 
 def test_saved_report_diff_is_stable_and_ignores_array_order(tmp_path: Path) -> None:

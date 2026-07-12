@@ -88,8 +88,7 @@ runtime-contract explain RTC001-<sha256> PROJECT
 
 The explanation includes rationale, default and effective severity, an example, safe manual
 remediation, documentation, and finding locations where applicable. Unknown IDs, missing findings,
-invalid reports, and incomplete scans exit `2`. `diff` remains fail closed with exit code `2` until
-its implementation milestone.
+invalid reports, and incomplete scans exit `2`.
 
 Compare two project directories or two canonical JSON reports without invoking Git:
 
@@ -105,9 +104,14 @@ relative paths; generated IDs, array order, line shifts, and absolute host paths
 noise. A successful comparison returns `0` even when differences exist. Invalid, mixed-kind, or
 incomplete inputs return `2`.
 
-The JSON report is the versioned public automation API `runtime-contract/v1` with integer
-`schema_version: 1`. Its required top-level fields are `schema_id`, `schema_version`, `metadata`,
-`inputs`, `status`, `summary`, `contract`, `diagnostics`, `findings`, and `files`. The optional
+The JSON reports for `scan`, `check`, and `diff` share the versioned public automation envelope
+`runtime-contract/v1` with integer `schema_version: 1`, `metadata.tool`,
+`metadata.tool_version`, `metadata.command`, `status`, and `diagnostics`. Structured reports go to
+stdout (or only to an explicit `--output` path); usage, configuration, and technical errors go to
+stderr. A complete `check` with error findings still emits schema-valid JSON before exit `1`.
+
+For `scan` and `check`, the remaining required top-level fields are `inputs`, `summary`, `contract`,
+`findings`, and `files`. The optional
 `flow_graph` field is derived deterministically from canonical fact IDs and is rebuilt when an
 early v1 document omits it. The optional `precedence` field records value-blind provider
 dispositions and pairwise conflicts and is rebuilt under the same compatibility rule. Consumers
@@ -123,7 +127,9 @@ process ID, current working directory, absolute host path, source snippet, or fi
 Canonical serialization is UTF-8 without BOM, recursively sorted object keys, compact separators,
 no NaN or infinities, deterministic array ordering, and exactly one final LF. This is the
 runtime-contract canonical format, not an RFC 8785/JCS claim. The Draft 2020-12 schema is
-[`schemas/runtime-contract-scan-result-v1.schema.json`](schemas/runtime-contract-scan-result-v1.schema.json),
+[`schemas/runtime-contract-scan-result-v1.schema.json`](schemas/runtime-contract-scan-result-v1.schema.json).
+The `diff` payload keeps its deterministic `left`, `right`, and `changes` body and validates against
+[`schemas/runtime-contract-diff-result-v1.schema.json`](schemas/runtime-contract-diff-result-v1.schema.json),
 and the golden document is
 [`examples/reports/runtime-contract-v1.json`](examples/reports/runtime-contract-v1.json).
 

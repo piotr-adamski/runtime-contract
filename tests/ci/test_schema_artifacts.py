@@ -27,6 +27,9 @@ def test_built_wheel_and_sdist_contain_the_tracked_schema(tmp_path: Path) -> Non
     scan_schema = Path("schemas/runtime-contract-scan-result-v1.schema.json")
     assert distribution_schema(wheel, scan_schema) == scan_schema.read_bytes()
     assert distribution_schema(sdist, scan_schema) == scan_schema.read_bytes()
+    diff_schema = Path("schemas/runtime-contract-diff-result-v1.schema.json")
+    assert distribution_schema(wheel, diff_schema) == diff_schema.read_bytes()
+    assert distribution_schema(sdist, diff_schema) == diff_schema.read_bytes()
 
 
 def test_distribution_rejects_private_build_artifacts(tmp_path: Path) -> None:

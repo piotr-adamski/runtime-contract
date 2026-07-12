@@ -15,6 +15,7 @@ SCHEMAS = (
     Path("schemas/runtime-contract.schema.json"),
     Path("schemas/runtime-contract-analysis-result-v1.schema.json"),
     Path("schemas/runtime-contract-scan-result-v1.schema.json"),
+    Path("schemas/runtime-contract-diff-result-v1.schema.json"),
 )
 
 

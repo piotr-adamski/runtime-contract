@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
+import importlib.metadata
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import Annotated, Any, Never
+from typing import Annotated, Any, Literal, Never
 
 import typer
 
 from runtime_contract.commands.config import _render_errors
 from runtime_contract.config.loader import ConfigValidationError
+from runtime_contract.diff_report import DiffInput, DiffMetadata, DiffReport
 from runtime_contract.scan import (
     ScanRequest,
     ScanResult,
@@ -27,7 +29,8 @@ def _fail(message: str) -> Never:
     raise typer.Exit(code=2) from None
 
 
-def _load(path: Path, environment: str | None) -> tuple[ScanResult, str]:
+def _load(path: Path, environment: str | None) -> tuple[ScanResult, Literal["directory", "report"]]:
+    kind: Literal["directory", "report"]
     try:
         if path.is_dir():
             result = run_scan(
@@ -207,13 +210,20 @@ def diff(
     categories = ("consumers", "providers", "classifications", "findings")
     changes = {name: _compare(left_records[name], right_records[name]) for name in categories}
     different = any(any(value for value in category.values()) for category in changes.values())
-    document = {
-        "schema_id": "runtime-contract/diff/v1",
-        "status": "different" if different else "identical",
-        "left": {"kind": left_kind, "environment": left_result.inputs.environment},
-        "right": {"kind": right_kind, "environment": right_result.inputs.environment},
-        "changes": changes,
-    }
+    tool_version = importlib.metadata.version("runtime-contract")
+    report = DiffReport(
+        schema_id="runtime-contract/v1",
+        schema_version=1,
+        metadata=DiffMetadata(
+            tool="runtime-contract", tool_version=tool_version, command="diff", policy=()
+        ),
+        status="different" if different else "identical",
+        diagnostics=(),
+        left=DiffInput(kind=left_kind, environment=left_result.inputs.environment),
+        right=DiffInput(kind=right_kind, environment=right_result.inputs.environment),
+        changes=changes,
+    )
+    document = report.model_dump(mode="json")
     rendered = _render(document, output_format)
     if output is None:
         typer.echo(rendered, nl=False)
