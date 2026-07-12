@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TypedDict, cast
 
 from runtime_contract.config.loader import load_config
+from runtime_contract.domain import ConsumerAccessKind
 from runtime_contract.scan import ScanRequest, run_scan
 
 FIXTURE = Path(__file__).parent / "fixtures" / "full-stack"
@@ -17,7 +18,7 @@ class FixtureExpectation(TypedDict):
     required_config_keys: list[str]
     forbidden_terms: list[str]
     scenario_expectations: list[dict[str, str]]
-    current_pre_d2_15_diagnostics: list[str]
+    expected_diagnostics: list[str]
 
 
 def expectation() -> FixtureExpectation:
@@ -48,13 +49,19 @@ def test_full_stack_fixture_scans_deterministically_with_expected_graph_scenario
     assert document is not None
     first = run_scan(ScanRequest(path=FIXTURE, output_format="json"))
     second = run_scan(ScanRequest(path=FIXTURE, output_format="json"))
-    assert first.exit_code == second.exit_code == 2
+    assert first.exit_code == second.exit_code == 0
     assert first.rendered == second.rendered
     expected = expectation()
     assert [item.code.value for item in first.result.diagnostics] == expected[
-        "current_pre_d2_15_diagnostics"
+        "expected_diagnostics"
     ]
-    assert first.result.contract.config_keys == ()
+    assert first.result.status.value == "complete"
+    assert {item.name for item in first.result.contract.config_keys} == set(
+        expected["required_config_keys"]
+    )
+    access_kinds = {item.access_kind for item in first.result.contract.consumers}
+    assert ConsumerAccessKind.PYDANTIC_SETTINGS in access_kinds
+    assert ConsumerAccessKind.VITE_IMPORT_META_ENV in access_kinds
     assert {item["id"] for item in expected["scenario_expectations"]} == {
         "valid-secret-flow",
         "valid-public-flow",

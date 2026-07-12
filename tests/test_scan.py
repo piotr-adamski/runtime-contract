@@ -16,7 +16,12 @@ import jsonschema
 import pytest
 from typer.testing import CliRunner
 
-from runtime_contract.analysis import AnalyzerExecutionError, AnalyzerRegistry, KubernetesAnalyzer
+from runtime_contract.analysis import (
+    AnalyzerExecutionError,
+    AnalyzerRegistry,
+    ComposeAnalyzer,
+    KubernetesAnalyzer,
+)
 from runtime_contract.analysis.dockerfile import MAX_DOCKERFILE_BYTES
 from runtime_contract.analysis.dotenv import MAX_DOTENV_BYTES
 from runtime_contract.cli import app
@@ -990,6 +995,19 @@ def test_engine_failures_return_failed_reports_and_continue(
         item.code.value == "analyzer_contract" and item.primary_location.path == "pod.yaml"
         for item in kubernetes.result.diagnostics
     )
+
+    write(tmp_path / "compose.yaml", "services: {}\n")
+    write(tmp_path / "compose.override.yaml", "services: {}\n")
+
+    def compose_contract(*args: object, **kwargs: object) -> None:
+        raise TypeError("redacted analyzer failure")
+
+    monkeypatch.setattr(ComposeAnalyzer, "analyze_project", compose_contract)
+    compose = scan_engine.run_scan(ScanRequest(path=tmp_path, output_format="json"))
+    compose_files = [item for item in compose.result.files if item.kind == "compose"]
+    assert compose.exit_code == 2
+    assert len(compose_files) == 2
+    assert all(item.status == "failed" for item in compose_files)
 
 
 def test_engine_records_a_discovered_unregistered_kind_as_skipped(

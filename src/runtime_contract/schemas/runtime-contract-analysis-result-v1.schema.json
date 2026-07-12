@@ -213,7 +213,8 @@
         "read_error",
         "safety_limit",
         "unsupported_k8s_resource",
-        "unused_classification_rule"
+        "unused_classification_rule",
+        "custom_settings_source"
       ],
       "title": "DiagnosticCode",
       "type": "string"

@@ -23,6 +23,7 @@ from runtime_contract.domain import (
     ConfigKey,
     Consumer,
     ConsumerAccessKind,
+    Phase,
     Profile,
     RequirementSource,
     SecretSource,
@@ -126,7 +127,6 @@ def test_dynamic_names_are_partial_warnings(source: str) -> None:
         "/process\\.env\\.REGEX/",
         "something.process.env.KEY",
         "obj.env.KEY",
-        "import.meta.env.KEY",
         'Deno.env.get("KEY")',
         "Bun.env.KEY",
         "const env=process.env; env.KEY",
@@ -137,6 +137,27 @@ def test_false_positives_and_aliases_are_ignored(source: str) -> None:
     result = analyze(source)
     assert result.completeness is AnalysisCompleteness.COMPLETE
     assert not result.observations
+
+
+@pytest.mark.parametrize(
+    ("source", "names"),
+    [
+        ("const value = import.meta.env.PUBLIC_URL", {"PUBLIC_URL"}),
+        ("const value = import.meta.env['PUBLIC_URL']", {"PUBLIC_URL"}),
+        (
+            "const { PUBLIC_URL, SERVICE_TOKEN: token } = import.meta.env",
+            {"PUBLIC_URL", "SERVICE_TOKEN"},
+        ),
+        ("const { MODE, BASE_URL, PROD, DEV, SSR } = import.meta.env", set()),
+    ],
+)
+def test_import_meta_env_static_forms_are_build_consumers(source: str, names: set[str]) -> None:
+    result = analyze(source)
+    consumers = [item.fact for item in result.observations if isinstance(item.fact, Consumer)]
+    keys = [item.fact for item in result.observations if isinstance(item.fact, ConfigKey)]
+    assert {item.name for item in keys} == names
+    assert all(item.access_kind is ConsumerAccessKind.VITE_IMPORT_META_ENV for item in consumers)
+    assert all(item.phase is Phase.BUILD for item in consumers)
     assert not result.diagnostics
 
 
