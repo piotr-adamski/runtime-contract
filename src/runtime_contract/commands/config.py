@@ -13,7 +13,16 @@ from runtime_contract.config.execution import resolve_execution
 from runtime_contract.config.loader import ConfigValidationError, errors_json, load_config
 from runtime_contract.config.policy import ConfigPolicy
 
-app = typer.Typer(help="Inspect and validate runtime-contract.yaml.", no_args_is_help=True)
+app = typer.Typer(
+    help="Inspect and validate runtime-contract.yaml.",
+    no_args_is_help=True,
+    epilog=(
+        "Examples:\n\n"
+        "  runtime-contract config validate .\n\n"
+        "  runtime-contract config validate . --format json\n\n"
+        "  runtime-contract config explain DATABASE_URL --path . --environment production"
+    ),
+)
 
 
 def _render_errors(error: ConfigValidationError, output_format: str) -> None:

@@ -54,6 +54,8 @@ def test_root_help_lists_commands() -> None:
     assert result.exit_code == 0
     for command in ("scan", "check", "explain", "diff"):
         assert command in result.stdout
+    assert "runtime-contract scan ." in result.stdout
+    assert "built-in defaults < YAML" in result.stdout
 
 
 @pytest.mark.parametrize("command", ["scan", "check", "explain", "diff"])
@@ -62,6 +64,29 @@ def test_command_help_succeeds(command: str) -> None:
 
     assert result.exit_code == 0
     assert result.stderr == ""
+    assert "Examples:" in result.stdout
+    assert f"runtime-contract {command}" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("arguments", "suggestion"),
+    [
+        (["sacn"], "Did you mean 'scan'?"),
+        (["scan", "--formt", "json"], "Possible options: --format"),
+        (["check", "--failon", "error"], "Possible options: --fail-on"),
+        (["explain", "RTC001", "--formt", "json"], "Possible options: --format"),
+        (["diff", ".", ".", "--formt", "json"], "Possible options: --format"),
+    ],
+)
+def test_cli_typo_errors_suggest_the_intended_command_or_option(
+    arguments: list[str], suggestion: str
+) -> None:
+    result = runner.invoke(app, arguments, color=False)
+
+    assert result.exit_code == 2
+    assert result.stdout == ""
+    assert suggestion in result.stderr
+    assert "--help" in result.stderr
 
 
 def test_version_uses_distribution_metadata(monkeypatch: pytest.MonkeyPatch) -> None:

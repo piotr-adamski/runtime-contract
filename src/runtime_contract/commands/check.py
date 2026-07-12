@@ -27,12 +27,19 @@ def check(
     ] = None,
     environment: Annotated[str | None, typer.Option(help="Select an environment profile.")] = None,
     output_format: Annotated[
-        str | None, typer.Option("--format", help="Output format override.")
+        str | None,
+        typer.Option(
+            "--format",
+            help="Output format: text, json, or sarif (default: text; overrides env/YAML).",
+        ),
     ] = None,
     output: Annotated[
         Path | None, typer.Option("--output", help="Write the report atomically to this path.")
     ] = None,
-    fail_on: Annotated[str | None, typer.Option(help="Failure threshold override.")] = None,
+    fail_on: Annotated[
+        str | None,
+        typer.Option(help="Failure threshold: error, warning, info, or never (default: error)."),
+    ] = None,
     report: Annotated[Path | None, typer.Option(help="Relative report path override.")] = None,
     color: Annotated[str, typer.Option(help="Terminal color: auto, always, or never.")] = "auto",
     no_emoji: Annotated[bool, typer.Option("--no-emoji", help="Disable terminal symbols.")] = False,
