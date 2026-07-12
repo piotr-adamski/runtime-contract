@@ -1,16 +1,15 @@
 """Keep public v0.1 reference documentation synchronized with runtime sources."""
 
 import json
-import re
 from pathlib import Path
+from typing import Any
 
-from typer.testing import CliRunner
+from typer.main import get_command
 
 from runtime_contract.cli import app
 from runtime_contract.rules import RULE_CATALOG
 
 ROOT = Path(__file__).parents[1]
-RUNNER = CliRunner()
 
 
 def test_rule_reference_covers_every_runtime_rule_and_required_sections() -> None:
@@ -49,20 +48,17 @@ def test_cli_and_format_references_cover_public_contract() -> None:
     formats = (ROOT / "docs/output-formats.md").read_text(encoding="utf-8")
     for command in ("scan", "check", "explain", "diff", "config validate", "config explain"):
         assert command in cli
-    help_commands = (
-        ("--help",),
-        ("scan", "--help"),
-        ("check", "--help"),
-        ("explain", "--help"),
-        ("diff", "--help"),
-        ("config", "validate", "--help"),
-        ("config", "explain", "--help"),
-    )
     options: set[str] = set()
-    for arguments in help_commands:
-        result = RUNNER.invoke(app, list(arguments), color=False)
-        assert result.exit_code == 0
-        options.update(re.findall(r"--[a-z][a-z-]*", result.stdout))
+
+    def visit_command(command: Any) -> None:
+        for parameter in command.params:
+            if hasattr(parameter, "opts"):
+                options.update(option for option in parameter.opts if option.startswith("--"))
+        if hasattr(command, "commands"):
+            for child in command.commands.values():
+                visit_command(child)
+
+    visit_command(get_command(app))
     assert options
     for option in options:
         assert option in cli
