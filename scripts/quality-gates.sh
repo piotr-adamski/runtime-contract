@@ -137,10 +137,26 @@ uv run --python 3.14 runtime-contract scan examples/scan-flow --format json \
   --output "$scan_tmp/scan.json"
 uv run --python 3.14 python -m json.tool "$scan_tmp/scan.json" >/dev/null
 cmp "$scan_tmp/scan.json" <(uv run --python 3.14 runtime-contract scan examples/scan-flow --format json)
+set +e
 uv run --python 3.14 runtime-contract scan examples/report-fixture --format json \
   >"$scan_tmp/golden.json"
+scan_partial_status=$?
+set -e
+if [[ $scan_partial_status != 2 ]]; then
+  echo "scan partial smoke: expected exit 2, got $scan_partial_status" >&2
+  exit 1
+fi
 cmp "$scan_tmp/golden.json" examples/reports/runtime-contract-v1.json
-cmp "$scan_tmp/golden.json" <(uv run --python 3.14 runtime-contract scan examples/report-fixture --format json)
+set +e
+uv run --python 3.14 runtime-contract scan examples/report-fixture --format json \
+  >"$scan_tmp/golden.second.json"
+scan_partial_second_status=$?
+set -e
+if [[ $scan_partial_second_status != 2 ]]; then
+  echo "scan partial determinism smoke: expected exit 2, got $scan_partial_second_status" >&2
+  exit 1
+fi
+cmp "$scan_tmp/golden.json" "$scan_tmp/golden.second.json"
 mkdir "$scan_tmp/invalid"
 printf '\377' >"$scan_tmp/invalid/app.py"
 set +e
@@ -195,6 +211,15 @@ smoke_distribution() {
   uv pip install --python "$temp_dir/venv/bin/python" 'jsonschema>=4.26,<5'
   uv pip check --python "$temp_dir/venv/bin/python"
   cp -R examples/scan-flow "$temp_dir/fixture"
+  printf '%s\n' \
+    'apiVersion: v1' \
+    'kind: Pod' \
+    'metadata: {name: artifact-smoke}' \
+    'spec:' \
+    '  containers:' \
+    '    - name: app' \
+    '      env: [{name: ARTIFACT_KEY, value: artifact-kubernetes-value-canary-Q7Z9}]' \
+    >"$temp_dir/fixture/api/kubernetes.yaml"
   (
     cd "$temp_dir"
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
@@ -207,11 +232,11 @@ smoke_distribution() {
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'from runtime_contract.config.schema import schema_bytes; assert schema_bytes()'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
-      'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError, ComposeAnalyzer, DotenvAnalyzer, DockerfileAnalyzer; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver and ComposeAnalyzer and DotenvAnalyzer and DockerfileAnalyzer'
+      'from runtime_contract.analysis import Analyzer, AnalyzerInput, AnalyzerRegistry, AnalysisDiagnostic, AnalysisResult, AnalysisCompleteness, DiagnosticCode, Confidence, FactKind, FactObservation, ClassificationResolver, EffectiveClassification, DecisionSource, AnalyzerNotRegisteredError, AnalyzerExecutionError, ComposeAnalyzer, DotenvAnalyzer, DockerfileAnalyzer, KubernetesAnalyzer; from runtime_contract.analysis.schema import schema_bytes; assert schema_bytes() and Analyzer and ClassificationResolver and ComposeAnalyzer and DotenvAnalyzer and DockerfileAnalyzer and KubernetesAnalyzer'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'from runtime_contract.normalization import NormalizationError, NormalizationErrorCode, normalize_observations; assert normalize_observations(()).model_dump_json() and NormalizationError and NormalizationErrorCode'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
-      'from runtime_contract.kubernetes import KubernetesInput, KubernetesTraversalResult, traverse_kubernetes_workloads; result=traverse_kubernetes_workloads(KubernetesInput(path="pod.yaml", content=b"apiVersion: v1\nkind: Pod\nmetadata: {name: x}\nspec: {containers: [{name: web}]}\n")); assert KubernetesTraversalResult and result.contexts[0].container_name == "web"'
+      'from runtime_contract.kubernetes import KubernetesEnvSourceKind, KubernetesInput, KubernetesTraversalResult, traverse_kubernetes_workloads; result=traverse_kubernetes_workloads(KubernetesInput(path="pod.yaml", content=b"apiVersion: v1\nkind: Pod\nmetadata: {name: x}\nspec: {containers: [{name: web, env: [{name: TOKEN, value: artifact-kubernetes-value-canary-Q7Z9}]}]}\n")); assert KubernetesTraversalResult and result.contexts[0].env[0].source_kind is KubernetesEnvSourceKind.VALUE and "artifact-kubernetes-value-canary-Q7Z9" not in result.model_dump_json()'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'import importlib; modules=("runtime_contract", "runtime_contract.analysis", "runtime_contract.domain", "runtime_contract.kubernetes", "runtime_contract.normalization", "runtime_contract.scan"); assert all(getattr(importlib.import_module(name), exported) is not None for name in modules for exported in importlib.import_module(name).__all__)'
     for scan_format in text json sarif; do
@@ -220,6 +245,11 @@ smoke_distribution() {
       PYTHONHASHSEED=2 PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" scan fixture \
         --format "$scan_format" >"$scan_format.second"
       cmp "$scan_format.first" "$scan_format.second"
+      if grep -F 'artifact-kubernetes-value-canary-Q7Z9' \
+        "$scan_format.first" "$scan_format.second"; then
+        echo "artifact scan exposed a Kubernetes env value" >&2
+        exit 1
+      fi
       PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" scan fixture --format "$scan_format" \
         --output "$scan_format.output"
       cmp "$scan_format.first" "fixture/$scan_format.output"

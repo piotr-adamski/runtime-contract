@@ -42,6 +42,7 @@ PUBLIC_EXPORTS = {
         "InvalidAnalyzerIdError",
         "InvalidSupportedKindsError",
         "JavaScriptTypeScriptAnalyzer",
+        "KubernetesAnalyzer",
         "PythonAstAnalyzer",
     ),
     "runtime_contract.compose": (
@@ -93,6 +94,8 @@ PUBLIC_EXPORTS = {
         "resolve_compose_project",
     ),
     "runtime_contract.kubernetes": (
+        "MAX_ENV_ENTRIES",
+        "MAX_ENV_FROM_ENTRIES",
         "MAX_KUBERNETES_BYTES",
         "MAX_YAML_ALIASES",
         "MAX_YAML_DEPTH",
@@ -102,6 +105,10 @@ PUBLIC_EXPORTS = {
         "KubernetesContainerKind",
         "KubernetesDiagnostic",
         "KubernetesDiagnosticCode",
+        "KubernetesEnvBinding",
+        "KubernetesEnvFromSource",
+        "KubernetesEnvFromSourceKind",
+        "KubernetesEnvSourceKind",
         "KubernetesInput",
         "KubernetesLoadStatus",
         "KubernetesTraversalResult",
@@ -162,7 +169,12 @@ def test_public_exports_match_reviewable_snapshot() -> None:
 
 
 def test_documented_import_paths_are_supported() -> None:
-    from runtime_contract.analysis import AnalysisResult, AnalyzerInput, AnalyzerRegistry
+    from runtime_contract.analysis import (
+        AnalysisResult,
+        AnalyzerInput,
+        AnalyzerRegistry,
+        KubernetesAnalyzer,
+    )
     from runtime_contract.compose import ComposeInput, ComposeLoadResult, load_compose
     from runtime_contract.discovery import CandidateKind
     from runtime_contract.domain import (
@@ -188,6 +200,7 @@ def test_documented_import_paths_are_supported() -> None:
             AnalysisResult,
             AnalyzerInput,
             AnalyzerRegistry,
+            KubernetesAnalyzer,
             CandidateKind,
             ComposeInput,
             ComposeLoadResult,

@@ -7,13 +7,20 @@ Static, local CLI for finding inconsistencies between environment variables used
 Kubernetes manifests are traversed statically and locally from caller-provided YAML (including
 multi-document streams) or JSON. Supported workload kinds are `Pod`, `Deployment`,
 `StatefulSet`, `DaemonSet`, `Job`, and `CronJob`; traversal inventories `containers` and
-`initContainers` without reading or exposing their values. CRDs, operator resources, `List`, and
-other unsupported resources produce informational `RTC012`. Helm, Kustomize, cluster access, and
-manifest-directed file reads are outside this boundary.
+`initContainers` together with value-blind `env` and `envFrom` metadata. For `env.value`, only the
+environment name and source kind survive. `secretKeyRef`, `configMapKeyRef`, `fieldRef`, and
+`resourceFieldRef` retain only the selectors needed to explain delivery; `envFrom` retains its
+reference type, name, effective `optional`, prefix, and locations as unresolved bulk evidence.
+Literal environment values never enter public result models, reprs, reports, diagnostics, or logs. CRDs,
+operator resources, `List`, and other unsupported resources produce informational `RTC012`. Helm,
+Kustomize, cluster access, manifest-directed file reads, and ConfigMap/Secret presence resolution
+are outside this boundary. Extension-based `scan` ignores generic YAML/JSON mappings that have
+neither `apiVersion` nor `kind`; direct traversal remains fail-closed unless the caller explicitly
+requests that unmarked-document behavior.
 
 > **Status:** `runtime-contract scan` performs deterministic static Python,
-> JavaScript/TypeScript, `.env.example`, Dockerfile, and Docker Compose analysis end to end. `check`, `explain`, and `diff`
-> remain fail-closed placeholders.
+> JavaScript/TypeScript, `.env.example`, Dockerfile, Docker Compose, and Kubernetes analysis end to
+> end. `check`, `explain`, and `diff` remain fail-closed placeholders.
 
 An independent open-source project maintained by Piotr Adamski.
 
@@ -36,10 +43,12 @@ runtime-contract scan PATH --format json --output report.json
 runtime-contract scan . --format sarif --output reports/runtime-contract.sarif
 ```
 
-`scan` returns 0 for complete and credible partial analysis, and 2 when it cannot produce a
-reliable result. It never returns 1. Reports go to stdout unless `--output` (or configured
-`execution.report`) selects an atomic file write. Technical CLI errors go to stderr. `check`,
-`explain`, and `diff` continue to fail closed with exit code 2.
+`scan` returns 0 only for complete analysis and 2 for partial, failed, or technically invalid
+analysis. Partial and failed runs still emit their structured report so callers can inspect the
+safe evidence; they are never represented as successful process exits. `scan` never returns 1.
+Reports go to stdout unless `--output` (or configured `execution.report`) selects an atomic file
+write. Technical CLI errors go to stderr. `check`, `explain`, and `diff` continue to fail closed
+with exit code 2.
 
 The JSON report is the versioned public automation API `runtime-contract/v1` with integer
 `schema_version: 1`. Its required top-level fields are `schema_id`, `schema_version`, `metadata`,
@@ -172,8 +181,20 @@ The analyzer intentionally does not follow aliases created by assignment, resolv
 variables, propagate values between modules, handle mapping mutation methods such as `setdefault`
 or `update`, or detect Pydantic settings. The JavaScript/TypeScript analyzer likewise does not
 follow aliases or constants and does not inspect `import.meta.env`, Deno, Bun, dotenv, bundlers, or
-framework-specific APIs. No analyzer imports or executes analyzed project code. Compose,
-Kubernetes, and findings remain future work.
+framework-specific APIs. No analyzer imports or executes analyzed project code. Pydantic Settings,
+`import.meta.env`, and findings remain future work.
+
+`KubernetesAnalyzer` creates one `kubernetes_workload` environment per stable
+`namespace/Kind/name` target. Every static `env` name becomes an explicit runtime provider with
+mechanism `kubernetes_env`, independent of whether its source is a literal, key reference, field
+selector, or resource selector. Every `envFrom` entry remains an unresolved-bulk runtime provider
+with mechanism `kubernetes_env_from`; it cannot confirm a concrete key until a later presence-only
+ConfigMap/Secret index resolves the local reference. Container-level source kinds, selectors,
+`optional`, prefix, declaration index, and source locations remain available through the public
+`runtime_contract.kubernetes` traversal API without being widened into value-bearing domain facts.
+Malformed environment structures produce redacted partial or failed analysis while preserving
+safe sibling facts. The analyzer reads only caller-supplied bytes and never contacts a cluster,
+opens referenced files, reads ambient environment variables, or invokes `kubectl` or any process.
 
 ## Development
 

@@ -129,10 +129,10 @@ def test_root_selection_deduplicates_and_unknown_lists_available(project: Path) 
     assert "available roots: api, web" in unknown.stderr
 
 
-def test_partial_preserves_observations_and_exits_zero(tmp_path: Path) -> None:
+def test_partial_preserves_observations_and_exits_two(tmp_path: Path) -> None:
     write(tmp_path / "app.py", 'import os\nos.getenv("KNOWN")\nos.getenv(name)\n')
     result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
-    assert result.exit_code == 0
+    assert result.exit_code == 2
     payload = json.loads(result.stdout)
     assert payload["status"] == "partial"
     assert payload["summary"]["consumers"] == 1
@@ -161,13 +161,90 @@ def test_empty_compose_is_analyzed_without_diagnostic(tmp_path: Path) -> None:
     assert payload["diagnostics"] == []
 
 
-def test_unsupported_kubernetes_candidate_is_skipped_without_diagnostic(tmp_path: Path) -> None:
-    write(tmp_path / "deployment.yaml", "apiVersion: apps/v1\nkind: Deployment\n")
-    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+@pytest.mark.parametrize("output_format", ["text", "json", "sarif"])
+def test_kubernetes_fixture_is_analyzed_end_to_end_without_values(output_format: str) -> None:
+    fixture = Path(__file__).parent / "kubernetes" / "fixtures"
+    result = runner.invoke(app, ["scan", str(fixture), "--format", output_format])
     assert result.exit_code == 0
+    assert "kubernetes-literal-value-canary-Q7Z9" not in result.stdout + result.stderr
+    assert "kubernetes-init-value-canary-Q7Z9" not in result.stdout + result.stderr
+    if output_format == "json":
+        payload = json.loads(result.stdout)
+        assert payload["status"] == "complete"
+        assert payload["summary"]["analyzed"] == 1
+        assert payload["summary"]["skipped"] == 0
+        assert payload["summary"]["config_keys"] == 7
+        assert payload["summary"]["providers"] == 9
+        assert payload["contract"]["environments"][0]["target"] == "tenant-a/Deployment/api"
+
+
+@pytest.mark.parametrize("output_format", ["text", "json", "sarif"])
+def test_unsupported_kubernetes_resource_is_rtc012_info(tmp_path: Path, output_format: str) -> None:
+    write(tmp_path / "service.yaml", "apiVersion: v1\nkind: Service\nmetadata: {name: api}\n")
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", output_format])
+    assert result.exit_code == 0
+    if output_format == "text":
+        assert "info RTC012 UNSUPPORTED_K8S_RESOURCE" in result.stdout
+    elif output_format == "json":
+        diagnostic = json.loads(result.stdout)["diagnostics"][0]
+        assert diagnostic["rule_id"] == "RTC012"
+        assert diagnostic["severity"] == "info"
+    else:
+        payload = json.loads(result.stdout)
+        assert payload["runs"][0]["results"][0]["ruleId"] == "RTC012"
+        assert payload["runs"][0]["results"][0]["level"] == "note"
+
+
+def test_malformed_kubernetes_cli_emits_partial_report_and_exits_two(tmp_path: Path) -> None:
+    target = tmp_path / "pod.yaml"
+    write(
+        target,
+        """apiVersion: v1
+kind: Pod
+metadata: {name: api}
+spec:
+  containers:
+    - name: safe
+      env: [{name: SAFE, value: hidden-kubernetes-scan-canary}]
+    - name: broken
+      env: invalid
+""",
+    )
+    partial = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert partial.exit_code == 2
+    assert partial.stderr == ""
+    partial_payload = json.loads(partial.stdout)
+    assert partial_payload["status"] == "partial"
+    assert partial_payload["summary"]["config_keys"] == 1
+    assert "hidden-kubernetes-scan-canary" not in partial.stdout + partial.stderr
+    output = tmp_path / "partial.json"
+    written = runner.invoke(
+        app,
+        ["scan", str(tmp_path), "--format", "json", "--output", output.name],
+    )
+    assert written.exit_code == 2
+    assert written.stdout == written.stderr == ""
+    assert json.loads(output.read_text(encoding="utf-8"))["status"] == "partial"
+
+
+def test_fatal_kubernetes_cli_emits_failed_report_and_exits_two(tmp_path: Path) -> None:
+    target = tmp_path / "pod.yaml"
+
+    write(target, b"\xff")
+    failed = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert failed.exit_code == 2
+    failed_payload = json.loads(failed.stdout)
+    assert failed_payload["status"] == "failed"
+    assert failed_payload["summary"]["failed_files"] == 1
+
+
+def test_oversized_kubernetes_manifest_is_rejected_before_analysis(tmp_path: Path) -> None:
+    target = tmp_path / "pod.yaml"
+    target.write_bytes(b"apiVersion: v1\nkind: Pod\n" + b"X" * (1024 * 1024))
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+    assert result.exit_code == 2
     payload = json.loads(result.stdout)
-    assert payload["summary"]["skipped"] == 1
-    assert payload["summary"]["skipped_reasons"] == {"no_registered_analyzer": 1}
+    assert payload["diagnostics"][0]["code"] == "safety_limit"
 
 
 @pytest.mark.parametrize("output_format", ["text", "json", "sarif"])
@@ -225,11 +302,11 @@ def test_dockerfile_is_analyzed_in_every_output_format(tmp_path: Path, output_fo
         assert payload["summary"]["candidate_kinds"] == {"dockerfile": 1}
 
 
-def test_dockerfile_partial_exits_zero_and_failed_exits_two(tmp_path: Path) -> None:
+def test_dockerfile_partial_and_failed_exit_two(tmp_path: Path) -> None:
     target = tmp_path / "Dockerfile"
     write(target, "FROM ${DYNAMIC}\nARG SAFE\n")
     partial = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
-    assert partial.exit_code == 0
+    assert partial.exit_code == 2
     assert json.loads(partial.stdout)["status"] == "partial"
     write(target, b"\xff")
     failed = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
@@ -431,7 +508,7 @@ def test_text_modes_cover_empty_partial_failed_and_quiet(tmp_path: Path) -> None
     assert quiet.stdout == "Result: complete — 0 consumers, 0 config keys\n"
     write(tmp_path / "partial.py", 'import os\nos.getenv("KNOWN")\nos.getenv(name)\n')
     partial = runner.invoke(app, ["scan", str(tmp_path)])
-    assert partial.exit_code == 0
+    assert partial.exit_code == 2
     assert "DYNAMIC_NAME" in partial.stdout
     assert "partial coverage" in partial.stdout
     write(tmp_path / "failed.py", b"\xff")
@@ -462,6 +539,7 @@ def test_sarif_diagnostic_region_and_metadata_fallback(
 ) -> None:
     write(tmp_path / "app.py", "import os\nos.getenv(name)\n")
     normal = runner.invoke(app, ["scan", str(tmp_path), "--format", "sarif"])
+    assert normal.exit_code == 2
     payload = json.loads(normal.stdout)
     sarif_schema = json.loads(
         Path("tests/fixtures/sarif/sarif-schema-2.1.0.json").read_text(encoding="utf-8")
@@ -476,6 +554,7 @@ def test_sarif_diagnostic_region_and_metadata_fallback(
 
     monkeypatch.setattr("runtime_contract.scan.renderers.importlib.metadata.version", missing)
     fallback = runner.invoke(app, ["scan", str(tmp_path), "--format", "sarif"])
+    assert fallback.exit_code == 2
     assert json.loads(fallback.stdout)["runs"][0]["tool"]["driver"]["semanticVersion"] == (
         "0.0.0-unknown"
     )

@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Add bounded Kubernetes `env` and `envFrom` extraction plus end-to-end workload delivery analysis,
+  preserving only source selectors, optional/prefix metadata, and locations while proving literal
+  values cannot reach public models or text, JSON, and SARIF output.
+- Make `scan` fail closed with exit code 2 for partial as well as failed analysis while still
+  emitting the safe report for diagnosis.
 - Add explicit in-memory Docker Compose project resolution with ordered multi-file merge,
   profiles, `!reset`/`!override`, local include/extends, interpolation-source precedence, atomic
   failures, and field-level value-blind provenance.

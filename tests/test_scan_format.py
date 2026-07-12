@@ -108,6 +108,7 @@ def test_writer_metadata_version_fallback(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(scan_engine, "version", missing)
     result = run_scan(ScanRequest(path=Path("examples/report-fixture")))
+    assert result.exit_code == 2
     assert result.result.metadata.tool_version is None
 
 

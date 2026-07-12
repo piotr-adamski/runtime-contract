@@ -15,6 +15,10 @@ from runtime_contract.kubernetes.models import (
     KubernetesContainerKind,
     KubernetesDiagnostic,
     KubernetesDiagnosticCode,
+    KubernetesEnvBinding,
+    KubernetesEnvFromSource,
+    KubernetesEnvFromSourceKind,
+    KubernetesEnvSourceKind,
     KubernetesInput,
     KubernetesLoadStatus,
     KubernetesTraversalResult,
@@ -28,6 +32,8 @@ MAX_YAML_ALIASES = 256
 MAX_YAML_DOCUMENTS = 256
 MAX_SCALAR_BYTES = 64 * 1024
 MAX_CONTAINERS = 4_096
+MAX_ENV_ENTRIES = 4_096
+MAX_ENV_FROM_ENTRIES = 4_096
 
 _SAFE_TAGS = frozenset(
     {
@@ -115,6 +121,327 @@ def _string(pair: tuple[ScalarNode, Node] | None) -> str | None:
     if isinstance(node, ScalarNode) and node.tag == "tag:yaml.org,2002:str" and node.value:
         return str(node.value)
     return None
+
+
+def _string_allow_empty(pair: tuple[ScalarNode, Node]) -> str | None:
+    node = pair[1]
+    if isinstance(node, ScalarNode) and node.tag == "tag:yaml.org,2002:str":
+        return str(node.value)
+    return None
+
+
+def _optional_bool(pair: tuple[ScalarNode, Node] | None) -> tuple[bool, bool]:
+    if pair is None:
+        return True, False
+    node = pair[1]
+    if not isinstance(node, ScalarNode) or node.tag != "tag:yaml.org,2002:bool":
+        return False, False
+    normalized = node.value.casefold()
+    if normalized in {"true", "yes", "on"}:
+        return True, True
+    if normalized in {"false", "no", "off"}:
+        return True, False
+    return False, False
+
+
+def _unexpected_fields(
+    context: _Context,
+    node: MappingNode,
+    fields: dict[str, tuple[ScalarNode, Node]],
+    allowed: frozenset[str],
+    code: KubernetesDiagnosticCode,
+) -> None:
+    unexpected = sorted(set(fields) - allowed)
+    if unexpected:
+        context.diagnostic(code, node)
+
+
+def _key_reference(
+    context: _Context,
+    source_pair: tuple[ScalarNode, Node],
+    *,
+    code: KubernetesDiagnosticCode,
+) -> tuple[str, str, bool] | None:
+    node = source_pair[1]
+    fields = _mapping(context, node)
+    if fields is None:
+        context.diagnostic(code, node)
+        return None
+    assert isinstance(node, MappingNode)
+    _unexpected_fields(context, node, fields, frozenset({"name", "key", "optional"}), code)
+    name = _string(fields.get("name"))
+    key = _string(fields.get("key"))
+    valid_optional, optional = _optional_bool(fields.get("optional"))
+    if name is None or key is None or not valid_optional:
+        context.diagnostic(code, node)
+        return None
+    return name, key, optional
+
+
+def _env_value_from(
+    context: _Context,
+    name: str,
+    index: int,
+    name_node: Node,
+    pair: tuple[ScalarNode, Node],
+) -> KubernetesEnvBinding | None:
+    node = pair[1]
+    fields = _mapping(context, node)
+    if fields is None:
+        context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_SOURCE, node)
+        return None
+    assert isinstance(node, MappingNode)
+    supported = {
+        "secretKeyRef": KubernetesEnvSourceKind.SECRET_KEY_REF,
+        "configMapKeyRef": KubernetesEnvSourceKind.CONFIG_MAP_KEY_REF,
+        "fieldRef": KubernetesEnvSourceKind.FIELD_REF,
+        "resourceFieldRef": KubernetesEnvSourceKind.RESOURCE_FIELD_REF,
+    }
+    _unexpected_fields(
+        context,
+        node,
+        fields,
+        frozenset(supported),
+        KubernetesDiagnosticCode.INVALID_ENV_SOURCE,
+    )
+    selected = [field for field in supported if field in fields]
+    if len(selected) != 1:
+        context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_SOURCE, node)
+        return None
+    field = selected[0]
+    source_kind = supported[field]
+    source_pair = fields[field]
+    location = context.location(name_node)
+    source_location = context.location(source_pair[0])
+    if source_kind in {
+        KubernetesEnvSourceKind.SECRET_KEY_REF,
+        KubernetesEnvSourceKind.CONFIG_MAP_KEY_REF,
+    }:
+        reference = _key_reference(
+            context,
+            source_pair,
+            code=KubernetesDiagnosticCode.INVALID_ENV_REFERENCE,
+        )
+        if reference is None:
+            return None
+        reference_name, reference_key, optional = reference
+        return KubernetesEnvBinding(
+            name=name,
+            index=index,
+            source_kind=source_kind,
+            reference_name=reference_name,
+            reference_key=reference_key,
+            optional=optional,
+            location=location,
+            source_location=source_location,
+        )
+    source_node = source_pair[1]
+    source_fields = _mapping(context, source_node)
+    if source_fields is None:
+        context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_REFERENCE, source_node)
+        return None
+    assert isinstance(source_node, MappingNode)
+    if source_kind is KubernetesEnvSourceKind.FIELD_REF:
+        _unexpected_fields(
+            context,
+            source_node,
+            source_fields,
+            frozenset({"apiVersion", "fieldPath"}),
+            KubernetesDiagnosticCode.INVALID_ENV_REFERENCE,
+        )
+        field_path = _string(source_fields.get("fieldPath"))
+        api_version_pair = source_fields.get("apiVersion")
+        api_version = _string(api_version_pair) if api_version_pair is not None else None
+        if field_path is None or (api_version_pair is not None and api_version is None):
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_REFERENCE, source_node)
+            return None
+        return KubernetesEnvBinding(
+            name=name,
+            index=index,
+            source_kind=source_kind,
+            field_api_version=api_version,
+            field_path=field_path,
+            location=location,
+            source_location=source_location,
+        )
+    _unexpected_fields(
+        context,
+        source_node,
+        source_fields,
+        frozenset({"containerName", "resource", "divisor"}),
+        KubernetesDiagnosticCode.INVALID_ENV_REFERENCE,
+    )
+    resource = _string(source_fields.get("resource"))
+    container_pair = source_fields.get("containerName")
+    divisor_pair = source_fields.get("divisor")
+    resource_container = _string(container_pair) if container_pair is not None else None
+    divisor = _string(divisor_pair) if divisor_pair is not None else None
+    if (
+        resource is None
+        or (container_pair is not None and resource_container is None)
+        or (divisor_pair is not None and divisor is None)
+    ):
+        context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_REFERENCE, source_node)
+        return None
+    return KubernetesEnvBinding(
+        name=name,
+        index=index,
+        source_kind=source_kind,
+        resource_container=resource_container,
+        resource=resource,
+        divisor=divisor,
+        location=location,
+        source_location=source_location,
+    )
+
+
+def _environment(
+    context: _Context,
+    fields: dict[str, tuple[ScalarNode, Node]],
+) -> tuple[KubernetesEnvBinding, ...]:
+    pair = fields.get("env")
+    if pair is None:
+        return ()
+    node = pair[1]
+    if not isinstance(node, SequenceNode):
+        context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV, node)
+        return ()
+    if len(node.value) > MAX_ENV_ENTRIES:
+        context.diagnostic(KubernetesDiagnosticCode.SAFETY_LIMIT, node)
+        return ()
+    result: list[KubernetesEnvBinding] = []
+    names: set[str] = set()
+    for index, entry in enumerate(node.value):
+        entry_fields = _mapping(context, entry)
+        if entry_fields is None:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_ENTRY, entry)
+            continue
+        assert isinstance(entry, MappingNode)
+        _unexpected_fields(
+            context,
+            entry,
+            entry_fields,
+            frozenset({"name", "value", "valueFrom"}),
+            KubernetesDiagnosticCode.INVALID_ENV_ENTRY,
+        )
+        name_pair = entry_fields.get("name")
+        name = _string(name_pair)
+        if name is None or "=" in name:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_ENTRY, entry)
+            continue
+        assert name_pair is not None
+        if name in names:
+            context.diagnostic(KubernetesDiagnosticCode.DUPLICATE_ENV_NAME, name_pair[1])
+        names.add(name)
+        value_pair = entry_fields.get("value")
+        value_from_pair = entry_fields.get("valueFrom")
+        if value_pair is not None and value_from_pair is not None:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_SOURCE, entry)
+            continue
+        if value_from_pair is not None:
+            binding = _env_value_from(context, name, index, name_pair[1], value_from_pair)
+            if binding is not None:
+                result.append(binding)
+            continue
+        if value_pair is not None and _string_allow_empty(value_pair) is None:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_SOURCE, value_pair[1])
+            continue
+        source_node = value_pair[0] if value_pair is not None else name_pair[0]
+        result.append(
+            KubernetesEnvBinding(
+                name=name,
+                index=index,
+                source_kind=KubernetesEnvSourceKind.VALUE,
+                location=context.location(name_pair[1]),
+                source_location=context.location(source_node),
+            )
+        )
+    return tuple(result)
+
+
+def _env_from_reference(
+    context: _Context,
+    pair: tuple[ScalarNode, Node],
+) -> tuple[str, bool] | None:
+    node = pair[1]
+    fields = _mapping(context, node)
+    if fields is None:
+        context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_FROM_REFERENCE, node)
+        return None
+    assert isinstance(node, MappingNode)
+    _unexpected_fields(
+        context,
+        node,
+        fields,
+        frozenset({"name", "optional"}),
+        KubernetesDiagnosticCode.INVALID_ENV_FROM_REFERENCE,
+    )
+    name = _string(fields.get("name"))
+    valid_optional, optional = _optional_bool(fields.get("optional"))
+    if name is None or not valid_optional:
+        context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_FROM_REFERENCE, node)
+        return None
+    return name, optional
+
+
+def _environment_from(
+    context: _Context,
+    fields: dict[str, tuple[ScalarNode, Node]],
+) -> tuple[KubernetesEnvFromSource, ...]:
+    pair = fields.get("envFrom")
+    if pair is None:
+        return ()
+    node = pair[1]
+    if not isinstance(node, SequenceNode):
+        context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_FROM, node)
+        return ()
+    if len(node.value) > MAX_ENV_FROM_ENTRIES:
+        context.diagnostic(KubernetesDiagnosticCode.SAFETY_LIMIT, node)
+        return ()
+    result: list[KubernetesEnvFromSource] = []
+    kinds = {
+        "secretRef": KubernetesEnvFromSourceKind.SECRET_REF,
+        "configMapRef": KubernetesEnvFromSourceKind.CONFIG_MAP_REF,
+    }
+    for index, entry in enumerate(node.value):
+        entry_fields = _mapping(context, entry)
+        if entry_fields is None:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_FROM_SOURCE, entry)
+            continue
+        assert isinstance(entry, MappingNode)
+        _unexpected_fields(
+            context,
+            entry,
+            entry_fields,
+            frozenset({"prefix", *kinds}),
+            KubernetesDiagnosticCode.INVALID_ENV_FROM_SOURCE,
+        )
+        selected = [field for field in kinds if field in entry_fields]
+        if len(selected) != 1:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_FROM_SOURCE, entry)
+            continue
+        prefix_pair = entry_fields.get("prefix")
+        prefix = _string_allow_empty(prefix_pair) if prefix_pair is not None else ""
+        if prefix is None:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_ENV_FROM_SOURCE, entry)
+            continue
+        source_pair = entry_fields[selected[0]]
+        reference = _env_from_reference(context, source_pair)
+        if reference is None:
+            continue
+        reference_name, optional = reference
+        result.append(
+            KubernetesEnvFromSource(
+                source_kind=kinds[selected[0]],
+                index=index,
+                reference_name=reference_name,
+                optional=optional,
+                prefix=prefix,
+                location=context.location(entry),
+                source_location=context.location(source_pair[0]),
+            )
+        )
+    return tuple(result)
 
 
 def _validate_graph(context: _Context, root: Node, aliases: int) -> bool:
@@ -232,17 +559,25 @@ def _containers(
                 container_index=index,
                 workload_location=workload_location,
                 container_location=context.location(container),
+                env=_environment(context, values),
+                env_from=_environment_from(context, values),
             )
         )
     return result
 
 
 def _traverse_document(
-    context: _Context, root: Node, document_index: int
+    context: _Context,
+    root: Node,
+    document_index: int,
+    *,
+    ignore_unmarked: bool,
 ) -> list[KubernetesContainerContext]:
     fields = _mapping(context, root)
     if fields is None:
         context.diagnostic(KubernetesDiagnosticCode.INVALID_DOCUMENT, root)
+        return []
+    if ignore_unmarked and "apiVersion" not in fields and "kind" not in fields:
         return []
     api_version = _string(fields.get("apiVersion"))
     if api_version is None:
@@ -309,6 +644,8 @@ def _traverse_document(
 
 def _traverse_one(
     source: KubernetesInput,
+    *,
+    ignore_unmarked: bool,
 ) -> tuple[list[KubernetesContainerContext], list[KubernetesDiagnostic], bool]:
     context = _Context(source, [])
     if len(source.content) > MAX_KUBERNETES_BYTES:
@@ -363,7 +700,14 @@ def _traverse_one(
         document_index += 1
         if not _validate_graph(context, root, aliases):
             continue
-        contexts.extend(_traverse_document(context, root, document_index))
+        contexts.extend(
+            _traverse_document(
+                context,
+                root,
+                document_index,
+                ignore_unmarked=ignore_unmarked,
+            )
+        )
     return (
         contexts,
         context.diagnostics,
@@ -373,14 +717,23 @@ def _traverse_one(
 
 def traverse_kubernetes_workloads(
     inputs: Iterable[KubernetesInput] | KubernetesInput,
+    *,
+    ignore_unmarked: bool = False,
 ) -> KubernetesTraversalResult:
-    """Traverse caller-provided manifest bytes without filesystem, process, or network access."""
+    """Traverse caller-provided manifest bytes without filesystem, process, or network access.
+
+    ``ignore_unmarked`` lets extension-based discovery ignore generic YAML/JSON mappings that have
+    neither Kubernetes discriminator while retaining fail-closed direct traversal by default.
+    """
     all_contexts: list[KubernetesContainerContext] = []
     all_diagnostics: list[KubernetesDiagnostic] = []
     has_loss = False
     sources = (inputs,) if isinstance(inputs, KubernetesInput) else tuple(inputs)
     for source in sorted(sources, key=lambda item: item.path.encode("utf-8")):
-        contexts, source_diagnostics, loss = _traverse_one(source)
+        contexts, source_diagnostics, loss = _traverse_one(
+            source,
+            ignore_unmarked=ignore_unmarked,
+        )
         all_contexts.extend(contexts)
         all_diagnostics.extend(source_diagnostics)
         has_loss = has_loss or loss

@@ -35,6 +35,7 @@ from runtime_contract.domain import (
     ProviderMechanism,
     ProviderRole,
     RequirementSource,
+    RuleId,
     SecretSource,
     Severity,
     SourceLocation,
@@ -115,6 +116,7 @@ def test_each_diagnostic_code_has_constant_severity_and_stable_id(
         "id",
         "code",
         "severity",
+        "rule_id",
         "primary_location",
         "related_locations",
         "parameters",
@@ -122,6 +124,35 @@ def test_each_diagnostic_code_has_constant_severity_and_stable_id(
     wrong = Severity.WARNING if severity is Severity.ERROR else Severity.ERROR
     with pytest.raises(ValidationError, match="require"):
         AnalysisDiagnostic(code=code, severity=wrong, primary_location=location)
+
+
+def test_rtc012_is_required_only_for_unsupported_kubernetes_resources() -> None:
+    location = SourceLocation(path="service.yaml", start_line=2)
+    diagnostic = AnalysisDiagnostic(
+        code=DiagnosticCode.UNSUPPORTED_K8S_RESOURCE,
+        severity=Severity.INFO,
+        rule_id=RuleId.RTC012,
+        primary_location=location,
+    )
+    assert diagnostic.rule_id is RuleId.RTC012
+    assert diagnostic.id == AnalysisDiagnostic.calculate_id(
+        diagnostic.code,
+        location,
+        rule_id=RuleId.RTC012,
+    )
+    with pytest.raises(ValidationError, match="require RTC012"):
+        AnalysisDiagnostic(
+            code=DiagnosticCode.UNSUPPORTED_K8S_RESOURCE,
+            severity=Severity.INFO,
+            primary_location=location,
+        )
+    with pytest.raises(ValidationError, match="only unsupported"):
+        AnalysisDiagnostic(
+            code=DiagnosticCode.SYNTAX_ERROR,
+            severity=Severity.ERROR,
+            rule_id=RuleId.RTC012,
+            primary_location=location,
+        )
 
 
 def test_diagnostic_canonicalizes_structural_fields() -> None:

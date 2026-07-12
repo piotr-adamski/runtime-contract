@@ -21,6 +21,7 @@ from runtime_contract.analysis import (
     DotenvAnalyzer,
     FactObservation,
     JavaScriptTypeScriptAnalyzer,
+    KubernetesAnalyzer,
     PythonAstAnalyzer,
 )
 from runtime_contract.analysis.dockerfile import MAX_DOCKERFILE_BYTES
@@ -31,6 +32,7 @@ from runtime_contract.config.models import RuntimeContractConfig
 from runtime_contract.config.policy import ConfigPolicy
 from runtime_contract.discovery import CandidateKind, DiscoveryError, discover
 from runtime_contract.domain import Contract, Profile, Severity, SourceLocation
+from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
 from runtime_contract.normalization import NormalizationError, normalize_observations
 from runtime_contract.scan.models import (
     ReportInputs,
@@ -154,6 +156,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
             DotenvAnalyzer(),
             DockerfileAnalyzer(),
             ComposeAnalyzer(),
+            KubernetesAnalyzer(),
         )
     )
     policy = ConfigPolicy(document)
@@ -167,6 +170,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         CandidateKind.ENV_EXAMPLE,
         CandidateKind.DOCKERFILE,
         CandidateKind.COMPOSE,
+        CandidateKind.KUBERNETES,
     }
     for item in discovery.candidates:
         if item.kind not in supported:
@@ -191,6 +195,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         size_limit = {
             CandidateKind.ENV_EXAMPLE: MAX_DOTENV_BYTES,
             CandidateKind.DOCKERFILE: MAX_DOCKERFILE_BYTES,
+            CandidateKind.KUBERNETES: MAX_KUBERNETES_BYTES,
         }.get(item.kind)
         if size_limit is not None:
             try:
@@ -304,7 +309,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
     output = request.output
     if output is None and execution.value.report is not None:
         output = Path(execution.value.report)
-    return ScanRun(scan_result, rendered, output, 2 if status is ScanStatus.FAILED else 0)
+    return ScanRun(scan_result, rendered, output, 0 if status is ScanStatus.COMPLETE else 2)
 
 
 def write_atomic(root: Path, output: Path, content: str) -> None:

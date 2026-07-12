@@ -15,7 +15,12 @@ from runtime_contract.domain import Severity, SourceLocation
 
 
 class _KubernetesModel(BaseModel):
-    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+    model_config = ConfigDict(
+        frozen=True,
+        strict=True,
+        extra="forbid",
+        hide_input_in_errors=True,
+    )
 
 
 class KubernetesLoadStatus(StrEnum):
@@ -38,6 +43,19 @@ class KubernetesContainerKind(StrEnum):
     INIT_CONTAINER = "init_container"
 
 
+class KubernetesEnvSourceKind(StrEnum):
+    VALUE = "value"
+    SECRET_KEY_REF = "secret_key_ref"
+    CONFIG_MAP_KEY_REF = "config_map_key_ref"
+    FIELD_REF = "field_ref"
+    RESOURCE_FIELD_REF = "resource_field_ref"
+
+
+class KubernetesEnvFromSourceKind(StrEnum):
+    SECRET_REF = "secret_ref"
+    CONFIG_MAP_REF = "config_map_ref"
+
+
 class KubernetesDiagnosticCode(StrEnum):
     INVALID_ENCODING = "invalid_encoding"
     INVALID_YAML = "invalid_yaml"
@@ -55,6 +73,14 @@ class KubernetesDiagnosticCode(StrEnum):
     INVALID_CONTAINERS = "invalid_containers"
     INVALID_CONTAINER = "invalid_container"
     DUPLICATE_CONTAINER_NAME = "duplicate_container_name"
+    INVALID_ENV = "invalid_env"
+    INVALID_ENV_ENTRY = "invalid_env_entry"
+    DUPLICATE_ENV_NAME = "duplicate_env_name"
+    INVALID_ENV_SOURCE = "invalid_env_source"
+    INVALID_ENV_REFERENCE = "invalid_env_reference"
+    INVALID_ENV_FROM = "invalid_env_from"
+    INVALID_ENV_FROM_SOURCE = "invalid_env_from_source"
+    INVALID_ENV_FROM_REFERENCE = "invalid_env_from_reference"
 
 
 _SEVERITIES = {code: Severity.ERROR for code in KubernetesDiagnosticCode}
@@ -63,7 +89,7 @@ _SEVERITIES[KubernetesDiagnosticCode.UNSUPPORTED_RESOURCE] = Severity.INFO
 
 class KubernetesInput(_KubernetesModel):
     path: str
-    content: bytes = Field(repr=False)
+    content: bytes = Field(repr=False, exclude=True)
 
     @field_validator("path")
     @classmethod
@@ -83,6 +109,93 @@ class KubernetesInput(_KubernetesModel):
         return normalized
 
 
+def _validate_metadata_text(value: str | None) -> str | None:
+    if value is not None and "\0" in value:
+        raise ValueError("Kubernetes metadata cannot contain NUL")
+    return value
+
+
+class KubernetesEnvBinding(_KubernetesModel):
+    """One value-blind ``env`` declaration attached to a container."""
+
+    name: str
+    index: int = Field(ge=0)
+    source_kind: KubernetesEnvSourceKind
+    reference_name: str | None = None
+    reference_key: str | None = None
+    optional: bool | None = None
+    field_api_version: str | None = None
+    field_path: str | None = None
+    resource_container: str | None = None
+    resource: str | None = None
+    divisor: str | None = None
+    location: SourceLocation
+    source_location: SourceLocation
+
+    _metadata_text = field_validator(
+        "name",
+        "reference_name",
+        "reference_key",
+        "field_api_version",
+        "field_path",
+        "resource_container",
+        "resource",
+        "divisor",
+    )(_validate_metadata_text)
+
+    @model_validator(mode="after")
+    def validate_source_shape(self) -> KubernetesEnvBinding:
+        if not self.name or "=" in self.name:
+            raise ValueError("environment name must be non-empty and cannot contain '='")
+        if self.location.path != self.source_location.path:
+            raise ValueError("binding locations must use the same path")
+        reference = (self.reference_name, self.reference_key, self.optional)
+        field = (self.field_api_version, self.field_path)
+        resource = (self.resource_container, self.resource, self.divisor)
+        if self.source_kind is KubernetesEnvSourceKind.VALUE:
+            if any(item is not None for item in (*reference, *field, *resource)):
+                raise ValueError("value bindings cannot expose source metadata")
+        elif self.source_kind in {
+            KubernetesEnvSourceKind.SECRET_KEY_REF,
+            KubernetesEnvSourceKind.CONFIG_MAP_KEY_REF,
+        }:
+            if (
+                not self.reference_name
+                or not self.reference_key
+                or self.optional is None
+                or any(item is not None for item in (*field, *resource))
+            ):
+                raise ValueError("key references require name, key, and optional only")
+        elif self.source_kind is KubernetesEnvSourceKind.FIELD_REF:
+            if not self.field_path or any(item is not None for item in (*reference, *resource)):
+                raise ValueError("fieldRef requires field_path metadata only")
+        elif not self.resource or any(item is not None for item in (*reference, *field)):
+            raise ValueError("resourceFieldRef requires resource metadata only")
+        return self
+
+
+class KubernetesEnvFromSource(_KubernetesModel):
+    """One unresolved, value-blind ``envFrom`` source attached to a container."""
+
+    source_kind: KubernetesEnvFromSourceKind
+    index: int = Field(ge=0)
+    reference_name: str
+    optional: bool
+    prefix: str = ""
+    location: SourceLocation
+    source_location: SourceLocation
+
+    _metadata_text = field_validator("reference_name", "prefix")(_validate_metadata_text)
+
+    @model_validator(mode="after")
+    def validate_source_shape(self) -> KubernetesEnvFromSource:
+        if not self.reference_name:
+            raise ValueError("envFrom reference name must be non-empty")
+        if self.location.path != self.source_location.path:
+            raise ValueError("envFrom locations must use the same path")
+        return self
+
+
 class KubernetesContainerContext(_KubernetesModel):
     path: str
     document_index: int
@@ -95,11 +208,21 @@ class KubernetesContainerContext(_KubernetesModel):
     container_index: int
     workload_location: SourceLocation
     container_location: SourceLocation
+    env: tuple[KubernetesEnvBinding, ...] = ()
+    env_from: tuple[KubernetesEnvFromSource, ...] = ()
 
     @model_validator(mode="after")
     def locations_match_path(self) -> KubernetesContainerContext:
         if self.workload_location.path != self.path or self.container_location.path != self.path:
             raise ValueError("locations must use the context path")
+        env_locations = (
+            location for item in self.env for location in (item.location, item.source_location)
+        )
+        env_from_locations = (
+            location for item in self.env_from for location in (item.location, item.source_location)
+        )
+        if any(location.path != self.path for location in (*env_locations, *env_from_locations)):
+            raise ValueError("environment locations must use the context path")
         return self
 
 
@@ -192,6 +315,10 @@ __all__ = [
     "KubernetesContainerKind",
     "KubernetesDiagnostic",
     "KubernetesDiagnosticCode",
+    "KubernetesEnvBinding",
+    "KubernetesEnvFromSource",
+    "KubernetesEnvFromSourceKind",
+    "KubernetesEnvSourceKind",
     "KubernetesInput",
     "KubernetesLoadStatus",
     "KubernetesTraversalResult",

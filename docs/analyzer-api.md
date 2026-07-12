@@ -35,8 +35,8 @@ result = registry.analyze(analyzer_input)
 JSON Schema is available from `runtime_contract.analysis.schema.schema_bytes()` and as
 `schemas/runtime-contract-analysis-result-v1.schema.json`.
 
-`PythonAstAnalyzer`, `JavaScriptTypeScriptAnalyzer`, `DotenvAnalyzer`, `DockerfileAnalyzer`, and
-`ComposeAnalyzer` are the built-in
+`PythonAstAnalyzer`, `JavaScriptTypeScriptAnalyzer`, `DotenvAnalyzer`, `DockerfileAnalyzer`,
+`ComposeAnalyzer`, and `KubernetesAnalyzer` are the built-in
 implementations registered by `scan`. `DotenvAnalyzer` accepts only the `ENV_EXAMPLE` candidate
 kind produced for the exact `.env.example` filename. It inventories declaration facts without
 retaining values, expanding interpolation, evaluating command substitution, or performing I/O.
@@ -50,7 +50,18 @@ It never reads an env file or retains values, interpolation fallbacks, or host d
 `resolve_compose_project` API resolves explicit multi-file bundles, profile activation,
 `!reset`/`!override`, local include/extends, interpolation-source names, and value-blind provenance.
 `ComposeAnalyzer.analyze_project` converts only enabled effective services into provider facts;
-the ordinary one-file `analyze` contract is unchanged. Additional analyzers can use the same
-`Analyzer` and `AnalyzerRegistry`
-seam without changing `FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin
-discovery and Kubernetes analysis remain outside v0.1.0's implemented slice.
+the ordinary one-file `analyze` contract is unchanged.
+
+`KubernetesAnalyzer` uses the bounded `runtime_contract.kubernetes` traversal API. It emits one
+`kubernetes_workload` environment for each `namespace/Kind/name` target, explicit
+`kubernetes_env` runtime providers for static `env` names, and unresolved-bulk
+`kubernetes_env_from` runtime providers for `envFrom`. The traversal models retain value-blind
+source metadata: key-reference name/key/optional, field and resource selectors, and envFrom
+reference name/optional/prefix/location. Literal `env.value` content is discarded during parsing
+and cannot enter an observation, diagnostic, repr, JSON, text, or SARIF report. External object
+presence is intentionally not resolved in this slice; the analyzer performs no filesystem,
+environment, process, cluster, or network access.
+
+Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry` seam without changing
+`FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin discovery and dynamic
+analyzer loading remain outside v0.1.0's implemented slice.
