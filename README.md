@@ -93,6 +93,9 @@ resolved Secret `envFrom` keys are classified from structural metadata. Every `C
 the classification reason and confidence. Bounded negative forms such as `TOKEN_COUNT`,
 `PASSWORD_LENGTH`, `SECRET_NAME`, and `CREDENTIAL_TYPE` remain non-secret to reduce obvious false
 positives. Values, fragments, lengths, hashes, and contents are never inspected by this classifier.
+Project YAML may override the heuristic with scoped `sensitive`, `public`, or `ignore` decisions
+selected by an exact name, glob, or bounded full-match regex. Public/ignored exceptions require a
+reason; contradictory declarations fail closed and a scan reports rules unused by observed keys.
 
 The strict local configuration contract is documented in
 [`docs/runtime-contract-yaml.md`](docs/runtime-contract-yaml.md). Validate it without scanning:

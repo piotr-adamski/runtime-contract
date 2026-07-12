@@ -20,6 +20,7 @@ class ConfigPolicyClassificationResolver:
         result = self._policy.classify(variable, root=self._root, environment=self._environment)
         source = DecisionSource.CONFIG_OVERRIDE
         return EffectiveClassification(
+            ignored=result.ignored,
             secret=result.secret,
             secret_source=source if result.secret is not None else None,
             required=result.required,

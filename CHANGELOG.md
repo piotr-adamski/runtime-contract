@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Extend YAML classifications with explicit `sensitive`, `public`, and `ignore` decisions, bounded
+  full-match regex selectors, conflict validation, scoped reasons, and unused-rule diagnostics.
 - Add deterministic, value-blind sensitivity classification with explicit reason and confidence,
   Kubernetes Secret metadata handling, separator variants, and bounded false-positive exclusions.
 - Add explicit value-blind provider precedence and conflict analysis for dotenv, Dockerfile,

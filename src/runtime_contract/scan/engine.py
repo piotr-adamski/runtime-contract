@@ -287,6 +287,19 @@ def run_scan(request: ScanRequest) -> ScanRun:
             _technical_diagnostic(DiagnosticCode.NORMALIZATION_ERROR, "runtime-contract.yaml")
         )
         contract = Contract()
+    for unused in policy.unused_classification_rules():
+        diagnostics.append(
+            AnalysisDiagnostic(
+                code=DiagnosticCode.UNUSED_CLASSIFICATION_RULE,
+                severity=Severity.WARNING,
+                primary_location=SourceLocation(
+                    path=document.path.relative_to(root).as_posix(),
+                    start_line=unused.line,
+                    start_column=unused.column,
+                ),
+                parameters=(("pointer", unused.pointer),),
+            )
+        )
     flow_graph = build_flow_graph(contract)
     precedence = analyze_precedence(contract)
     status = (

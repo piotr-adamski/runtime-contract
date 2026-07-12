@@ -36,11 +36,20 @@ absolute private paths.
   `root`, `type` (`auto`, `compose`, or `kubernetes`), a relative `path`, and an optional unique list
   of variable names in `provides`. Profiles do not inherit.
 - `classifications.variables` maps exact, case-sensitive variable names to one rule or a non-empty
-  ordered list. `classifications.patterns` is an ordered list of whole-name, case-sensitive globs.
+  ordered list. `classifications.patterns` is an ordered list with exactly one whole-name,
+  case-sensitive `pattern` glob or bounded ASCII `regex` (full-match semantics).
   Later matching rules override earlier rules field by field; exact variables always win. Rules may
-  set `secret`, `required`, `roots`, and `environments`. Exact rules may additionally set
+  set `classification` (`sensitive`, `public`, or `ignore`), legacy-compatible `secret`, `required`,
+  `roots`, and `environments`. Exact rules may additionally set
   `allow_literal` and `reason`; `allow_literal: true` requires a non-blank reason and never suppresses
-  private-key findings.
+  private-key findings. `public` and `ignore` require a non-blank reason. `sensitive` maps to
+  `secret: true`, `public` maps to `secret: false`, and `ignore` omits the matching key and its
+  consumer/provider facts. Contradictory `classification`/`secret` fields, incompatible `ignore`
+  fields, duplicate pattern selector scopes, advanced regex constructs, and ambiguous selector
+  shapes fail validation. A completed scan emits `unused_classification_rule` warnings for exact or
+  pattern declarations that matched no observed key in their configured root/environment scope.
+  Regex grouping, lookarounds, backreferences, nested quantifiers, NUL and expressions longer than
+  256 characters are rejected to keep matching local and predictably bounded.
 - `severity_overrides` is an ordered list containing a registered `rule`, `severity` (`error`,
   `warning`, or `info`), and optional root/environment selectors. Later matching entries win.
 - `suppressions` require a unique `id`, registered `rule`, non-blank `reason`, and at least one of

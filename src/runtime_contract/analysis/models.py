@@ -45,6 +45,7 @@ class DiagnosticCode(StrEnum):
     READ_ERROR = "read_error"
     SAFETY_LIMIT = "safety_limit"
     UNSUPPORTED_K8S_RESOURCE = "unsupported_k8s_resource"
+    UNUSED_CLASSIFICATION_RULE = "unused_classification_rule"
 
 
 class Confidence(StrEnum):
@@ -67,6 +68,7 @@ class DecisionSource(StrEnum):
 
 
 class EffectiveClassification(AnalysisModel):
+    ignored: bool = False
     secret: bool | None = None
     secret_source: DecisionSource | None = None
     required: bool | None = None
@@ -120,6 +122,7 @@ DIAGNOSTIC_SEVERITY: dict[DiagnosticCode, Severity] = {
     DiagnosticCode.READ_ERROR: Severity.ERROR,
     DiagnosticCode.SAFETY_LIMIT: Severity.ERROR,
     DiagnosticCode.UNSUPPORTED_K8S_RESOURCE: Severity.INFO,
+    DiagnosticCode.UNUSED_CLASSIFICATION_RULE: Severity.WARNING,
 }
 
 

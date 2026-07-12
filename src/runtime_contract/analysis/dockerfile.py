@@ -390,6 +390,8 @@ class _Parser:
             self._limit("declarations", position)
             return
         resolved = self.input.resolver.classify(name)
+        if resolved.ignored:
+            return
         sensitivity = classify_sensitivity(name, override=resolved.secret)
         key = ConfigKey(
             name=name,

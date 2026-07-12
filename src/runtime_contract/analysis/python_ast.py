@@ -207,6 +207,8 @@ class _Visitor(ast.NodeVisitor):
                 self.add_diagnostic(DiagnosticCode.UNSUPPORTED_CONSTRUCT, location, access.kind)
 
         resolved = self.input.resolver.classify(name)
+        if resolved.ignored:
+            return
         sensitivity = classify_sensitivity(name, override=resolved.secret)
         allow_literal = (
             resolved.allow_literal
