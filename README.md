@@ -200,8 +200,21 @@ See [`docs/normalization-api.md`](docs/normalization-api.md).
 
 The immutable `runtime_contract.rules` API publishes the complete `RTC001`–`RTC012` catalog with
 stable names, default severities, rationale, and manual remediation. Technical parser and safety
-diagnostics remain a separate `runtime_contract.analysis.DIAGNOSTIC_CATALOG`. See
-[`docs/rule-catalog.md`](docs/rule-catalog.md) for the compatibility policy and full table.
+diagnostics remain a separate `runtime_contract.analysis.DIAGNOSTIC_CATALOG`.
+
+| IDs | Default severity |
+|---|---|
+| `RTC001` REQUIRED_NOT_PROVIDED, `RTC002` SECRET_LITERAL, `RTC003` PRIVATE_KEY_CONTENT | error |
+| `RTC004` UNDOCUMENTED_VARIABLE, `RTC005` UNUSED_DECLARATION, `RTC006` DYNAMIC_REFERENCE, `RTC007` CONFLICTING_DEFAULT | warning |
+| `RTC008` OPTIONAL_NOT_PROVIDED | info |
+| `RTC009` DELIVERY_UNVERIFIABLE, `RTC010` PHASE_MISMATCH | error |
+| `RTC011` CUSTOM_SETTINGS_SOURCE | warning |
+| `RTC012` UNSUPPORTED_K8S_RESOURCE | info |
+
+Published RTC identifiers are never reused. Their condition, default severity, rationale meaning,
+and remediation meaning are stable within v0.1.x; a semantic change requires a documented breaking
+release decision. A new rule requires a new ID, catalog entry, golden fixture, tests, and format
+metadata. Configuration may change effective policy, but never mutates the catalog default.
 
 The pure `runtime_contract.flow` API derives a value-blind source-to-sink graph from a canonical
 `Contract`. It connects consumer → configuration key → delivery provider → declaration provider
