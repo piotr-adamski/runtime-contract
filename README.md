@@ -241,6 +241,13 @@ runtime-contract config validate .
 runtime-contract config validate . --format json
 ```
 
+Canonical references:
+
+- [CLI options and exit/stream contract](docs/cli-reference.md)
+- [configuration fields and suppressions](docs/runtime-contract-yaml.md)
+- [terminal, JSON, SARIF, heuristics, and static-analysis limits](docs/output-formats.md)
+- [RTC001–RTC012 reasons, examples, and remediation](docs/rules.md)
+
 The public, parser-independent analyzer extension contract is documented in
 [`docs/analyzer-api.md`](docs/analyzer-api.md). `PythonAstAnalyzer` implements that contract with
 static Python source analysis. It recognizes literal keys used through `os.getenv`,
