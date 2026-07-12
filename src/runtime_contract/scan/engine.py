@@ -8,6 +8,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from typing import Literal
 
 from runtime_contract.analysis import (
     AnalysisDiagnostic,
@@ -35,6 +36,8 @@ from runtime_contract.discovery import CandidateKind, DiscoveryError, discover
 from runtime_contract.domain import (
     ConfigKey,
     Contract,
+    Environment,
+    EnvironmentKind,
     Profile,
     SecretSource,
     SensitivityReason,
@@ -42,6 +45,7 @@ from runtime_contract.domain import (
     SourceLocation,
 )
 from runtime_contract.errors import PublicError
+from runtime_contract.evaluation import evaluate_required_not_provided
 from runtime_contract.flow import build_flow_graph
 from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
 from runtime_contract.normalization import NormalizationError, normalize_observations
@@ -70,6 +74,7 @@ class ScanRequest:
     report: Path | None = None
     fail_on: str | None = None
     verbosity: int = 0
+    command: Literal["scan", "check"] = "scan"
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,6 +177,28 @@ def _reconcile_config_keys(
         else observation
         for observation in observations
     ]
+
+
+def _ensure_implicit_environments(contract: Contract, profile: Profile) -> Contract:
+    components = {item.component for item in contract.consumers}
+    explicit = {item.component for item in contract.environments}
+    additions = tuple(
+        Environment(
+            component=component,
+            target=component,
+            kind=EnvironmentKind.IMPLICIT,
+            profile=profile,
+        )
+        for component in sorted(components - explicit)
+    )
+    if not additions:
+        return contract
+    return Contract(
+        config_keys=contract.config_keys,
+        environments=(*contract.environments, *additions),
+        consumers=contract.consumers,
+        providers=contract.providers,
+    )
 
 
 def run_scan(request: ScanRequest) -> ScanRun:
@@ -368,7 +395,10 @@ def run_scan(request: ScanRequest) -> ScanRun:
         observations.extend(project.result.observations)
         diagnostics.extend(project.result.diagnostics)
     try:
-        contract = normalize_observations(_reconcile_config_keys(observations))
+        contract = _ensure_implicit_environments(
+            normalize_observations(_reconcile_config_keys(observations)),
+            _profile(execution.value.environment),
+        )
     except NormalizationError:
         counts["failed"] += 1
         diagnostics.append(
@@ -390,6 +420,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         )
     flow_graph = build_flow_graph(contract)
     precedence = analyze_precedence(contract)
+    findings = evaluate_required_not_provided(contract)
     status = (
         ScanStatus.FAILED
         if counts["failed"]
@@ -418,6 +449,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         precedence_providers=len(precedence.providers),
         precedence_conflicts=len(precedence.conflicts),
         diagnostics=len(diagnostics_tuple),
+        findings=len(findings),
         candidate_kinds=candidate_kinds,
         skipped_reasons=(
             {"no_registered_analyzer": counts["skipped"]} if counts["skipped"] else {}
@@ -431,7 +463,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
     scan_result = ScanResult(
         schema_id="runtime-contract/v1",
         schema_version=1,
-        metadata=ReportMetadata(tool_version=tool_version),
+        metadata=ReportMetadata(tool_version=tool_version, command=request.command),
         inputs=ReportInputs(
             config=config_label,
             environment=execution.value.environment,
@@ -446,7 +478,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
         flow_graph=flow_graph,
         precedence=precedence,
         diagnostics=diagnostics_tuple,
-        findings=(),
+        findings=findings,
         files=tuple(sorted(files, key=lambda item: item.path.encode("utf-8"))),
     )
     output_format = execution.value.format.value
@@ -454,7 +486,14 @@ def run_scan(request: ScanRequest) -> ScanRun:
     output = request.output
     if output is None and execution.value.report is not None:
         output = Path(execution.value.report)
-    return ScanRun(scan_result, rendered, output, 0 if status is ScanStatus.COMPLETE else 2)
+    exit_code = 0 if status is ScanStatus.COMPLETE else 2
+    if (
+        exit_code == 0
+        and request.command == "check"
+        and any(item.severity is Severity.ERROR for item in findings)
+    ):
+        exit_code = 1
+    return ScanRun(scan_result, rendered, output, exit_code)
 
 
 def write_atomic(root: Path, output: Path, content: str) -> None:

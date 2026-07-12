@@ -7,6 +7,7 @@ import json
 from typing import Any
 
 from runtime_contract.domain import Severity
+from runtime_contract.rules import get_rule
 from runtime_contract.scan.models import ScanResult, ScanStatus
 
 
@@ -46,6 +47,7 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
         f"  Precedence providers: {summary.precedence_providers}",
         f"  Precedence conflicts: {summary.precedence_conflicts}",
         f"  Diagnostics: {summary.diagnostics}",
+        f"  Findings: {summary.findings}",
     ]
     if result.contract.consumers:
         lines.extend(["", "Consumers"])
@@ -73,6 +75,24 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
             rule = f"{diagnostic.rule_id.value} " if diagnostic.rule_id is not None else ""
             lines.append(
                 f"  {diagnostic.severity.value} {rule}{diagnostic.code.value.upper()} "
+                f"{location.path}{position}"
+            )
+    if result.findings:
+        lines.extend(["", "Findings"])
+        keys = {key.id: key for key in result.contract.config_keys}
+        environments = {item.id: item for item in result.contract.environments}
+        for finding in result.findings:
+            location = finding.primary_location
+            position = (
+                f":{location.start_line}:{location.start_column}" if location.start_line else ""
+            )
+            finding_key = keys.get(finding.config_key_id or "")
+            environment = environments.get(finding.environment_id or "")
+            lines.append(
+                f"  {finding.severity.value} {finding.rule_id.value} "
+                f"{get_rule(finding.rule_id).title}  "
+                f"{finding.component}/{environment.target if environment else '-'}  "
+                f"{finding_key.name if finding_key else '-'}  {finding.phase.value}  "
                 f"{location.path}{position}"
             )
     if verbosity >= 1:
@@ -126,26 +146,39 @@ def render_sarif(result: ScanResult) -> str:
     except importlib.metadata.PackageNotFoundError:
         version = "0.0.0-unknown"
     version = version.replace(".dev", "-dev.")
-    rule_pairs = {
+    diagnostic_rule_pairs = {
         (
             item.rule_id.value if item.rule_id is not None else item.code.value,
             item.code.value,
         )
         for item in result.diagnostics
     }
-    rules = [{"id": rule_id, "name": name} for rule_id, name in sorted(rule_pairs)]
+    rules: list[dict[str, Any]] = [
+        {"id": rule_id, "name": name} for rule_id, name in sorted(diagnostic_rule_pairs)
+    ]
+    rules.extend(
+        {
+            "id": finding.rule_id.value,
+            "name": get_rule(finding.rule_id).name,
+            "shortDescription": {"text": get_rule(finding.rule_id).title},
+            "help": {"text": get_rule(finding.rule_id).remediation},
+        }
+        for finding in result.findings
+        if finding.rule_id.value not in {item["id"] for item in rules}
+    )
+    rules.sort(key=lambda item: item["id"])
     levels = {Severity.INFO: "note", Severity.WARNING: "warning", Severity.ERROR: "error"}
     sarif_results: list[dict[str, Any]] = []
     for diagnostic in result.diagnostics:
         location = diagnostic.primary_location
-        physical: dict[str, Any] = {
+        diagnostic_physical: dict[str, Any] = {
             "artifactLocation": {"uri": location.path, "uriBaseId": "PROJECTROOT"}
         }
         if location.start_line is not None:
             region: dict[str, int] = {"startLine": location.start_line}
             if location.start_column is not None:
                 region["startColumn"] = location.start_column
-            physical["region"] = region
+            diagnostic_physical["region"] = region
         sarif_results.append(
             {
                 "ruleId": (
@@ -155,9 +188,39 @@ def render_sarif(result: ScanResult) -> str:
                 ),
                 "level": levels[diagnostic.severity],
                 "message": {"text": diagnostic.code.value.replace("_", " ")},
-                "locations": [{"physicalLocation": physical}],
+                "locations": [{"physicalLocation": diagnostic_physical}],
             }
         )
+    for finding in result.findings:
+        location = finding.primary_location
+        finding_physical: dict[str, Any] = {
+            "artifactLocation": {"uri": location.path, "uriBaseId": "PROJECTROOT"}
+        }
+        if location.start_line is not None:
+            finding_region = {"startLine": location.start_line}
+            if location.start_column is not None:
+                finding_region["startColumn"] = location.start_column
+            finding_physical["region"] = finding_region
+        sarif_results.append(
+            {
+                "ruleId": finding.rule_id.value,
+                "level": levels[finding.severity],
+                "message": {"text": get_rule(finding.rule_id).title},
+                "locations": [{"physicalLocation": finding_physical}],
+                "properties": {
+                    "component": finding.component,
+                    "environment_id": finding.environment_id or "",
+                    "config_key_id": finding.config_key_id or "",
+                    "phase": finding.phase.value,
+                },
+            }
+        )
+    sarif_results.sort(
+        key=lambda item: (
+            item["ruleId"],
+            item["locations"][0]["physicalLocation"]["artifactLocation"]["uri"],
+        )
+    )
     document = {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "version": "2.1.0",
