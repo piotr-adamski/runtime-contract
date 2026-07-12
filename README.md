@@ -59,8 +59,13 @@ Minimal GitHub Actions step:
 The CI snippet becomes directly installable from PyPI with v0.1.0. Before publication, replace the
 install target with the checked-out package or a verified wheel produced by this repository.
 
-For line-level GitHub Code Scanning alerts, minimal permissions, SARIF retention, and correct
-handling of findings exit `1`, use the complete [Code Scanning example](docs/github-code-scanning.md).
+For line-level GitHub Code Scanning alerts, use the complete
+[Code Scanning workflow](.github/workflows/code-scanning.yml) and its
+[configuration](.github/runtime-contract-code-scanning.yaml). It uses only `contents: read` and
+`security-events: write`, retains SARIF for seven days, and needs no repository secret. A findings
+exit `1` remains uploadable; unreliable exit `2` fails the workflow. Copy both files, adapt the
+configured roots and classifications, and replace the source install with
+`uv tool install runtime-contract` after the immutable PyPI release.
 
 ## Scope and non-goals
 
