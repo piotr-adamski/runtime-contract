@@ -41,6 +41,8 @@ def render_text(result: ScanResult, verbosity: int = 0) -> str:
         f"  Skipped: {summary.skipped}",
         f"  Config keys: {summary.config_keys}",
         f"  Consumers: {summary.consumers}",
+        f"  Flow nodes: {summary.flow_nodes}",
+        f"  Flow edges: {summary.flow_edges}",
         f"  Diagnostics: {summary.diagnostics}",
     ]
     if result.contract.consumers:

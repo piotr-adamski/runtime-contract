@@ -33,10 +33,12 @@ TOP_LEVEL_FIELDS = {
     "status",
     "summary",
     "contract",
+    "flow_graph",
     "diagnostics",
     "findings",
     "files",
 }
+REQUIRED_TOP_LEVEL_FIELDS = TOP_LEVEL_FIELDS - {"flow_graph"}
 
 
 def report() -> str:
@@ -129,6 +131,9 @@ def test_canonical_shape_metadata_inputs_null_empty_and_no_host_data() -> None:
     assert inputs["include"] == inputs["exclude"] == []
     assert not {"generated_at", "hostname", "cwd", "pid"}.intersection(value)
     assert "consumers" not in value and "providers" not in value
+    flow_graph = value["flow_graph"]
+    assert isinstance(flow_graph, dict)
+    assert set(flow_graph) == {"nodes", "edges"}
 
 
 def test_missing_config_is_null_and_writer_has_canonical_bytes(tmp_path: Path) -> None:
@@ -159,13 +164,13 @@ def test_schema_is_draft_2020_12_stable_and_validates_report() -> None:
         "https://raw.githubusercontent.com/piotr-adamski/runtime-contract/main/"
         "schemas/runtime-contract-scan-result-v1.schema.json"
     )
-    assert set(schema["required"]) == TOP_LEVEL_FIELDS
+    assert set(schema["required"]) == REQUIRED_TOP_LEVEL_FIELDS
     jsonschema.Draft202012Validator.check_schema(schema)
     jsonschema.validate(payload(), schema)
     assert generate_schema_bytes() == generate_schema_bytes() == schema_bytes()
 
 
-@pytest.mark.parametrize("missing", sorted(TOP_LEVEL_FIELDS))
+@pytest.mark.parametrize("missing", sorted(REQUIRED_TOP_LEVEL_FIELDS))
 def test_every_canonical_top_level_field_is_required(missing: str) -> None:
     document = payload()
     document.pop(missing)
@@ -180,6 +185,29 @@ def test_every_canonical_top_level_field_is_required(missing: str) -> None:
     assert "Traceback" not in public_error
     assert "SECRET_VALUE" not in public_error
     assert "/home/" not in public_error
+
+
+def test_reader_rebuilds_missing_flow_graph_for_early_v1_compatibility() -> None:
+    document = payload()
+    expected = document.pop("flow_graph")
+    summary = cast(dict[str, object], document["summary"])
+    summary.pop("flow_nodes")
+    summary.pop("flow_edges")
+
+    parsed = parse_json_report(json.dumps(document))
+
+    assert parsed.flow_graph.model_dump(mode="json") == expected
+    assert parsed.summary.flow_nodes == len(parsed.flow_graph.nodes)
+    assert parsed.summary.flow_edges == len(parsed.flow_graph.edges)
+
+
+def test_reader_rejects_missing_graph_when_legacy_summary_is_not_an_object() -> None:
+    document = payload()
+    document.pop("flow_graph")
+    document["summary"] = []
+
+    with pytest.raises(ValueError, match="invalid runtime-contract JSON report"):
+        parse_json_report(json.dumps(document))
 
 
 def test_typed_finding_is_supported_and_summary_must_match() -> None:
@@ -238,8 +266,12 @@ def test_reader_rejects_encoding_bom_unknown_fields_paths_and_schema_id() -> Non
 def test_exact_d1_12_legacy_normalizes_and_reserializes_canonical() -> None:
     canonical = payload()
     inputs = canonical.pop("inputs")
+    canonical.pop("flow_graph")
     canonical.pop("metadata")
     canonical.pop("schema_version")
+    summary = cast(dict[str, object], canonical["summary"])
+    summary.pop("flow_nodes")
+    summary.pop("flow_edges")
     assert isinstance(inputs, dict)
     legacy = canonical | {
         "root": inputs["root"],
@@ -259,6 +291,17 @@ def test_exact_d1_12_legacy_normalizes_and_reserializes_canonical() -> None:
     hybrid = legacy | {"schema_version": 1}
     with pytest.raises(ValueError):
         parse_json_report(json.dumps(hybrid))
+
+
+def test_reader_rejects_flow_graph_inconsistent_with_contract() -> None:
+    document = payload()
+    graph = cast(dict[str, object], document["flow_graph"])
+    graph["edges"] = []
+    summary = cast(dict[str, object], document["summary"])
+    summary["flow_edges"] = 0
+
+    with pytest.raises(ValueError, match="invalid runtime-contract JSON report"):
+        parse_json_report(json.dumps(document))
 
 
 def test_golden_snapshot_is_exact_and_repeatable() -> None:

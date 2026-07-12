@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Add a deterministic, value-blind source-to-sink graph derived from canonical fact IDs, with
+  consumer, delivery, declaration, and environment queries that preserve component and phase
+  boundaries and remain backward-compatible with early v1 reports.
 - Add presence-only ConfigMap/Secret inventory and project-wide Kubernetes reference linking,
   resolving local same-namespace `envFrom` key names without retaining cleartext or base64 values.
 - Add bounded Kubernetes `env` and `envFrom` extraction plus end-to-end workload delivery analysis,

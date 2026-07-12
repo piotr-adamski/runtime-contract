@@ -54,9 +54,11 @@ with exit code 2.
 
 The JSON report is the versioned public automation API `runtime-contract/v1` with integer
 `schema_version: 1`. Its required top-level fields are `schema_id`, `schema_version`, `metadata`,
-`inputs`, `status`, `summary`, `contract`, `diagnostics`, `findings`, and `files`. Consumers and
-providers remain exclusively inside the facts-only `contract`; findings have their public typed
-shape but remain empty until the rules engine is implemented.
+`inputs`, `status`, `summary`, `contract`, `diagnostics`, `findings`, and `files`. The optional
+`flow_graph` field is derived deterministically from canonical fact IDs and is rebuilt when an
+early v1 document omits it. Consumers and providers remain exclusively inside the facts-only
+`contract`; findings have their public typed shape but remain empty until the rules engine is
+implemented.
 
 Optional scalars without a value are JSON `null`; empty sequences are `[]`, empty maps are `{}`,
 and required fields are never omitted. Paths are NFC, relative POSIX paths contained by the scan
@@ -169,6 +171,12 @@ Analyzer observations can be aggregated through the pure `runtime_contract.norma
 It canonicalizes relative source locations, deduplicates identical facts, rejects conflicts and
 invalid references with typed technical errors, and returns a deterministic facts-only `Contract`.
 See [`docs/normalization-api.md`](docs/normalization-api.md).
+
+The pure `runtime_contract.flow` API derives a value-blind source-to-sink graph from a canonical
+`Contract`. It connects consumer → configuration key → delivery provider → declaration provider
+and delivery provider → environment using fact IDs, never variable-name matching. Component,
+environment, and phase context remains on each edge; unresolved bulk providers target only their
+environment and never claim a key. See [`docs/source-to-sink-graph.md`](docs/source-to-sink-graph.md).
 
 `JavaScriptTypeScriptAnalyzer` uses the Python Tree-sitter bindings and distributed JavaScript,
 TypeScript, and TSX grammars for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.mts`, `.cts`, and `.tsx`.
