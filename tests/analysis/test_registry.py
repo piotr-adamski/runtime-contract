@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import traceback
 from typing import Any
 
 import pytest
@@ -94,11 +95,15 @@ def test_missing_resolve_raises_and_analyze_returns_failed(analyzer_input: Any) 
     assert result.diagnostics[0].code.value == "analyzer_not_registered"
 
 
-@pytest.mark.parametrize("analyzer", [RaisingAnalyzer(ValueError("boom")), InvalidResultAnalyzer()])
+@pytest.mark.parametrize(
+    "analyzer",
+    [RaisingAnalyzer(ValueError("exception-value-canary-Q7Z9")), InvalidResultAnalyzer()],
+)
 def test_execution_contract_failures_are_wrapped(analyzer: Any, analyzer_input: Any) -> None:
     with pytest.raises(AnalyzerExecutionError) as caught:
         AnalyzerRegistry((analyzer,)).analyze(analyzer_input)
-    assert caught.value.__cause__ is not None
+    assert caught.value.__cause__ is None
+    assert "exception-value-canary-Q7Z9" not in "".join(traceback.format_exception(caught.value))
 
 
 @pytest.mark.parametrize("error", [KeyboardInterrupt(), SystemExit(), GeneratorExit()])

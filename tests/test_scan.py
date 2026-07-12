@@ -1,9 +1,13 @@
 """End-to-end D1.12 scan flow tests."""
 
+import builtins
+import hashlib
 import importlib.metadata
 import json
 import os
 import re
+import socket
+import subprocess
 from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
@@ -682,6 +686,50 @@ spec:
     assert payload["contract"]["config_keys"] == []
     assert payload["contract"]["providers"] == []
     assert payload["diagnostics"] == []
+
+
+def test_full_scan_uses_no_network_subprocess_execution_or_source_mutation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(tmp_path / "app.py", 'import os\nos.getenv("PYTHON_KEY")\n')
+    write(tmp_path / "app.ts", "process.env.TYPESCRIPT_KEY;\n")
+    write(tmp_path / ".env.example", "DOCUMENTED_KEY=example\n")
+    write(tmp_path / "Dockerfile", "FROM scratch\nARG BUILD_KEY\n")
+    write(tmp_path / "compose.yaml", "services: {app: {environment: {COMPOSE_KEY: value}}}\n")
+    write(
+        tmp_path / "pod.yaml",
+        """apiVersion: v1
+kind: Pod
+metadata: {name: app}
+spec: {containers: [{name: app, env: [{name: KUBERNETES_KEY, value: hidden}]}]}
+""",
+    )
+    files = tuple(sorted(path for path in tmp_path.iterdir() if path.is_file()))
+    before = {
+        path.name: (path.stat().st_mtime_ns, hashlib.sha256(path.read_bytes()).hexdigest())
+        for path in files
+    }
+
+    def forbidden(*args: object, **kwargs: object) -> None:
+        raise AssertionError("forbidden capability invoked")
+
+    monkeypatch.setattr(socket, "socket", forbidden)
+    monkeypatch.setattr(subprocess, "run", forbidden)
+    monkeypatch.setattr(subprocess, "Popen", forbidden)
+    monkeypatch.setattr(builtins, "eval", forbidden)
+    monkeypatch.setattr(builtins, "exec", forbidden)
+    monkeypatch.setattr(os, "replace", forbidden)
+    monkeypatch.setattr(os, "unlink", forbidden)
+    monkeypatch.setattr("runtime_contract.scan.engine.tempfile.mkstemp", forbidden)
+
+    run = scan_engine.run_scan(ScanRequest(path=tmp_path, output_format="json"))
+    assert run.exit_code == 0
+    assert run.result.summary.analyzed == 6
+    after = {
+        path.name: (path.stat().st_mtime_ns, hashlib.sha256(path.read_bytes()).hexdigest())
+        for path in files
+    }
+    assert after == before
 
 
 def test_explicit_config_and_escape_rules(tmp_path: Path) -> None:

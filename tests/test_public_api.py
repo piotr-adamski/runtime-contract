@@ -154,6 +154,7 @@ PUBLIC_EXPORTS = {
         "Severity",
         "SourceLocation",
     ),
+    "runtime_contract.errors": ("PublicError",),
     "runtime_contract.flow": (
         "FlowEdge",
         "FlowEdgeKind",
@@ -191,6 +192,10 @@ PUBLIC_EXPORTS = {
         "run_scan",
         "schema_bytes",
         "write_atomic",
+    ),
+    "runtime_contract.security": (
+        "RedactedException",
+        "redact_exception",
     ),
     "runtime_contract.sensitivity": (
         "SensitivityClassification",

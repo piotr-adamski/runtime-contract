@@ -51,12 +51,12 @@ class AnalyzerNotRegisteredError(LookupError):
 
 class AnalyzerExecutionError(RuntimeError):
     def __init__(self, analyzer_id: str, kind: CandidateKind, cause: BaseException) -> None:
+        del cause
         super().__init__(
             f"analyzer {analyzer_id!r} violated its execution contract for {kind.value}"
         )
         self.analyzer_id = analyzer_id
         self.kind = kind
-        self.__cause__ = cause
 
 
 class AnalyzerRegistry:
@@ -122,4 +122,4 @@ class AnalyzerRegistry:
 
 
 def _raise_execution(analyzer_id: str, kind: CandidateKind, cause: BaseException) -> NoReturn:
-    raise AnalyzerExecutionError(analyzer_id, kind, cause) from cause
+    raise AnalyzerExecutionError(analyzer_id, kind, cause) from None

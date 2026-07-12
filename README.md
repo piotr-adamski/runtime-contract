@@ -85,6 +85,12 @@ versions evolve independently; older readers need not read newer v1 documents.
 Local-only operation without telemetry or data transmission remains a project requirement. There is
 currently no release or PyPI publication.
 
+The runtime package imports no network, subprocess, dynamic-execution, or logging capability.
+Analyzed code is data only. Real `.env*` files are excluded except the exact `.env.example` name;
+source candidates are identity-checked immediately before reading. Public technical errors pass
+through one redaction boundary that retains neither exception text, arguments, causes, reprs, nor
+tracebacks. Reports are read-only unless the caller explicitly selects an atomic `--output` path.
+
 Sensitivity classification is deterministic and value-blind. `classify_sensitivity()` recognizes
 terminal name forms such as `*_TOKEN`, `*_PASSWORD`, `*_SECRET`, `*_PRIVATE_KEY`, `*_API_KEY`,
 `*APIKEY`, and `*_CREDENTIAL(S)` across underscore, hyphen, dot, whitespace, and camel-case

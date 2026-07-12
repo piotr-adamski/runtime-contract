@@ -10,6 +10,7 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from runtime_contract.config.models import Execution, FailOn, OutputFormat, RuntimeContractConfig
+from runtime_contract.errors import PublicError
 
 ENVIRONMENT_KEYS = {
     "environment": "RUNTIME_CONTRACT_ENVIRONMENT",
@@ -62,9 +63,10 @@ def resolve_execution(
     try:
         effective = Execution.model_validate(values)
     except ValidationError as error:
-        raise ValueError("invalid execution setting") from error
+        del error
+        raise PublicError("invalid execution setting") from None
     if effective.environment is not None and effective.environment not in config.environments:
-        raise ValueError("unknown environment")
+        raise PublicError("unknown environment")
     return EffectiveExecution(effective, sources)
 
 
