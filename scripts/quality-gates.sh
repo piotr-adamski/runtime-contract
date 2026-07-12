@@ -219,7 +219,25 @@ smoke_distribution() {
     '  containers:' \
     '    - name: app' \
     '      env: [{name: ARTIFACT_KEY, value: artifact-kubernetes-value-canary-Q7Z9}]' \
+    '      envFrom:' \
+    '        - prefix: ART_' \
+    '          configMapRef: {name: artifact-config}' \
+    '        - secretRef: {name: artifact-secret}' \
     >"$temp_dir/fixture/api/kubernetes.yaml"
+  printf '%s\n' \
+    'apiVersion: v1' \
+    'kind: ConfigMap' \
+    'metadata: {name: artifact-config}' \
+    'data: {MODE: artifact-config-value-canary-Q7Z9}' \
+    'binaryData: {CERT: YXJ0aWZhY3QtYmluYXJ5LWNhbmFyeS1RN1o5}' \
+    >"$temp_dir/fixture/api/kubernetes-config.yaml"
+  printf '%s\n' \
+    'apiVersion: v1' \
+    'kind: Secret' \
+    'metadata: {name: artifact-secret}' \
+    'data: {TOKEN: YXJ0aWZhY3Qtc2VjcmV0LWJhc2U2NC1jYW5hcnktUTdaOQ==}' \
+    'stringData: {PASSWORD: artifact-secret-cleartext-canary-Q7Z9}' \
+    >"$temp_dir/fixture/api/kubernetes-secret.yaml"
   (
     cd "$temp_dir"
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
@@ -236,7 +254,7 @@ smoke_distribution() {
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'from runtime_contract.normalization import NormalizationError, NormalizationErrorCode, normalize_observations; assert normalize_observations(()).model_dump_json() and NormalizationError and NormalizationErrorCode'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
-      'from runtime_contract.kubernetes import KubernetesEnvSourceKind, KubernetesInput, KubernetesTraversalResult, traverse_kubernetes_workloads; result=traverse_kubernetes_workloads(KubernetesInput(path="pod.yaml", content=b"apiVersion: v1\nkind: Pod\nmetadata: {name: x}\nspec: {containers: [{name: web, env: [{name: TOKEN, value: artifact-kubernetes-value-canary-Q7Z9}]}]}\n")); assert KubernetesTraversalResult and result.contexts[0].env[0].source_kind is KubernetesEnvSourceKind.VALUE and "artifact-kubernetes-value-canary-Q7Z9" not in result.model_dump_json()'
+      'from runtime_contract.kubernetes import KubernetesEnvSourceKind, KubernetesInput, KubernetesObjectKind, KubernetesTraversalResult, traverse_kubernetes_workloads; result=traverse_kubernetes_workloads(KubernetesInput(path="objects.yaml", content=b"apiVersion: v1\nkind: Secret\nmetadata: {name: artifact}\ndata: {TOKEN: YXJ0aWZhY3Qtc2VjcmV0LWNhbmFyeQ==}\nstringData: {PASSWORD: artifact-secret-cleartext-canary-Q7Z9}\n")); assert KubernetesTraversalResult and result.objects[0].object_kind is KubernetesObjectKind.SECRET and [key.name for key in result.objects[0].keys] == ["PASSWORD", "TOKEN"] and "artifact-secret-cleartext-canary-Q7Z9" not in result.model_dump_json() and "YXJ0aWZhY3Qtc2VjcmV0LWNhbmFyeQ==" not in result.model_dump_json()'
     PYTHONPATH= "$temp_dir/venv/bin/python" -c \
       'import importlib; modules=("runtime_contract", "runtime_contract.analysis", "runtime_contract.domain", "runtime_contract.kubernetes", "runtime_contract.normalization", "runtime_contract.scan"); assert all(getattr(importlib.import_module(name), exported) is not None for name in modules for exported in importlib.import_module(name).__all__)'
     for scan_format in text json sarif; do
@@ -245,7 +263,7 @@ smoke_distribution() {
       PYTHONHASHSEED=2 PYTHONPATH= "$temp_dir/venv/bin/runtime-contract" scan fixture \
         --format "$scan_format" >"$scan_format.second"
       cmp "$scan_format.first" "$scan_format.second"
-      if grep -F 'artifact-kubernetes-value-canary-Q7Z9' \
+      if grep -E 'artifact-kubernetes-value-canary-Q7Z9|artifact-config-value-canary-Q7Z9|YXJ0aWZhY3QtYmluYXJ5LWNhbmFyeS1RN1o5|YXJ0aWZhY3Qtc2VjcmV0LWJhc2U2NC1jYW5hcnktUTdaOQ==|artifact-secret-cleartext-canary-Q7Z9' \
         "$scan_format.first" "$scan_format.second"; then
         echo "artifact scan exposed a Kubernetes env value" >&2
         exit 1

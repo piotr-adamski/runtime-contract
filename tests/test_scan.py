@@ -4,14 +4,15 @@ import importlib.metadata
 import json
 import os
 import re
+from dataclasses import replace
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import jsonschema
 import pytest
 from typer.testing import CliRunner
 
-from runtime_contract.analysis import AnalyzerExecutionError, AnalyzerRegistry
+from runtime_contract.analysis import AnalyzerExecutionError, AnalyzerRegistry, KubernetesAnalyzer
 from runtime_contract.analysis.dockerfile import MAX_DOCKERFILE_BYTES
 from runtime_contract.analysis.dotenv import MAX_DOTENV_BYTES
 from runtime_contract.cli import app
@@ -22,6 +23,7 @@ from runtime_contract.discovery import (
     DiscoveryError,
     DiscoveryErrorCode,
     DiscoveryItem,
+    DiscoveryResult,
     discover,
 )
 from runtime_contract.normalization import NormalizationError, NormalizationErrorCode
@@ -176,6 +178,142 @@ def test_kubernetes_fixture_is_analyzed_end_to_end_without_values(output_format:
         assert payload["summary"]["config_keys"] == 7
         assert payload["summary"]["providers"] == 9
         assert payload["contract"]["environments"][0]["target"] == "tenant-a/Deployment/api"
+
+
+@pytest.mark.parametrize("output_format", ["text", "json", "sarif"])
+def test_kubernetes_scan_resolves_local_presence_across_files_without_values(
+    tmp_path: Path, output_format: str
+) -> None:
+    write(
+        tmp_path / "workload.yaml",
+        """apiVersion: v1
+kind: Pod
+metadata: {name: api, namespace: tenant-a}
+spec:
+  containers:
+    - name: app
+      envFrom:
+        - prefix: APP_
+          configMapRef: {name: app-config}
+        - secretRef: {name: app-secret}
+        - configMapRef: {name: external, optional: true}
+""",
+    )
+    write(
+        tmp_path / "config.yaml",
+        """apiVersion: v1
+kind: ConfigMap
+metadata: {name: app-config, namespace: tenant-a}
+data: {MODE: config-value-canary-Q7Z9}
+binaryData: {CERT: Y29uZmlnLWJpbmFyeS1jYW5hcnk=}
+""",
+    )
+    write(
+        tmp_path / "secret.yaml",
+        """apiVersion: v1
+kind: Secret
+metadata: {name: app-secret, namespace: tenant-a}
+data: {TOKEN: c2VjcmV0LWJhc2U2NC1jYW5hcnk=}
+stringData: {PASSWORD: secret-cleartext-canary-Q7Z9}
+""",
+    )
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", output_format])
+
+    assert result.exit_code == 0
+    for forbidden in (
+        "config-value-canary-Q7Z9",
+        "Y29uZmlnLWJpbmFyeS1jYW5hcnk=",
+        "c2VjcmV0LWJhc2U2NC1jYW5hcnk=",
+        "secret-cleartext-canary-Q7Z9",
+    ):
+        assert forbidden not in result.stdout + result.stderr
+    if output_format == "json":
+        payload = json.loads(result.stdout)
+        assert payload["status"] == "complete"
+        assert payload["summary"]["analyzed"] == 3
+        assert payload["summary"]["complete_files"] == 3
+        assert sorted(item["name"] for item in payload["contract"]["config_keys"]) == [
+            "APP_CERT",
+            "APP_MODE",
+            "PASSWORD",
+            "TOKEN",
+        ]
+        evidence = [item["evidence_kind"] for item in payload["contract"]["providers"]]
+        assert evidence.count("resolved_bulk") == 4
+        assert evidence.count("unresolved_bulk") == 1
+
+
+def test_kubernetes_project_preserves_exact_per_file_status(tmp_path: Path) -> None:
+    write(
+        tmp_path / "config.yaml",
+        """apiVersion: v1
+kind: ConfigMap
+metadata: {name: config}
+data: {SAFE: hidden}
+""",
+    )
+    write(
+        tmp_path / "broken.yaml",
+        """apiVersion: v1
+kind: Secret
+metadata: {name: broken}
+stringData: invalid
+""",
+    )
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+
+    assert result.exit_code == 2
+    payload = json.loads(result.stdout)
+    assert payload["status"] == "failed"
+    assert payload["summary"]["complete_files"] == 1
+    assert payload["summary"]["partial_files"] == 0
+    assert payload["summary"]["failed_files"] == 1
+    assert {item["path"]: item["status"] for item in payload["files"]} == {
+        "broken.yaml": "failed",
+        "config.yaml": "complete",
+    }
+
+
+def test_kubernetes_scan_never_resolves_across_components(tmp_path: Path) -> None:
+    write(
+        tmp_path / "runtime-contract.yaml",
+        """version: 1
+roots:
+  api: apps/api
+  shared: apps/shared
+""",
+    )
+    write(
+        tmp_path / "apps/api/workload.yaml",
+        """apiVersion: v1
+kind: Pod
+metadata: {name: api}
+spec:
+  containers:
+    - name: app
+      envFrom:
+        - configMapRef: {name: shared-config}
+""",
+    )
+    write(
+        tmp_path / "apps/shared/config.yaml",
+        """apiVersion: v1
+kind: ConfigMap
+metadata: {name: shared-config}
+data: {CROSS_COMPONENT: hidden-canary}
+""",
+    )
+
+    result = runner.invoke(app, ["scan", str(tmp_path), "--format", "json"])
+
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["summary"]["config_keys"] == 0
+    assert payload["summary"]["providers"] == 1
+    assert payload["contract"]["providers"][0]["evidence_kind"] == "unresolved_bulk"
+    assert "hidden-canary" not in result.stdout + result.stderr
 
 
 @pytest.mark.parametrize("output_format", ["text", "json", "sarif"])
@@ -659,6 +797,7 @@ def test_engine_failures_return_failed_reports_and_continue(
     write(tmp_path / "a.py", 'import os\nos.getenv("A")\n')
     write(tmp_path / "b.py", 'import os\nos.getenv("B")\n')
     original_revalidate = DiscoveryItem.revalidate
+    original_analyze = AnalyzerRegistry.analyze
 
     def mutate_one(item: DiscoveryItem, root: Path) -> Path:
         if item.path == "a.py":
@@ -680,6 +819,46 @@ def test_engine_failures_return_failed_reports_and_continue(
     analyzer = scan_engine.run_scan(ScanRequest(path=tmp_path, output_format="json"))
     assert analyzer.exit_code == 2
     assert {item.code.value for item in analyzer.result.diagnostics} == {"analyzer_contract"}
+
+    monkeypatch.setattr(AnalyzerRegistry, "analyze", original_analyze)
+    write(
+        tmp_path / "pod.yaml",
+        "apiVersion: v1\nkind: Pod\nmetadata: {name: api}\nspec: {containers: [{name: app}]}\n",
+    )
+
+    def kubernetes_contract(*args: object, **kwargs: object) -> None:
+        raise TypeError("redacted analyzer failure")
+
+    monkeypatch.setattr(KubernetesAnalyzer, "analyze_project", kubernetes_contract)
+    kubernetes = scan_engine.run_scan(ScanRequest(path=tmp_path, output_format="json"))
+    assert kubernetes.exit_code == 2
+    kubernetes_file = next(item for item in kubernetes.result.files if item.path == "pod.yaml")
+    assert kubernetes_file.status == "failed"
+    assert any(
+        item.code.value == "analyzer_contract" and item.primary_location.path == "pod.yaml"
+        for item in kubernetes.result.diagnostics
+    )
+
+
+def test_engine_records_a_discovered_unregistered_kind_as_skipped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(tmp_path / "unsupported.py", "x = 1\n")
+    actual_discover = discover
+
+    def with_unregistered_kind(*args: Any, **kwargs: Any) -> DiscoveryResult:
+        result = actual_discover(*args, **kwargs)
+        candidate = replace(result.candidates[0], kind=CandidateKind.CONFIG)
+        return replace(result, candidates=(candidate,))
+
+    monkeypatch.setattr("runtime_contract.scan.engine.discover", with_unregistered_kind)
+    result = scan_engine.run_scan(ScanRequest(path=tmp_path, output_format="json"))
+
+    assert result.exit_code == 0
+    assert result.result.summary.analyzed == 0
+    assert result.result.summary.skipped == 1
+    assert result.result.files[0].status == "skipped"
+    assert result.result.files[0].reason == "no_registered_analyzer"
 
 
 def test_normalization_failure_returns_safe_failed_contract(

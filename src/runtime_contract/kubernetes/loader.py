@@ -21,6 +21,13 @@ from runtime_contract.kubernetes.models import (
     KubernetesEnvSourceKind,
     KubernetesInput,
     KubernetesLoadStatus,
+    KubernetesObjectKeyField,
+    KubernetesObjectKeyPresence,
+    KubernetesObjectKind,
+    KubernetesObjectPresence,
+    KubernetesReferenceKind,
+    KubernetesReferenceResolution,
+    KubernetesSourceStatus,
     KubernetesTraversalResult,
     KubernetesWorkloadKind,
 )
@@ -34,6 +41,8 @@ MAX_SCALAR_BYTES = 64 * 1024
 MAX_CONTAINERS = 4_096
 MAX_ENV_ENTRIES = 4_096
 MAX_ENV_FROM_ENTRIES = 4_096
+MAX_KUBERNETES_OBJECTS = 4_096
+MAX_KUBERNETES_OBJECT_KEYS = 16_384
 
 _SAFE_TAGS = frozenset(
     {
@@ -94,6 +103,95 @@ class _Context:
 
 def _unique_diagnostics(items: Iterable[KubernetesDiagnostic]) -> tuple[KubernetesDiagnostic, ...]:
     return tuple({item.id: item for item in sorted(items, key=lambda item: item.id)}.values())
+
+
+def _resolve_references(
+    contexts: Iterable[KubernetesContainerContext],
+    objects: Iterable[KubernetesObjectPresence],
+) -> tuple[KubernetesReferenceResolution, ...]:
+    object_index = {item.identity(): item for item in objects}
+    result: list[KubernetesReferenceResolution] = []
+    for container in contexts:
+        for binding in container.env:
+            if binding.source_kind not in {
+                KubernetesEnvSourceKind.SECRET_KEY_REF,
+                KubernetesEnvSourceKind.CONFIG_MAP_KEY_REF,
+            }:
+                continue
+            assert binding.reference_name is not None
+            assert binding.reference_key is not None
+            assert binding.optional is not None
+            object_kind = (
+                KubernetesObjectKind.SECRET
+                if binding.source_kind is KubernetesEnvSourceKind.SECRET_KEY_REF
+                else KubernetesObjectKind.CONFIG_MAP
+            )
+            reference_kind = (
+                KubernetesReferenceKind.SECRET_KEY_REF
+                if object_kind is KubernetesObjectKind.SECRET
+                else KubernetesReferenceKind.CONFIG_MAP_KEY_REF
+            )
+            matched = object_index.get(
+                (container.namespace, object_kind.value, binding.reference_name)
+            )
+            result.append(
+                KubernetesReferenceResolution(
+                    path=container.path,
+                    document_index=container.document_index,
+                    namespace=container.namespace,
+                    workload_kind=container.workload_kind,
+                    workload_name=container.workload_name,
+                    container_name=container.container_name,
+                    reference_kind=reference_kind,
+                    source_index=binding.index,
+                    reference_name=binding.reference_name,
+                    reference_key=binding.reference_key,
+                    optional=binding.optional,
+                    resolved_object=matched is not None,
+                    resolved_key=(
+                        matched is not None
+                        and binding.reference_key in {item.name for item in matched.keys}
+                    ),
+                    location=binding.location,
+                    source_location=binding.source_location,
+                )
+            )
+        for source in container.env_from:
+            object_kind = (
+                KubernetesObjectKind.SECRET
+                if source.source_kind is KubernetesEnvFromSourceKind.SECRET_REF
+                else KubernetesObjectKind.CONFIG_MAP
+            )
+            reference_kind = (
+                KubernetesReferenceKind.SECRET_REF
+                if object_kind is KubernetesObjectKind.SECRET
+                else KubernetesReferenceKind.CONFIG_MAP_REF
+            )
+            matched = object_index.get(
+                (container.namespace, object_kind.value, source.reference_name)
+            )
+            result.append(
+                KubernetesReferenceResolution(
+                    path=container.path,
+                    document_index=container.document_index,
+                    namespace=container.namespace,
+                    workload_kind=container.workload_kind,
+                    workload_name=container.workload_name,
+                    container_name=container.container_name,
+                    reference_kind=reference_kind,
+                    source_index=source.index,
+                    reference_name=source.reference_name,
+                    optional=source.optional,
+                    prefix=source.prefix,
+                    resolved_object=matched is not None,
+                    resolved_keys=(
+                        tuple(item.name for item in matched.keys) if matched is not None else ()
+                    ),
+                    location=source.location,
+                    source_location=source.source_location,
+                )
+            )
+    return tuple(result)
 
 
 def _mapping(
@@ -566,32 +664,106 @@ def _containers(
     return result
 
 
+def _object_presence(
+    context: _Context,
+    fields: dict[str, tuple[ScalarNode, Node]],
+    *,
+    document_index: int,
+    api_version: str,
+    object_kind: KubernetesObjectKind,
+    name: str,
+    namespace: str,
+) -> KubernetesObjectPresence | None:
+    diagnostic_count = len(context.diagnostics)
+    field_kinds = (
+        (
+            "data",
+            KubernetesObjectKeyField.DATA,
+        ),
+        (
+            "stringData",
+            KubernetesObjectKeyField.STRING_DATA,
+        ),
+        (
+            "binaryData",
+            KubernetesObjectKeyField.BINARY_DATA,
+        ),
+    )
+    allowed = (
+        {"data", "binaryData"}
+        if object_kind is KubernetesObjectKind.CONFIG_MAP
+        else {"data", "stringData"}
+    )
+    keys: dict[str, KubernetesObjectKeyPresence] = {}
+    limit_reported = False
+    for field_name, field_kind in field_kinds:
+        pair = fields.get(field_name)
+        if pair is None:
+            continue
+        if field_name not in allowed:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_OBJECT_KEYS, pair[0])
+            continue
+        node = pair[1]
+        values = _mapping(context, node)
+        if values is None:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_OBJECT_KEYS, node)
+            continue
+        if len(values) > MAX_KUBERNETES_OBJECT_KEYS:
+            context.diagnostic(KubernetesDiagnosticCode.SAFETY_LIMIT, node)
+            continue
+        for key_name, (key_node, _value_node) in values.items():
+            if not key_name or "\0" in key_name or "=" in key_name:
+                context.diagnostic(KubernetesDiagnosticCode.INVALID_OBJECT_KEYS, key_node)
+                continue
+            if key_name not in keys and len(keys) >= MAX_KUBERNETES_OBJECT_KEYS:
+                if not limit_reported:
+                    context.diagnostic(KubernetesDiagnosticCode.SAFETY_LIMIT, key_node)
+                    limit_reported = True
+                continue
+            keys.setdefault(
+                key_name,
+                KubernetesObjectKeyPresence(
+                    name=key_name,
+                    field=field_kind,
+                    location=context.location(key_node),
+                ),
+            )
+    if len(context.diagnostics) != diagnostic_count:
+        return None
+    kind_pair = fields["kind"]
+    return KubernetesObjectPresence(
+        path=context.source.path,
+        document_index=document_index,
+        api_version=api_version,
+        object_kind=object_kind,
+        name=name,
+        namespace=namespace,
+        location=context.location(kind_pair[0]),
+        keys=tuple(keys.values()),
+    )
+
+
 def _traverse_document(
     context: _Context,
     root: Node,
     document_index: int,
     *,
     ignore_unmarked: bool,
-) -> list[KubernetesContainerContext]:
+) -> tuple[list[KubernetesContainerContext], list[KubernetesObjectPresence]]:
     fields = _mapping(context, root)
     if fields is None:
         context.diagnostic(KubernetesDiagnosticCode.INVALID_DOCUMENT, root)
-        return []
+        return [], []
     if ignore_unmarked and "apiVersion" not in fields and "kind" not in fields:
-        return []
+        return [], []
     api_version = _string(fields.get("apiVersion"))
     if api_version is None:
         context.diagnostic(KubernetesDiagnosticCode.MISSING_API_VERSION, root)
-        return []
+        return [], []
     kind_text = _string(fields.get("kind"))
     if kind_text is None:
         context.diagnostic(KubernetesDiagnosticCode.MISSING_KIND, root)
-        return []
-    try:
-        kind = KubernetesWorkloadKind(kind_text)
-    except ValueError:
-        context.diagnostic(KubernetesDiagnosticCode.UNSUPPORTED_RESOURCE, fields["kind"][0])
-        return []
+        return [], []
     metadata_pair = fields.get("metadata")
     metadata_node = metadata_pair[1] if metadata_pair is not None else root
     metadata = _mapping(context, metadata_node) if metadata_pair is not None else None
@@ -600,53 +772,89 @@ def _traverse_document(
             KubernetesDiagnosticCode.INVALID_METADATA,
             metadata_node,
         )
-        return []
-    workload_name = _string(metadata.get("name"))
-    if workload_name is None:
+        return [], []
+    resource_name = _string(metadata.get("name"))
+    if resource_name is None or "\0" in resource_name:
         context.diagnostic(KubernetesDiagnosticCode.MISSING_WORKLOAD_NAME, metadata_node)
-        return []
-    namespace = _string(metadata.get("namespace")) or "default"
+        return [], []
+    namespace_pair = metadata.get("namespace")
+    if namespace_pair is None:
+        namespace = "default"
+    else:
+        namespace_value = _string_allow_empty(namespace_pair)
+        if namespace_value is None or "\0" in namespace_value:
+            context.diagnostic(KubernetesDiagnosticCode.INVALID_METADATA, namespace_pair[1])
+            return [], []
+        namespace = namespace_value or "default"
+    try:
+        object_kind = KubernetesObjectKind(kind_text)
+    except ValueError:
+        object_kind = None
+    if object_kind is not None:
+        presence = _object_presence(
+            context,
+            fields,
+            document_index=document_index,
+            api_version=api_version,
+            object_kind=object_kind,
+            name=resource_name,
+            namespace=namespace,
+        )
+        return [], [presence] if presence is not None else []
+    try:
+        kind = KubernetesWorkloadKind(kind_text)
+    except ValueError:
+        context.diagnostic(KubernetesDiagnosticCode.UNSUPPORTED_RESOURCE, fields["kind"][0])
+        return [], []
     assert isinstance(root, MappingNode)
     pod_spec = _pod_spec(context, root, kind)
     if pod_spec is None:
-        return []
+        return [], []
     assert isinstance(pod_spec, MappingNode)
     workload_location = context.location(fields["kind"][0])
-    return [
-        *_containers(
-            context,
-            pod_spec,
-            key="containers",
-            kind=KubernetesContainerKind.CONTAINER,
-            path=context.source.path,
-            document_index=document_index,
-            api_version=api_version,
-            workload_kind=kind,
-            workload_name=workload_name,
-            namespace=namespace,
-            workload_location=workload_location,
-        ),
-        *_containers(
-            context,
-            pod_spec,
-            key="initContainers",
-            kind=KubernetesContainerKind.INIT_CONTAINER,
-            path=context.source.path,
-            document_index=document_index,
-            api_version=api_version,
-            workload_kind=kind,
-            workload_name=workload_name,
-            namespace=namespace,
-            workload_location=workload_location,
-        ),
-    ]
+    return (
+        [
+            *_containers(
+                context,
+                pod_spec,
+                key="containers",
+                kind=KubernetesContainerKind.CONTAINER,
+                path=context.source.path,
+                document_index=document_index,
+                api_version=api_version,
+                workload_kind=kind,
+                workload_name=resource_name,
+                namespace=namespace,
+                workload_location=workload_location,
+            ),
+            *_containers(
+                context,
+                pod_spec,
+                key="initContainers",
+                kind=KubernetesContainerKind.INIT_CONTAINER,
+                path=context.source.path,
+                document_index=document_index,
+                api_version=api_version,
+                workload_kind=kind,
+                workload_name=resource_name,
+                namespace=namespace,
+                workload_location=workload_location,
+            ),
+        ],
+        [],
+    )
 
 
 def _traverse_one(
     source: KubernetesInput,
     *,
     ignore_unmarked: bool,
-) -> tuple[list[KubernetesContainerContext], list[KubernetesDiagnostic], bool]:
+) -> tuple[
+    list[KubernetesContainerContext],
+    list[KubernetesObjectPresence],
+    list[KubernetesDiagnostic],
+    bool,
+]:
     context = _Context(source, [])
     if len(source.content) > MAX_KUBERNETES_BYTES:
         context.diagnostics.append(
@@ -656,7 +864,7 @@ def _traverse_one(
                 location=SourceLocation(path=source.path, start_line=1, start_column=1),
             )
         )
-        return [], context.diagnostics, True
+        return [], [], context.diagnostics, True
     try:
         text = source.content.decode("utf-8-sig")
     except UnicodeDecodeError:
@@ -668,7 +876,7 @@ def _traverse_one(
                 location=location,
             )
         )
-        return [], context.diagnostics, True
+        return [], [], context.diagnostics, True
     try:
         aliases = sum(
             isinstance(token, AliasToken) for token in yaml.scan(text, Loader=yaml.SafeLoader)
@@ -682,7 +890,7 @@ def _traverse_one(
                 location=SourceLocation(path=source.path, start_line=1, start_column=1),
             )
         )
-        return [], context.diagnostics, True
+        return [], [], context.diagnostics, True
     if len(documents) > MAX_YAML_DOCUMENTS:
         context.diagnostics.append(
             KubernetesDiagnostic(
@@ -691,8 +899,9 @@ def _traverse_one(
                 location=SourceLocation(path=source.path, start_line=1, start_column=1),
             )
         )
-        return [], context.diagnostics, True
+        return [], [], context.diagnostics, True
     contexts: list[KubernetesContainerContext] = []
+    objects: list[KubernetesObjectPresence] = []
     document_index = 0
     for root in documents:
         if root is None or (isinstance(root, ScalarNode) and root.tag == "tag:yaml.org,2002:null"):
@@ -700,16 +909,21 @@ def _traverse_one(
         document_index += 1
         if not _validate_graph(context, root, aliases):
             continue
-        contexts.extend(
-            _traverse_document(
-                context,
-                root,
-                document_index,
-                ignore_unmarked=ignore_unmarked,
-            )
+        document_contexts, document_objects = _traverse_document(
+            context,
+            root,
+            document_index,
+            ignore_unmarked=ignore_unmarked,
         )
+        contexts.extend(document_contexts)
+        objects.extend(document_objects)
+        if len(objects) > MAX_KUBERNETES_OBJECTS:
+            context.diagnostic(KubernetesDiagnosticCode.SAFETY_LIMIT, root)
+            objects = []
+            break
     return (
         contexts,
+        objects,
         context.diagnostics,
         any(item.severity is Severity.ERROR for item in context.diagnostics),
     )
@@ -726,24 +940,71 @@ def traverse_kubernetes_workloads(
     neither Kubernetes discriminator while retaining fail-closed direct traversal by default.
     """
     all_contexts: list[KubernetesContainerContext] = []
+    all_objects: list[KubernetesObjectPresence] = []
     all_diagnostics: list[KubernetesDiagnostic] = []
-    has_loss = False
+    loss_paths: set[str] = set()
     sources = (inputs,) if isinstance(inputs, KubernetesInput) else tuple(inputs)
     for source in sorted(sources, key=lambda item: item.path.encode("utf-8")):
-        contexts, source_diagnostics, loss = _traverse_one(
+        contexts, objects, source_diagnostics, loss = _traverse_one(
             source,
             ignore_unmarked=ignore_unmarked,
         )
         all_contexts.extend(contexts)
+        all_objects.extend(objects)
         all_diagnostics.extend(source_diagnostics)
-        has_loss = has_loss or loss
+        if loss:
+            loss_paths.add(source.path)
+    if len(all_objects) > MAX_KUBERNETES_OBJECTS:
+        overflow = all_objects[MAX_KUBERNETES_OBJECTS:]
+        all_diagnostics.append(
+            KubernetesDiagnostic(
+                code=KubernetesDiagnosticCode.SAFETY_LIMIT,
+                severity=Severity.ERROR,
+                location=overflow[0].location,
+            )
+        )
+        loss_paths.update(item.path for item in all_objects)
+        all_objects = []
+    identities: dict[tuple[str, str, str], list[KubernetesObjectPresence]] = {}
+    for item in all_objects:
+        identities.setdefault(item.identity(), []).append(item)
+    duplicate_identities = {identity for identity, items in identities.items() if len(items) > 1}
+    for identity in sorted(duplicate_identities):
+        for item in identities[identity]:
+            all_diagnostics.append(
+                KubernetesDiagnostic(
+                    code=KubernetesDiagnosticCode.DUPLICATE_OBJECT_IDENTITY,
+                    severity=Severity.ERROR,
+                    location=item.location,
+                )
+            )
+            loss_paths.add(item.path)
+    all_objects = [item for item in all_objects if item.identity() not in duplicate_identities]
+    resolutions = _resolve_references(all_contexts, all_objects)
     diagnostics: tuple[KubernetesDiagnostic, ...] = _unique_diagnostics(all_diagnostics)
-    if all_contexts:
-        status = KubernetesLoadStatus.PARTIAL if has_loss else KubernetesLoadStatus.COMPLETE
-    elif has_loss:
+    source_statuses: list[KubernetesSourceStatus] = []
+    for source in sources:
+        has_facts = any(item.path == source.path for item in all_contexts) or any(
+            item.path == source.path for item in all_objects
+        )
+        if source.path in loss_paths:
+            source_status = (
+                KubernetesLoadStatus.PARTIAL if has_facts else KubernetesLoadStatus.FAILED
+            )
+        else:
+            source_status = KubernetesLoadStatus.COMPLETE
+        source_statuses.append(KubernetesSourceStatus(path=source.path, status=source_status))
+    if all_contexts or all_objects:
+        status = KubernetesLoadStatus.PARTIAL if loss_paths else KubernetesLoadStatus.COMPLETE
+    elif loss_paths:
         status = KubernetesLoadStatus.FAILED
     else:
         status = KubernetesLoadStatus.COMPLETE
     return KubernetesTraversalResult(
-        status=status, contexts=tuple(all_contexts), diagnostics=diagnostics
+        status=status,
+        contexts=tuple(all_contexts),
+        objects=tuple(all_objects),
+        resolutions=resolutions,
+        sources=tuple(source_statuses),
+        diagnostics=diagnostics,
     )

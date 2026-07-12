@@ -56,6 +56,24 @@ class KubernetesEnvFromSourceKind(StrEnum):
     CONFIG_MAP_REF = "config_map_ref"
 
 
+class KubernetesObjectKind(StrEnum):
+    CONFIG_MAP = "ConfigMap"
+    SECRET = "Secret"
+
+
+class KubernetesObjectKeyField(StrEnum):
+    DATA = "data"
+    STRING_DATA = "stringData"
+    BINARY_DATA = "binaryData"
+
+
+class KubernetesReferenceKind(StrEnum):
+    SECRET_KEY_REF = "secret_key_ref"
+    CONFIG_MAP_KEY_REF = "config_map_key_ref"
+    SECRET_REF = "secret_ref"
+    CONFIG_MAP_REF = "config_map_ref"
+
+
 class KubernetesDiagnosticCode(StrEnum):
     INVALID_ENCODING = "invalid_encoding"
     INVALID_YAML = "invalid_yaml"
@@ -81,6 +99,8 @@ class KubernetesDiagnosticCode(StrEnum):
     INVALID_ENV_FROM = "invalid_env_from"
     INVALID_ENV_FROM_SOURCE = "invalid_env_from_source"
     INVALID_ENV_FROM_REFERENCE = "invalid_env_from_reference"
+    INVALID_OBJECT_KEYS = "invalid_object_keys"
+    DUPLICATE_OBJECT_IDENTITY = "duplicate_object_identity"
 
 
 _SEVERITIES = {code: Severity.ERROR for code in KubernetesDiagnosticCode}
@@ -226,6 +246,123 @@ class KubernetesContainerContext(_KubernetesModel):
         return self
 
 
+class KubernetesObjectKeyPresence(_KubernetesModel):
+    """A key name observed in a local ConfigMap or Secret, never its value."""
+
+    name: str
+    field: KubernetesObjectKeyField
+    location: SourceLocation
+
+    _metadata_text = field_validator("name")(_validate_metadata_text)
+
+    @model_validator(mode="after")
+    def validate_name(self) -> KubernetesObjectKeyPresence:
+        if not self.name or "=" in self.name:
+            raise ValueError("object key name must be non-empty and cannot contain '='")
+        return self
+
+
+class KubernetesObjectPresence(_KubernetesModel):
+    """Value-blind identity and key-name inventory for one local object."""
+
+    path: str
+    document_index: int = Field(ge=1)
+    api_version: str
+    object_kind: KubernetesObjectKind
+    name: str
+    namespace: str
+    location: SourceLocation
+    keys: tuple[KubernetesObjectKeyPresence, ...] = ()
+
+    _metadata_text = field_validator("api_version", "name", "namespace")(_validate_metadata_text)
+
+    @model_validator(mode="after")
+    def canonicalize(self) -> KubernetesObjectPresence:
+        if not self.name or not self.namespace:
+            raise ValueError("object name and namespace must be non-empty")
+        if self.location.path != self.path or any(
+            item.location.path != self.path for item in self.keys
+        ):
+            raise ValueError("object locations must use the object path")
+        keys = tuple(sorted(self.keys, key=lambda item: item.name.encode("utf-8")))
+        if len({item.name for item in keys}) != len(keys):
+            raise ValueError("object key names must be unique")
+        if keys != self.keys:
+            object.__setattr__(self, "keys", keys)
+        return self
+
+    def identity(self) -> tuple[str, str, str]:
+        return self.namespace, self.object_kind.value, self.name
+
+
+class KubernetesSourceStatus(_KubernetesModel):
+    path: str
+    status: KubernetesLoadStatus
+
+
+class KubernetesReferenceResolution(_KubernetesModel):
+    """Presence-only link from a workload reference to a same-namespace local object."""
+
+    path: str
+    document_index: int = Field(ge=1)
+    namespace: str
+    workload_kind: KubernetesWorkloadKind
+    workload_name: str
+    container_name: str
+    reference_kind: KubernetesReferenceKind
+    source_index: int = Field(ge=0)
+    reference_name: str
+    reference_key: str | None = None
+    optional: bool
+    prefix: str = ""
+    resolved_object: bool
+    resolved_key: bool | None = None
+    resolved_keys: tuple[str, ...] = ()
+    location: SourceLocation
+    source_location: SourceLocation
+
+    _metadata_text = field_validator(
+        "namespace",
+        "workload_name",
+        "container_name",
+        "reference_name",
+        "reference_key",
+        "prefix",
+    )(_validate_metadata_text)
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> KubernetesReferenceResolution:
+        if (
+            not self.namespace
+            or not self.workload_name
+            or not self.container_name
+            or not self.reference_name
+        ):
+            raise ValueError("reference identity fields must be non-empty")
+        if self.location.path != self.path or self.source_location.path != self.path:
+            raise ValueError("reference locations must use the reference path")
+        key_reference = self.reference_kind in {
+            KubernetesReferenceKind.SECRET_KEY_REF,
+            KubernetesReferenceKind.CONFIG_MAP_KEY_REF,
+        }
+        if key_reference:
+            if (
+                not self.reference_key
+                or self.resolved_key is None
+                or self.prefix
+                or self.resolved_keys
+            ):
+                raise ValueError("key references require one key result and no bulk metadata")
+        elif self.reference_key is not None or self.resolved_key is not None:
+            raise ValueError("bulk references cannot expose a single-key result")
+        if not self.resolved_object and (self.resolved_key or self.resolved_keys):
+            raise ValueError("an unresolved object cannot resolve keys")
+        keys = tuple(sorted(set(self.resolved_keys), key=lambda item: item.encode("utf-8")))
+        if keys != self.resolved_keys:
+            object.__setattr__(self, "resolved_keys", keys)
+        return self
+
+
 class KubernetesDiagnostic(_KubernetesModel):
     id: str = ""
     code: KubernetesDiagnosticCode
@@ -281,6 +418,9 @@ class KubernetesDiagnostic(_KubernetesModel):
 class KubernetesTraversalResult(_KubernetesModel):
     status: KubernetesLoadStatus
     contexts: tuple[KubernetesContainerContext, ...] = ()
+    objects: tuple[KubernetesObjectPresence, ...] = ()
+    resolutions: tuple[KubernetesReferenceResolution, ...] = ()
+    sources: tuple[KubernetesSourceStatus, ...] = ()
     diagnostics: tuple[KubernetesDiagnostic, ...] = ()
 
     @model_validator(mode="after")
@@ -301,10 +441,48 @@ class KubernetesTraversalResult(_KubernetesModel):
             )
         )
         diagnostics = tuple(sorted(self.diagnostics, key=lambda item: item.id))
-        if self.status is KubernetesLoadStatus.FAILED and self.contexts:
-            raise ValueError("failed traversal cannot expose contexts")
+        objects = tuple(
+            sorted(
+                self.objects,
+                key=lambda item: (
+                    item.path.encode("utf-8"),
+                    item.document_index,
+                    item.namespace,
+                    item.object_kind.value,
+                    item.name,
+                ),
+            )
+        )
+        sources = tuple(sorted(self.sources, key=lambda item: item.path.encode("utf-8")))
+        resolutions = tuple(
+            sorted(
+                self.resolutions,
+                key=lambda item: (
+                    item.path.encode("utf-8"),
+                    item.document_index,
+                    item.namespace,
+                    item.workload_kind.value,
+                    item.workload_name,
+                    item.container_name,
+                    item.reference_kind.value,
+                    item.source_index,
+                ),
+            )
+        )
+        if len({item.path for item in sources}) != len(sources):
+            raise ValueError("source paths must be unique")
+        if self.status is KubernetesLoadStatus.FAILED and (
+            self.contexts or self.objects or self.resolutions
+        ):
+            raise ValueError("failed traversal cannot expose contexts, objects, or resolutions")
         if contexts != self.contexts:
             object.__setattr__(self, "contexts", contexts)
+        if objects != self.objects:
+            object.__setattr__(self, "objects", objects)
+        if resolutions != self.resolutions:
+            object.__setattr__(self, "resolutions", resolutions)
+        if sources != self.sources:
+            object.__setattr__(self, "sources", sources)
         if diagnostics != self.diagnostics:
             object.__setattr__(self, "diagnostics", diagnostics)
         return self
@@ -321,6 +499,13 @@ __all__ = [
     "KubernetesEnvSourceKind",
     "KubernetesInput",
     "KubernetesLoadStatus",
+    "KubernetesObjectKeyField",
+    "KubernetesObjectKeyPresence",
+    "KubernetesObjectKind",
+    "KubernetesObjectPresence",
+    "KubernetesReferenceKind",
+    "KubernetesReferenceResolution",
+    "KubernetesSourceStatus",
     "KubernetesTraversalResult",
     "KubernetesWorkloadKind",
 ]

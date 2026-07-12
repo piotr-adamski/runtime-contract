@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Add presence-only ConfigMap/Secret inventory and project-wide Kubernetes reference linking,
+  resolving local same-namespace `envFrom` key names without retaining cleartext or base64 values.
 - Add bounded Kubernetes `env` and `envFrom` extraction plus end-to-end workload delivery analysis,
   preserving only source selectors, optional/prefix metadata, and locations while proving literal
   values cannot reach public models or text, JSON, and SARIF output.

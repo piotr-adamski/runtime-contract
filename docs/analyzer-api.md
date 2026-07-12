@@ -54,13 +54,18 @@ the ordinary one-file `analyze` contract is unchanged.
 
 `KubernetesAnalyzer` uses the bounded `runtime_contract.kubernetes` traversal API. It emits one
 `kubernetes_workload` environment for each `namespace/Kind/name` target, explicit
-`kubernetes_env` runtime providers for static `env` names, and unresolved-bulk
-`kubernetes_env_from` runtime providers for `envFrom`. The traversal models retain value-blind
+`kubernetes_env` runtime providers for static `env` names. `analyze_project` links the caller-supplied
+Kubernetes candidates of one component, then emits `resolved_bulk` `kubernetes_env_from` providers
+for key names from a same-namespace local ConfigMap/Secret or one `unresolved_bulk` provider when
+the expected object is absent. The traversal models retain value-blind
 source metadata: key-reference name/key/optional, field and resource selectors, and envFrom
-reference name/optional/prefix/location. Literal `env.value` content is discarded during parsing
-and cannot enter an observation, diagnostic, repr, JSON, text, or SARIF report. External object
-presence is intentionally not resolved in this slice; the analyzer performs no filesystem,
-environment, process, cluster, or network access.
+reference name/optional/prefix/location. Presence models retain object kind/name/namespace and only
+the names and locations of keys from ConfigMap `data`/`binaryData` and Secret `data`/`stringData`.
+Reference-resolution records prove same-namespace object and key presence without values. Duplicate
+object identities fail closed; resolution never crosses component, namespace, or kind. Literal and
+encoded values are discarded during parsing and cannot enter an observation, diagnostic, repr,
+JSON, text, SARIF, or log. The analyzer performs no filesystem, environment, process, cluster, or
+network access.
 
 Additional analyzers can use the same `Analyzer` and `AnalyzerRegistry` seam without changing
 `FactObservation`, normalization, `Contract`, or `ScanResult`. Plugin discovery and dynamic
