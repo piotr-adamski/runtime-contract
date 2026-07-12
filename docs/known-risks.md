@@ -15,7 +15,7 @@ listed as planned scope, not as a product defect. No open risk is rated critical
 
 | ID | Description | Severity | Status | Impact | Control or mitigation | Owner | Target milestone | Evidence or test |
 |---|---|---|---|---|---|---|---|---|
-| LIMIT-003 | `explain` and `diff` remain fail-closed placeholders. | none | planned | These commands exit 2 and cannot be mistaken for successful analysis. | CLI placeholder regression tests. | Maintainer | later v0.1.0 work | `tests/test_cli.py` |
+| LIMIT-003 | `diff` remains a fail-closed placeholder. | none | planned | The command exits 2 and cannot be mistaken for a successful comparison. | CLI placeholder regression tests. | Maintainer | later v0.1.0 work | `tests/test_cli.py` |
 | LIMIT-004 | There is no tag, GitHub Release, PyPI publication, deployment, telemetry, or network reporting. | none | planned | Installation remains build-from-source or artifact based. | Local-only operation and explicit release gates. | Maintainer | release milestone | README status and clean-install smoke |
 
 ## Closed D1.15 regressions

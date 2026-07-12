@@ -22,7 +22,8 @@ requests that unmarked-document behavior.
 
 > **Status:** `runtime-contract scan` and `runtime-contract check` perform deterministic static
 > Python, JavaScript/TypeScript, `.env.example`, Dockerfile, Docker Compose, and Kubernetes analysis
-> end to end. `explain` and `diff` remain fail-closed placeholders.
+> end to end. `explain` provides offline rule and finding guidance; `diff` remains a fail-closed
+> placeholder.
 
 An independent open-source project maintained by Piotr Adamski.
 
@@ -67,8 +68,21 @@ write. Technical CLI errors go to stderr. `check` runs the same analysis and rul
 Suppressions remove only their exact active matches before this decision. Severity overrides are
 also applied first, so downgrading an error to warning makes a complete check non-blocking. Findings
 are written to the selected terminal, canonical JSON, or SARIF output for exits `0` and `1`;
-structured partial/failed reports are retained for exit `2`. `explain` and `diff` continue to fail
-closed with exit code `2` until their implementation milestones.
+structured partial/failed reports are retained for exit `2`.
+
+Explain any v0.1 rule offline, or resolve a finding from a canonical JSON report or a project scan:
+
+```text
+runtime-contract explain RTC001
+runtime-contract explain RTC001 --format json
+runtime-contract explain RTC001-<sha256> report.json
+runtime-contract explain RTC001-<sha256> PROJECT
+```
+
+The explanation includes rationale, default and effective severity, an example, safe manual
+remediation, documentation, and finding locations where applicable. Unknown IDs, missing findings,
+invalid reports, and incomplete scans exit `2`. `diff` remains fail closed with exit code `2` until
+its implementation milestone.
 
 The JSON report is the versioned public automation API `runtime-contract/v1` with integer
 `schema_version: 1`. Its required top-level fields are `schema_id`, `schema_version`, `metadata`,
