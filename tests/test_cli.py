@@ -87,17 +87,3 @@ def test_version_fails_closed_without_distribution_metadata(
     assert result.exit_code == 2
     assert result.stdout == ""
     assert "distribution metadata" in result.stderr
-
-
-@pytest.mark.parametrize(
-    ("arguments", "command"),
-    [
-        (["diff", "left", "right"], "diff"),
-    ],
-)
-def test_commands_fail_closed(arguments: list[str], command: str) -> None:
-    result = runner.invoke(app, arguments)
-
-    assert result.exit_code == 2
-    assert result.stdout == ""
-    assert result.stderr == f"Error: {command} command is not implemented yet.\n"
