@@ -77,6 +77,26 @@ contact Docker or Kubernetes, render Helm/Kustomize, invoke Git, modify analyzed
 telemetry. It is a static contract checker, not a deployment engine, secret manager, runtime
 monitor, or general-purpose SAST scanner.
 
+## Resource budgets and limits
+
+v0.1 fails closed when an input exceeds its parser budget. Python, JavaScript, and TypeScript
+source files are limited to 4 MiB each. Configuration, Docker Compose, Kubernetes, Dockerfile, and
+`.env.example` inputs are limited to 1 MiB each; a resolved Compose project is limited to 8 MiB.
+Compose reference traversal is limited to 32 levels.
+
+YAML parsing is limited to a depth of 64, 10,000 nodes, and 64 KiB per scalar. A Kubernetes stream
+may contain at most 256 documents. Exceeding a limit produces a value-blind safety diagnostic and
+a partial or failed result; it is never reported as a complete scan. Unsupported binary files are
+ignored by discovery. Invalid UTF-8 in a supported input fails safely without exposing file bytes.
+Long logical lines remain supported within the applicable file and scalar limits.
+
+The release-candidate performance gate creates 500 components and 1,000 supported files, scans the
+fixture three times, requires byte-identical JSON, and enforces a median below 8 seconds. This is a
+generous CI regression budget, not a latency guarantee for arbitrary repositories: runtime also
+depends on storage, platform, input mix, and finding volume. The scanner remains single-process,
+static, offline, and bounded by caller-selected scan roots; v0.1 does not provide a global timeout
+or a maximum repository file count.
+
 ## Project status
 
 The v0.1 feature set is release-candidate complete and remains on version `0.1.0.dev0` until the
