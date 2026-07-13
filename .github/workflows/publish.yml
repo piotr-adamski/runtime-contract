@@ -61,7 +61,7 @@ jobs:
       id-token: write
     steps:
       - name: Download the verified distributions
-        uses: actions/download-artifact@82c63890e05b15a27c6c6f1c9db7b32e3a6a9541
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: runtime-contract-release-${{ github.event.release.tag_name }}
           path: dist
