@@ -40,4 +40,4 @@ to `[Unreleased]` after v0.1.0.
 The analyzers are intentionally static and do not execute project code, resolve dynamic aliases,
 render Helm/Kustomize, contact runtime platforms, or prove deployed values. Resource budgets are
 fail-closed CI and parser controls, not an arbitrary-repository latency guarantee. See
-[`known-risks.md`](known-risks.md) and the README for the complete v0.1 boundary.
+[`docs/known-risks.md`](docs/known-risks.md) and the README for the complete v0.1 boundary.
