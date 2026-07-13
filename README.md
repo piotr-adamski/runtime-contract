@@ -11,20 +11,20 @@ the analyzed project.
 
 ## Five-minute quickstart
 
-Requires Python 3.11 or newer. Until the first PyPI release, install from a checked-out source tree;
-the same commands accept `runtime-contract` from PyPI after v0.1.0 is published.
+Requires Python 3.11 or newer. Released artifacts are installed from PyPI. Use an exact version in
+automation so the analyzed contract and output schemas do not change unexpectedly.
 
 Isolated application install with pipx:
 
 ```console
-pipx install .
+pipx install runtime-contract==0.1.0
 runtime-contract --version
 ```
 
 Or install into an active virtual environment with pip:
 
 ```console
-python -m pip install .
+python -m pip install runtime-contract==0.1.0
 runtime-contract --version
 ```
 
@@ -56,16 +56,16 @@ Minimal GitHub Actions step:
     runtime-contract check .
 ```
 
-The CI snippet becomes directly installable from PyPI with v0.1.0. Before publication, replace the
-install target with the checked-out package or a verified wheel produced by this repository.
+The CI snippet installs the released package from PyPI. Pin `runtime-contract==0.1.0` when the
+workflow must reproduce the v0.1 contract exactly.
 
 For line-level GitHub Code Scanning alerts, use the complete
 [Code Scanning workflow](.github/workflows/code-scanning.yml) and its
 [configuration](.github/runtime-contract-code-scanning.yaml). It uses only `contents: read` and
 `security-events: write`, retains SARIF for seven days, and needs no repository secret. A findings
 exit `1` remains uploadable; unreliable exit `2` fails the workflow. Copy both files, adapt the
-configured roots and classifications, and replace the source install with
-`uv tool install runtime-contract` after the immutable PyPI release.
+configured roots and classifications, and install the same released package with
+`uv tool install runtime-contract==0.1.0`.
 
 ## Scope and non-goals
 
@@ -99,9 +99,9 @@ or a maximum repository file count.
 
 ## Project status
 
-The v0.1 feature set and package version are frozen at `0.1.0`. Publication is still pending until
-the release workflow publishes and verifies the immutable artifacts. All supported commands are implemented:
-`scan`, `check`, `explain`, and `diff`.
+The v0.1 feature set and package version are frozen at `0.1.0`. Released artifacts are built,
+verified, attested, and published to PyPI by the OIDC-only release workflow. All supported commands
+are implemented: `scan`, `check`, `explain`, and `diff`.
 
 Kubernetes manifests are traversed statically and locally from caller-provided YAML (including
 multi-document streams) or JSON. Supported workload kinds are `Pod`, `Deployment`,
@@ -245,8 +245,9 @@ or an enum in a way that changes automation interpretation requires `runtime-con
 2 requires a separate model, `$id`, schema file, and explicit adapter. Package and JSON format
 versions evolve independently; older readers need not read newer v1 documents.
 
-Local-only operation without telemetry or data transmission remains a project requirement. There is
-currently no release or PyPI publication.
+Local-only operation without telemetry or data transmission remains a project requirement. Package
+artifacts are distributed through PyPI; running the CLI does not contact PyPI or any other network
+service.
 
 The runtime package imports no network, subprocess, dynamic-execution, or logging capability.
 Analyzed code is data only. Real `.env*` files are excluded except the exact `.env.example` name;
