@@ -19,7 +19,7 @@ body:
     id: revision
     attributes:
       label: Affected revision
-      description: Provide the commit SHA or branch name. No release exists yet.
+      description: Provide the affected package version, commit SHA, or branch name.
     validations:
       required: true
   - type: textarea

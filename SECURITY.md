@@ -2,12 +2,16 @@
 
 ## Supported versions
 
-There is no published or supported release yet. Security reports affecting the current `main` branch are accepted during the pre-v0.1.0 phase. After releases begin, only the latest published version will be supported unless this policy states otherwise.
+The latest v0.1.x release receives security fixes. Reports affecting the current `main` branch are
+also accepted, but `main` is a development target and not a stable release. Older v0.1.x patch
+releases are unsupported after a newer patch release becomes available unless this policy states
+otherwise.
 
 | Version | Support status |
 | --- | --- |
-| `main` (pre-v0.1.0) | Reports accepted; not a supported release |
-| Published releases | None yet |
+| Latest v0.1.x release | Supported |
+| Older v0.1.x releases | Unsupported after a newer patch release is available |
+| `main` | Reports accepted; not a supported release |
 
 ## Reporting a vulnerability
 

@@ -1,9 +1,8 @@
-# runtime-contract v0.1.0 release candidate
+# runtime-contract v0.1.0
 
-The v0.1.0 release candidate is feature-frozen at the commit that introduces package version
-`0.1.0`. It remains unpublished until the Trusted Publishing, tag, GitHub Release, PyPI, and public
-installation gates complete. This document records the release contents and freeze decision; it
-does not claim that publication has happened.
+These notes define the immutable v0.1.0 release contents. Release artifacts are built and tested
+once, attested, and published to PyPI through GitHub OIDC Trusted Publishing; no PyPI API token is
+used. The same notes are used for the signed tag and GitHub Release.
 
 ## Release contents
 
@@ -26,7 +25,7 @@ does not claim that publication has happened.
 | License and community | Apache-2.0, contribution, conduct, support, and security policy | PASS |
 | Security and privacy | Offline/no-telemetry runtime, value-blind models, redaction, audit, SAST, Gitleaks | PASS |
 | Distribution | wheel/sdist build, checksums, metadata, clean pipx/wheel/sdist E2E | PASS |
-| Publication | Trusted Publishing, tag, GitHub Release, PyPI and public install | PENDING D4.14–D4.17 |
+| Release pipeline | OIDC-only publishing, single verified artifact set, checksums and attestations | READY |
 
 ## Feature freeze and open work
 

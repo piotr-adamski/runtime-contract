@@ -193,3 +193,5 @@ def test_public_security_contract_covers_threats_data_controls_and_reporting() -
         assert contract.casefold() in model.casefold()
     assert "Private Vulnerability Reporting" in policy
     assert "docs/security-and-privacy.md" in policy
+    assert "Latest v0.1.x release" in policy
+    assert "There is no published or supported release yet" not in policy
