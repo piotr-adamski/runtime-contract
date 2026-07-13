@@ -66,9 +66,17 @@ jobs:
           name: runtime-contract-release-${{ github.event.release.tag_name }}
           path: dist
 
+      - name: Verify checksums and stage publishable distributions
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum --check SHA256SUMS
+          mkdir ../publish-dist
+          cp -- *.whl *.tar.gz ../publish-dist/
+
       - name: Publish to PyPI with Trusted Publishing
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
         with:
-          packages-dir: dist
+          packages-dir: publish-dist
           attestations: true
           print-hash: true
