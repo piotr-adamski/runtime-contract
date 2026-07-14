@@ -13,7 +13,7 @@ def test_readme_contains_complete_neutral_first_use_contract() -> None:
     for section in (
         "## The problem",
         "## Example: required variable not delivered",
-        "## Supported in v0.1.0",
+        "## Supported in v0.1.2",
         "## Installation",
         "## Quickstart",
         "## Main commands",
@@ -25,8 +25,8 @@ def test_readme_contains_complete_neutral_first_use_contract() -> None:
     ):
         assert section in text
     for command in (
-        "pipx install runtime-contract==0.1.0",
-        "python -m pip install runtime-contract==0.1.0",
+        "pipx install runtime-contract==0.1.2",
+        "python -m pip install runtime-contract==0.1.2",
         "runtime-contract scan examples/scan-flow",
         "runtime-contract check examples/scan-flow",
         "runtime-contract check .",

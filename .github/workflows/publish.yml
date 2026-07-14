@@ -1,26 +1,33 @@
 name: Publish
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact unpublished runtime-contract version from pyproject.toml
+        required: true
+        type: string
+      commit_sha:
+        description: Exact current main commit to build and publish
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: publish-${{ github.event.release.tag_name }}
+  group: publish-${{ inputs.version }}
   cancel-in-progress: false
 
 jobs:
   build:
-    if: github.event.release.tag_name == 'v0.1.0' && github.event.release.target_commitish == 'main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Check out the immutable release tag
+      - name: Check out the requested exact-main commit
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ inputs.commit_sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -30,19 +37,41 @@ jobs:
           version: "0.11.28"
           enable-cache: false
 
-      - name: Verify tag, version, tests, and distributions
+      - name: Verify exact main, version, tests, and distributions
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_COMMIT_SHA: ${{ inputs.commit_sha }}
         run: |
           set -euo pipefail
-          test "$(git describe --tags --exact-match HEAD)" = "$RELEASE_TAG"
-          test "$(uv version --short)" = "${RELEASE_TAG#v}"
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$RELEASE_COMMIT_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT_SHA"
+          git fetch --no-tags origin main
+          test "$(git rev-parse FETCH_HEAD)" = "$RELEASE_COMMIT_SHA"
+          test "$(uv version --short)" = "$RELEASE_VERSION"
+          RELEASE_VERSION="$RELEASE_VERSION" uv run --no-project --python 3.11 python - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          version = os.environ["RELEASE_VERSION"]
+          url = f"https://pypi.org/pypi/runtime-contract/{version}/json"
+          try:
+              with urllib.request.urlopen(url, timeout=15) as response:
+                  json.load(response)
+          except urllib.error.HTTPError as error:
+              if error.code == 404:
+                  raise SystemExit(0)
+              raise
+          raise SystemExit(f"runtime-contract {version} already exists on PyPI")
+          PY
           ./scripts/quality-gates.sh --base-ref HEAD^
 
       - name: Upload the verified distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: runtime-contract-release-${{ github.event.release.tag_name }}
+          name: runtime-contract-release-${{ inputs.version }}
           path: |
             dist/*.whl
             dist/*.tar.gz
@@ -56,14 +85,14 @@ jobs:
     timeout-minutes: 5
     environment:
       name: pypi
-      url: https://pypi.org/project/runtime-contract/${{ github.event.release.tag_name }}/
+      url: https://pypi.org/project/runtime-contract/${{ inputs.version }}/
     permissions:
       id-token: write
     steps:
       - name: Download the verified distributions
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: runtime-contract-release-${{ github.event.release.tag_name }}
+          name: runtime-contract-release-${{ inputs.version }}
           path: dist
 
       - name: Verify checksums and stage publishable distributions

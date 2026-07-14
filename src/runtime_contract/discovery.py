@@ -150,6 +150,7 @@ class _DirectoryJob:
 
 DEFAULT_EXCLUDED_DIRECTORIES = frozenset(
     {
+        ".github",
         "node_modules",
         ".venv",
         "venv",

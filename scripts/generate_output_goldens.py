@@ -50,7 +50,7 @@ def all_rules_result(*, command: Literal["scan", "check"] = "scan") -> ScanResul
     return ScanResult(
         schema_id="runtime-contract/v1",
         schema_version=1,
-        metadata=ReportMetadata(tool_version="0.1.0", command=command, policy=()),
+        metadata=ReportMetadata(tool_version="0.1.2", command=command, policy=()),
         inputs=ReportInputs(
             config=None,
             environment=None,

@@ -151,7 +151,7 @@ RTC001 Required variable not provided
 Result: complete
 ```
 
-## Supported in v0.1.0
+## Supported in v0.1.2
 
 - Consumers: Python and JavaScript/TypeScript.
 - Providers and declarations: `.env.example`, Dockerfile, Docker Compose, and standard Kubernetes
@@ -165,14 +165,14 @@ Result: complete
 Python 3.11 or newer is required. Install the released package in an isolated environment:
 
 ```console
-pipx install runtime-contract==0.1.0
+pipx install runtime-contract==0.1.2
 runtime-contract --version
 ```
 
 Or install it in an active virtual environment:
 
 ```console
-python -m pip install runtime-contract==0.1.0
+python -m pip install runtime-contract==0.1.2
 runtime-contract --version
 ```
 

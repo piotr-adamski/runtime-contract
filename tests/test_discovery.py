@@ -161,6 +161,22 @@ def test_each_default_exclusion(tmp_path: Path, directory: str) -> None:
     assert paths(tmp_path) == []
 
 
+def test_github_workflows_are_not_misclassified_as_kubernetes_by_default(
+    tmp_path: Path,
+) -> None:
+    write(tmp_path / ".github" / "workflows" / "runtime-contract.yml", "jobs: {}\n")
+    write(tmp_path / "deployment.yaml", "apiVersion: v1\nkind: ConfigMap\n")
+
+    assert paths(tmp_path) == ["deployment.yaml"]
+
+
+def test_explicit_include_can_scan_a_github_workflow(tmp_path: Path) -> None:
+    write(tmp_path / ".github" / "workflows" / "runtime-contract.yml", "jobs: {}\n")
+    config(tmp_path, include=[".github/workflows/*.yml"])
+
+    assert paths(tmp_path) == [".github/workflows/runtime-contract.yml"]
+
+
 def test_next_backup_variant_is_excluded_without_hiding_similar_source_directory(
     tmp_path: Path,
 ) -> None:
