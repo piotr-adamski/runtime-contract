@@ -21,6 +21,35 @@ Serialization is UTF-8 without BOM, sorted keys, compact separators, no NaN/Infi
 arrays, relative NFC POSIX paths, and exactly one final LF. It contains no timestamp, duration,
 UUID, hostname, username, PID, cwd, absolute path, source snippet, file content, or provider value.
 
+For `scan` and `check`, the required top-level payload is `inputs`, `summary`, `contract`,
+`findings`, and `files`. Deterministic `flow_graph` and `precedence` fields are rebuilt when an early
+v1 document omits them. Consumers and providers live only inside the facts-only `contract`.
+Optional scalars without a value are `null`; empty sequences are `[]`; empty mappings are `{}`; and
+required fields are never omitted. The public root is always `.`.
+
+The canonical serializer is runtime-contract-specific and does not claim RFC 8785/JCS compliance.
+Authoritative Draft 2020-12 schemas are:
+
+- [`runtime-contract-scan-result-v1.schema.json`](../schemas/runtime-contract-scan-result-v1.schema.json)
+- [`runtime-contract-diff-result-v1.schema.json`](../schemas/runtime-contract-diff-result-v1.schema.json)
+- [`runtime-contract-analysis-result-v1.schema.json`](../schemas/runtime-contract-analysis-result-v1.schema.json)
+- [`runtime-contract-contract-v1.schema.json`](../schemas/runtime-contract-contract-v1.schema.json)
+
+The checked golden document is
+[`examples/reports/runtime-contract-v1.json`](../examples/reports/runtime-contract-v1.json).
+
+### Versioning and compatibility
+
+Package and report versions evolve independently. A newer v1 reader must accept older v1 documents.
+Public `parse_json_report(str | bytes)` accepts the original flat v1 representation and normalizes it
+to the canonical nested model; writers emit only the canonical representation. A new optional v1
+field is allowed only when older documents have a deterministic default.
+
+Removing, renaming, or retyping a field; changing meaning, requiredness, identity, sorting, `null`
+interpretation; or changing an enum in a way that alters automation semantics requires
+`runtime-contract/v2`. A v2 format requires a separate model, schema `$id`, schema file, and explicit
+adapter. Older readers are not required to accept newer v1 documents.
+
 ## SARIF 2.1.0
 
 `scan` and `check` emit one SARIF run. RTC001–RTC012 map to stable driver rules; errors map to
@@ -42,6 +71,13 @@ Suppressions match a stable rule plus at least one explicit selector. They remov
 active findings before `check` decides its exit. Expired suppressions do not apply and emit a
 warning. Suppressions cannot hide parser failures, unsafe paths, or private-key handling outside
 their rule contract. See [configuration reference](runtime-contract-yaml.md).
+
+Sensitivity is deterministic and value-blind. Name matching handles token, password, secret,
+private-key, API-key, and credential forms across underscore, hyphen, dot, whitespace, and camel-case
+boundaries. Explicit configuration wins over structural Kubernetes Secret evidence, which wins over
+name heuristics. Every key records the decision reason and confidence. Configuration may select
+exact names, globs, or bounded full-match regexes; contradictory declarations fail closed and unused
+rules are reported.
 
 ## Limits of static analysis
 

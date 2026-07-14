@@ -1,6 +1,7 @@
 """Keep public v0.1 reference documentation synchronized with runtime sources."""
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,7 @@ from runtime_contract.cli import app
 from runtime_contract.rules import RULE_CATALOG
 
 ROOT = Path(__file__).parents[1]
+MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 
 
 def test_rule_reference_covers_every_runtime_rule_and_required_sections() -> None:
@@ -71,6 +73,66 @@ def test_cli_and_format_references_cover_public_contract() -> None:
         "Limits of static analysis",
     ):
         assert contract in formats
+
+
+def test_reference_docs_own_details_removed_from_readme() -> None:
+    analyzers = (ROOT / "docs/analyzer-api.md").read_text(encoding="utf-8")
+    formats = (ROOT / "docs/output-formats.md").read_text(encoding="utf-8")
+    security = (ROOT / "docs/security-and-privacy.md").read_text(encoding="utf-8")
+    risks = (ROOT / "docs/known-risks.md").read_text(encoding="utf-8")
+    analyzer_prose = " ".join(analyzers.split())
+
+    for contract in (
+        "## Built-in analyzer boundaries",
+        "### Python",
+        "### JavaScript and TypeScript",
+        "### `.env.example`",
+        "### Dockerfile",
+        "### Docker Compose and merge semantics",
+        "### Kubernetes",
+        "Plugin discovery and dynamic analyzer loading remain outside v0.1.0",
+    ):
+        assert contract in analyzer_prose
+    for contract in (
+        "### Versioning and compatibility",
+        "parse_json_report(str | bytes)",
+        "runtime-contract/v2",
+        "runtime-contract-scan-result-v1.schema.json",
+        "runtime-contract-diff-result-v1.schema.json",
+    ):
+        assert contract in formats
+    for contract in ("## Resource budgets", "4 MiB", "8 MiB", "256 documents"):
+        assert contract in security
+    assert "There is no tag, GitHub Release, PyPI publication" not in risks
+
+
+def test_all_local_markdown_links_resolve() -> None:
+    markdown_files = [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md"))]
+
+    for document in markdown_files:
+        text = document.read_text(encoding="utf-8")
+        for raw_target in MARKDOWN_LINK.findall(text):
+            target = raw_target.strip().split(maxsplit=1)[0].strip("<>")
+            if target.startswith(("http://", "https://", "mailto:", "#")):
+                continue
+            path_text = target.split("#", 1)[0]
+            assert path_text, f"empty local path in {document.relative_to(ROOT)}: {target}"
+            resolved = (document.parent / path_text).resolve()
+            assert resolved.is_relative_to(ROOT.resolve()), (
+                f"link escapes repository in {document.relative_to(ROOT)}: {target}"
+            )
+            assert resolved.exists(), f"broken link in {document.relative_to(ROOT)}: {target}"
+            if "#" in target:
+                fragment = target.split("#", 1)[1]
+                headings = resolved.read_text(encoding="utf-8").splitlines()
+                anchors = {
+                    re.sub(r"[^a-z0-9 _-]", "", heading.lstrip("# ").casefold()).replace(" ", "-")
+                    for heading in headings
+                    if heading.startswith("#")
+                }
+                assert fragment in anchors, (
+                    f"broken anchor in {document.relative_to(ROOT)}: {target}"
+                )
 
 
 def test_github_code_scanning_example_is_minimal_and_fail_closed() -> None:

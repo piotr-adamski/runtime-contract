@@ -49,19 +49,17 @@ def test_public_resource_budget_contract_matches_runtime_limits() -> None:
     assert MAX_COMPOSE_SCALAR_BYTES == MAX_KUBERNETES_SCALAR_BYTES == 64 * 1024
     assert MAX_YAML_DOCUMENTS == 256
 
-    readme = (REPO / "README.md").read_text(encoding="utf-8")
+    reference = (REPO / "docs/security-and-privacy.md").read_text(encoding="utf-8")
     for statement in (
-        "## Resource budgets and limits",
-        "limited to 4 MiB each",
-        "limited to 1 MiB each",
-        "limited to 8 MiB",
-        "limited to 32 levels",
-        "depth of 64",
-        "10,000 nodes",
-        "64 KiB per scalar",
-        "at most 256 documents",
+        "## Resource budgets",
+        "| Python, JavaScript, or TypeScript source file | 4 MiB |",
+        "| Configuration, Compose, Kubernetes, Dockerfile, or `.env.example` file | 1 MiB |",
+        "| Resolved Compose project | 8 MiB |",
+        "| Compose reference traversal | 32 levels |",
+        "| YAML structure | depth 64, 10,000 nodes, 64 KiB per scalar |",
+        "| Kubernetes YAML stream | 256 documents |",
         "500 components and 1,000 supported files",
-        "median below 8 seconds",
+        "median below eight seconds",
         "byte-identical JSON",
     ):
-        assert statement in readme
+        assert statement in reference

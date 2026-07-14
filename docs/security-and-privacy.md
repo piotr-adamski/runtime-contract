@@ -63,6 +63,29 @@ mode, modification time, and byte hash.
 - Golden and process tests cover terminal, JSON, SARIF, stdout/stderr separation, determinism,
   relative paths, value redaction, traversal, parser safety limits, and read-only integrity.
 
+## Resource budgets
+
+v0.1 fails closed when an input exceeds its parser budget:
+
+| Input | Limit |
+|---|---:|
+| Python, JavaScript, or TypeScript source file | 4 MiB |
+| Configuration, Compose, Kubernetes, Dockerfile, or `.env.example` file | 1 MiB |
+| Resolved Compose project | 8 MiB |
+| Compose reference traversal | 32 levels |
+| YAML structure | depth 64, 10,000 nodes, 64 KiB per scalar |
+| Kubernetes YAML stream | 256 documents |
+
+Exceeding a limit emits a value-blind diagnostic and makes the result partial or failed, never
+complete. Unsupported binary files are ignored. Invalid UTF-8 fails safely without exposing bytes.
+Long logical lines remain supported within the applicable file and scalar budgets.
+
+The performance regression gate generates 500 components and 1,000 supported files, performs three
+scans, requires byte-identical JSON, and enforces a median below eight seconds. This is a CI budget,
+not a latency guarantee. Runtime depends on storage, platform, input mix, and finding volume. v0.1 is
+single-process and bounded by caller-selected roots; it has no global timeout or maximum repository
+file count.
+
 ## Telemetry and external transmission
 
 There is no telemetry, analytics, crash reporting, remote configuration, update request, network
