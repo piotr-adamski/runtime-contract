@@ -1,0 +1,1 @@
+"""GitHub Action adapter package."""

@@ -256,9 +256,218 @@ jobs:
           .dependency-venv/bin/python -m pip --version >/dev/null 2>&1 || true
           uv pip freeze --python .dependency-venv/bin/python
 
+  action-compatibility:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: quality-gates
+    name: action (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    steps:
+      - name: Check out the tested commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Invoke the local Action like a consumer
+        id: runtime-contract
+        uses: ./
+        with:
+          command: check
+          path: examples/demo/fixed
+          config: runtime-contract.yaml
+
+      - name: Verify the installed public release and product exit
+        shell: bash
+        env:
+          EXIT_CODE: ${{ steps.runtime-contract.outputs.exit-code }}
+          INSTALLED_VERSION: ${{ steps.runtime-contract.outputs.runtime-contract-version }}
+          RESULT_FILE: ${{ steps.runtime-contract.outputs.result-file }}
+        run: |
+          set -euo pipefail
+          test "$EXIT_CODE" = 0
+          test "$INSTALLED_VERSION" = 0.1.0
+          test -z "$RESULT_FILE"
+
+  action-e2e:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: quality-gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Check out the tested commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up uv for fixture assertions
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Prepare clean consumer copies and source snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -R examples/demo/fixed "$RUNNER_TEMP/consumer-clean"
+          cp -R examples/demo/broken "$RUNNER_TEMP/consumer-broken"
+          cp -R examples/demo/fixed "$RUNNER_TEMP/consumer space żółć; touch ACTION_PWNED"
+          uv run python - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          def snapshot(root: Path) -> dict[str, str]:
+              return {
+                  item.relative_to(root).as_posix(): hashlib.sha256(item.read_bytes()).hexdigest()
+                  for item in sorted(root.rglob("*"))
+                  if item.is_file()
+              }
+
+          base = Path(os.environ["RUNNER_TEMP"])
+          for name in ("consumer-clean", "consumer-broken"):
+              (base / f"{name}.before.json").write_text(
+                  json.dumps(snapshot(base / name), sort_keys=True), encoding="utf-8"
+              )
+          PY
+
+      - name: Produce clean JSON through uses
+        id: json
+        uses: ./
+        with:
+          command: scan
+          path: ${{ runner.temp }}/consumer-clean
+          format: json
+          config: runtime-contract.yaml
+          output: runtime-contract.json
+
+      - name: Produce blocking SARIF through uses
+        id: sarif
+        continue-on-error: true
+        uses: ./
+        with:
+          command: check
+          path: ${{ runner.temp }}/consumer-broken
+          format: sarif
+          fail-on: error
+          output: runtime-contract.sarif
+
+      - name: Exercise explain through uses
+        id: explain
+        uses: ./
+        with:
+          command: explain
+          rule: RTC001
+          format: json
+          output: action-explain.json
+
+      - name: Exercise diff through uses
+        id: diff
+        uses: ./
+        with:
+          command: diff
+          left: ${{ runner.temp }}/consumer-clean
+          right: ${{ runner.temp }}/consumer-broken
+          format: json
+          output: action-diff.json
+
+      - name: Pass spaces, Unicode, and shell metacharacters literally
+        id: unusual-path
+        uses: ./
+        with:
+          command: check
+          path: ${{ runner.temp }}/consumer space żółć; touch ACTION_PWNED
+
+      - name: Reject an unsupported command
+        id: invalid-command
+        continue-on-error: true
+        uses: ./
+        with:
+          command: check; touch ACTION_PWNED
+
+      - name: Fail closed for a nonexistent product version
+        id: invalid-version
+        continue-on-error: true
+        uses: ./
+        with:
+          version: 999999.0.0
+
+      - name: Validate outputs, reports, exits, and source integrity
+        shell: bash
+        env:
+          JSON_EXIT: ${{ steps.json.outputs.exit-code }}
+          JSON_FILE: ${{ steps.json.outputs.result-file }}
+          JSON_VERSION: ${{ steps.json.outputs.runtime-contract-version }}
+          SARIF_OUTCOME: ${{ steps.sarif.outcome }}
+          SARIF_EXIT: ${{ steps.sarif.outputs.exit-code }}
+          SARIF_FILE: ${{ steps.sarif.outputs.result-file }}
+          EXPLAIN_EXIT: ${{ steps.explain.outputs.exit-code }}
+          DIFF_EXIT: ${{ steps.diff.outputs.exit-code }}
+          UNUSUAL_EXIT: ${{ steps.unusual-path.outputs.exit-code }}
+          INVALID_COMMAND_OUTCOME: ${{ steps.invalid-command.outcome }}
+          INVALID_COMMAND_EXIT: ${{ steps.invalid-command.outputs.exit-code }}
+          INVALID_VERSION_OUTCOME: ${{ steps.invalid-version.outcome }}
+          INVALID_VERSION_EXIT: ${{ steps.invalid-version.outputs.exit-code }}
+        run: |
+          set -euo pipefail
+          test "$JSON_EXIT" = 0
+          test "$JSON_VERSION" = 0.1.0
+          test "$SARIF_OUTCOME" = failure
+          test "$SARIF_EXIT" = 1
+          test "$EXPLAIN_EXIT" = 0
+          test "$DIFF_EXIT" = 0
+          test "$UNUSUAL_EXIT" = 0
+          test "$INVALID_COMMAND_OUTCOME" = failure
+          test "$INVALID_COMMAND_EXIT" = 2
+          test "$INVALID_VERSION_OUTCOME" = failure
+          test "$INVALID_VERSION_EXIT" = 2
+          test ! -e ACTION_PWNED
+          uv run python - "$JSON_FILE" "$SARIF_FILE" <<'PY'
+          import hashlib
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          json_file, sarif_file = map(Path, sys.argv[1:])
+          report = json.loads(json_file.read_text(encoding="utf-8"))
+          sarif = json.loads(sarif_file.read_text(encoding="utf-8"))
+          assert report["schema_id"] == "runtime-contract/v1"
+          assert sarif["version"] == "2.1.0"
+          assert sarif["runs"][0]["results"]
+          assert all(
+              not location["physicalLocation"]["artifactLocation"]["uri"].startswith(("/", "file:"))
+              for result in sarif["runs"][0]["results"]
+              for location in result.get("locations", [])
+          )
+
+          def snapshot(root: Path, ignored: set[str]) -> dict[str, str]:
+              return {
+                  item.relative_to(root).as_posix(): hashlib.sha256(item.read_bytes()).hexdigest()
+                  for item in sorted(root.rglob("*"))
+                  if item.is_file() and item.relative_to(root).as_posix() not in ignored
+              }
+
+          base = Path(os.environ["RUNNER_TEMP"])
+          pairs = (
+              ("consumer-clean", {"runtime-contract.json"}),
+              ("consumer-broken", {"runtime-contract.sarif"}),
+          )
+          for name, ignored in pairs:
+              before = json.loads((base / f"{name}.before.json").read_text(encoding="utf-8"))
+              assert snapshot(base / name, ignored) == before
+          PY
+
   quality:
     if: always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
-    needs: [quality-gates, compatibility, dependency-range]
+    needs: [quality-gates, compatibility, dependency-range, action-compatibility, action-e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
@@ -267,9 +476,13 @@ jobs:
           QUALITY_GATES_RESULT: ${{ needs.quality-gates.result }}
           COMPATIBILITY_RESULT: ${{ needs.compatibility.result }}
           DEPENDENCY_RANGE_RESULT: ${{ needs.dependency-range.result }}
+          ACTION_COMPATIBILITY_RESULT: ${{ needs.action-compatibility.result }}
+          ACTION_E2E_RESULT: ${{ needs.action-e2e.result }}
         run: |
           set -euo pipefail
           test "$QUALITY_GATES_RESULT" = success
           test "$COMPATIBILITY_RESULT" = success
           test "$DEPENDENCY_RANGE_RESULT" = success
+          test "$ACTION_COMPATIBILITY_RESULT" = success
+          test "$ACTION_E2E_RESULT" = success
           echo "All required CI jobs succeeded."

@@ -18,7 +18,7 @@ def test_readme_contains_complete_neutral_first_use_contract() -> None:
         "## Quickstart",
         "## Main commands",
         "## Exit codes",
-        "## Minimal GitHub Actions integration",
+        "## GitHub Action",
         "## Important limitations",
         "## Reference documentation",
         "## Contributing, security, and license",
@@ -33,6 +33,8 @@ def test_readme_contains_complete_neutral_first_use_contract() -> None:
         "runtime-contract explain RTC001",
         "runtime-contract diff BEFORE AFTER",
         "runtime-contract config validate PATH",
+        "uses: piotr-adamski/runtime-contract@v0",
+        "github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9",
     ):
         assert command in text
     for concept in (

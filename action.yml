@@ -1,0 +1,90 @@
+name: Runtime Contract Check
+description: Run the released runtime-contract CLI without managing Python or package installation.
+author: Piotr Adamski
+
+inputs:
+  command:
+    description: Command to run (scan, check, explain, or diff).
+    required: false
+    default: check
+  path:
+    description: Project directory for scan/check, or optional explanation source.
+    required: false
+    default: .
+  format:
+    description: Output format supported by the selected command.
+    required: false
+    default: text
+  fail-on:
+    description: Failure threshold for scan/check (error, warning, info, or never).
+    required: false
+    default: error
+  config:
+    description: Optional configuration path relative to path (scan/check only).
+    required: false
+    default: ""
+  version:
+    description: Exact released runtime-contract version to install from PyPI.
+    required: false
+    default: 0.1.0
+  output:
+    description: Optional report path passed to the CLI --output option.
+    required: false
+    default: ""
+  rule:
+    description: Rule or finding identifier required by explain.
+    required: false
+    default: ""
+  left:
+    description: Left project directory or JSON report required by diff.
+    required: false
+    default: ""
+  right:
+    description: Right project directory or JSON report required by diff.
+    required: false
+    default: ""
+  environment:
+    description: Optional environment profile for scan, check, or diff.
+    required: false
+    default: ""
+
+outputs:
+  exit-code:
+    description: Exact runtime-contract exit code, or 2 for an Action setup/validation failure.
+    value: ${{ steps.runtime-contract.outputs.exit-code }}
+  result-file:
+    description: Absolute path to the requested output file, or an empty string.
+    value: ${{ steps.runtime-contract.outputs.result-file }}
+  runtime-contract-version:
+    description: Verified installed runtime-contract version, or an empty string on setup failure.
+    value: ${{ steps.runtime-contract.outputs.runtime-contract-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up the pinned installer
+      uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990
+      with:
+        version: "0.11.28"
+        enable-cache: false
+
+    - name: Install and run runtime-contract
+      id: runtime-contract
+      shell: bash
+      env:
+        RUNTIME_CONTRACT_ACTION_COMMAND: ${{ inputs.command }}
+        RUNTIME_CONTRACT_ACTION_PATH: ${{ inputs.path }}
+        RUNTIME_CONTRACT_ACTION_FORMAT: ${{ inputs.format }}
+        RUNTIME_CONTRACT_ACTION_FAIL_ON: ${{ inputs.fail-on }}
+        RUNTIME_CONTRACT_ACTION_CONFIG: ${{ inputs.config }}
+        RUNTIME_CONTRACT_ACTION_VERSION: ${{ inputs.version }}
+        RUNTIME_CONTRACT_ACTION_OUTPUT: ${{ inputs.output }}
+        RUNTIME_CONTRACT_ACTION_RULE: ${{ inputs.rule }}
+        RUNTIME_CONTRACT_ACTION_LEFT: ${{ inputs.left }}
+        RUNTIME_CONTRACT_ACTION_RIGHT: ${{ inputs.right }}
+        RUNTIME_CONTRACT_ACTION_ENVIRONMENT: ${{ inputs.environment }}
+      run: uv run --no-project --python 3.11.15 python "$GITHUB_ACTION_PATH/scripts/action/runner.py"
+
+branding:
+  icon: shield
+  color: blue
