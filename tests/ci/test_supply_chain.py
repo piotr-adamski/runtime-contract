@@ -42,16 +42,21 @@ def test_gitleaks_allowlist_is_limited_to_generated_json_fixtures() -> None:
     assert "README" not in config
 
 
-def test_publish_workflow_is_oidc_only_tag_bound_and_pinned() -> None:
+def test_publish_workflow_is_oidc_only_exact_main_bound_and_pinned() -> None:
     path = ROOT / ".github/workflows/publish.yml"
     workflow = yaml.safe_load(path.read_text())
     text = path.read_text()
-    build = workflow["jobs"]["build"]
     publish = workflow["jobs"]["publish"]
 
     assert workflow["permissions"] == {"contents": "read"}
-    assert workflow[True] == {"release": {"types": ["published"]}}
-    assert "v0.1.0" in build["if"] and "target_commitish == 'main'" in build["if"]
+    dispatch = workflow[True]["workflow_dispatch"]
+    assert set(dispatch["inputs"]) == {"version", "commit_sha"}
+    assert all(value["required"] is True for value in dispatch["inputs"].values())
+    assert "git rev-parse FETCH_HEAD" in text
+    assert "git fetch --no-tags origin main" in text
+    assert 'test "$(uv version --short)" = "$RELEASE_VERSION"' in text
+    assert "already exists on PyPI" in text
+    assert "release:" not in text
     assert publish["environment"]["name"] == "pypi"
     assert publish["permissions"] == {"id-token": "write"}
     assert re.search(r"(?m)^\s+(password|user|username|api-token):", text) is None

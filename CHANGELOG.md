@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-14
+
 - Add a root composite GitHub Action that installs the exact public PyPI release in an isolated,
   pinned Python environment and invokes the existing CLI without copying analyzer or parser logic.
 - Add validated command-specific inputs and stable version/exit/report outputs, with array-only
@@ -14,6 +16,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   invalid-input, and failed-install cases, plus required Ubuntu, macOS, and Windows CI coverage.
 - Document minimal, blocking, SARIF, immutable-SHA, versioning, platform, supply-chain, and
   Marketplace usage contracts.
+- Exclude `.github` from default discovery so a repository can scan its root without interpreting
+  its own GitHub workflow YAML as Kubernetes; an explicit `include` still opts the directory in.
+- Replace release-triggered publishing with an OIDC-only manual dispatch that accepts an exact
+  version and exact current `main` SHA, rejects an existing PyPI version, runs the full gates, and
+  publishes verified distributions before immutable release tags are created.
 
 ## [0.1.0] - 2026-07-13
 
@@ -82,5 +89,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   smokes, packaged-schema validation, deterministic output checks, and private-artifact rejection.
 - Aligned analyzer API documentation and this changelog with the implemented D1.01–D1.15 state.
 
-[Unreleased]: https://github.com/piotr-adamski/runtime-contract/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/piotr-adamski/runtime-contract/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/piotr-adamski/runtime-contract/compare/v0.1.0...v0.1.2
 [0.1.0]: https://github.com/piotr-adamski/runtime-contract/releases/tag/v0.1.0

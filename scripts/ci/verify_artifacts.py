@@ -11,7 +11,7 @@ import zipfile
 from email.parser import Parser
 from pathlib import Path
 
-EXPECTED_VERSION = "0.1.0"
+EXPECTED_VERSION = "0.1.2"
 SCHEMAS = (
     Path("schemas/runtime-contract.schema.json"),
     Path("schemas/runtime-contract-analysis-result-v1.schema.json"),
