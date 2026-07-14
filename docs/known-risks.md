@@ -10,12 +10,14 @@ listed as planned scope, not as a product defect. No open risk is rated critical
 | RISK-001 | Defensive filesystem-mutation branches are platform and race dependent. | low | accepted | A concurrent mutation can make an individual file fail analysis. | Fail closed with redacted diagnostics, atomic output rollback, and containment checks. | Maintainer | v0.1.0 | `tests/test_discovery.py`, `tests/test_scan.py` |
 | RISK-002 | Static analyzers intentionally do not resolve dynamic aliases, computed names, or cross-module value flow. | medium | accepted | Some environment-variable uses produce partial diagnostics or remain unsupported instead of being guessed. | Deterministic partial status, explicit diagnostics, and documented syntax boundaries. | Maintainer | post-v0.1.0 | analyzer unit tests and `docs/analyzer-api.md` |
 | RISK-003 | A damaged Tree-sitter parse may retain only unambiguous observations before or around recovery nodes. | medium | accepted | A credible partial report can contain fewer facts than a complete parse. | Partial status, structural diagnostics, no source execution, and recovery regression tests. | Maintainer | v0.1.0 | `test_tree_sitter_recovery_preserves_safe_static_and_dynamic_reads` |
+| RISK-004 | Each GitHub Action invocation depends on GitHub's Action distribution and public PyPI availability. | low | accepted | A network or registry outage fails setup before analysis. | Exact product/tool versions, public index only, isolated install, version and dependency verification, no fallback to `main`, and fail-closed exit `2`. | Maintainer | Action v0 | `tests/action`, `.github/workflows/ci.yml` |
 
 ## Intentional v0.1.0 limitations
 
 | ID | Description | Severity | Status | Impact | Control or mitigation | Owner | Target milestone | Evidence or test |
 |---|---|---|---|---|---|---|---|---|
 | LIMIT-004 | Plugin discovery and dynamic analyzer loading are not implemented. | none | accepted | Extensions use the public analyzer API but must be registered by an embedding application. | Stable `Analyzer`/`AnalyzerRegistry` seam and explicit documentation. | Maintainer | post-v0.1.0 | `docs/analyzer-api.md`, `tests/analysis/test_base.py` |
+| LIMIT-005 | Self-hosted runners are not part of the Action compatibility claim. | none | accepted | A self-hosted image may block GitHub/PyPI or lack a platform supported by pinned `uv` and Python. | Required CI covers current GitHub-hosted Ubuntu, macOS, and Windows images; self-hosted users must provide equivalent network and OS support. | Maintainer | Action v0 | `action-compatibility` CI matrix |
 
 ## Closed D1.15 regressions
 

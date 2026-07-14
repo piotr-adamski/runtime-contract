@@ -6,8 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-No changes yet. New features are frozen until after v0.1.0; only release-blocking correctness,
-security, packaging, or publication fixes may be added to the v0.1.0 release commit.
+- Add a root composite GitHub Action that installs the exact public PyPI release in an isolated,
+  pinned Python environment and invokes the existing CLI without copying analyzer or parser logic.
+- Add validated command-specific inputs and stable version/exit/report outputs, with array-only
+  subprocess execution and regression coverage for shell-injection payloads.
+- Add consumer-style Action E2E for clean, blocking, JSON, SARIF, configuration, diff, Unicode,
+  invalid-input, and failed-install cases, plus required Ubuntu, macOS, and Windows CI coverage.
+- Document minimal, blocking, SARIF, immutable-SHA, versioning, platform, supply-chain, and
+  Marketplace usage contracts.
 
 ## [0.1.0] - 2026-07-13
 
