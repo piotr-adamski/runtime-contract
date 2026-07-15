@@ -27,7 +27,7 @@ def test_metadata_exposes_the_stable_public_contract() -> None:
     assert inputs["path"]["default"] == "."
     assert inputs["format"]["default"] == "text"
     assert inputs["fail-on"]["default"] == "error"
-    assert inputs["version"]["default"] == "0.1.0"
+    assert inputs["version"]["default"] == "0.1.2"
     assert set(inputs) == {
         "command",
         "path",

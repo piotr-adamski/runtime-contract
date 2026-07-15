@@ -290,7 +290,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$EXIT_CODE" = 0
-          test "$INSTALLED_VERSION" = 0.1.0
+          test "$INSTALLED_VERSION" = 0.1.2
           test -z "$RESULT_FILE"
 
   action-e2e:
@@ -418,7 +418,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$JSON_EXIT" = 0
-          test "$JSON_VERSION" = 0.1.0
+          test "$JSON_VERSION" = 0.1.2
           test "$SARIF_OUTCOME" = failure
           test "$SARIF_EXIT" = 1
           test "$EXPLAIN_EXIT" = 0
