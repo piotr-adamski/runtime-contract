@@ -26,7 +26,7 @@ inputs:
   version:
     description: Exact released runtime-contract version to install from PyPI.
     required: false
-    default: 0.1.0
+    default: 0.1.2
   output:
     description: Optional report path passed to the CLI --output option.
     required: false

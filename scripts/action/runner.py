@@ -109,7 +109,7 @@ def build_cli_arguments(executable: Path) -> list[str]:
 
 
 def _version() -> str:
-    version = _input("VERSION", "0.1.0")
+    version = _input("VERSION", "0.1.2")
     if not _EXACT_VERSION.fullmatch(version):
         raise ActionError("input version must be one exact public release version")
     return version

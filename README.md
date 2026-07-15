@@ -84,7 +84,7 @@ steps:
 | `format` | `text` | `text`, `json`, or `sarif` for `scan`/`check`; `text` or `json` for `explain`/`diff`. |
 | `fail-on` | `error` | `error`, `warning`, `info`, or `never` for `scan`/`check`. Must stay at the default for other commands. |
 | `config` | empty | Configuration path relative to `path` for `scan`/`check`. |
-| `version` | `0.1.0` | One exact public PyPI release. Moving values such as `latest` and URLs are rejected. |
+| `version` | `0.1.2` | One exact public PyPI release. Moving values such as `latest` and URLs are rejected. |
 | `output` | empty | Report path passed as one `--output` argument. For `scan`/`check`, it is relative to `path`. |
 | `rule` | empty | Rule or finding identifier required by `explain`. |
 | `left` | empty | Left project directory or saved JSON report required by `diff`. |
