@@ -56,7 +56,7 @@ dev = [
     "pytest-cov>=7.1,<8",
     "pipx>=1.8.0,<2",
     "ruff>=0.15.21,<0.16",
-    "twine>=6.2.0,<7",
+    "twine>=6.2.0,<8",
     "types-jsonschema>=4.26,<5",
     "types-pyyaml>=6.0.12.20250915,<7",
 ]
