@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "roots": {
+    "api": {
+      "path": "backend",
+      "exclude": [
+        "tests/**",
+        "app/tests/**"
+      ]
+    },
+    "frontend": {
+      "path": "frontend",
+      "exclude": [
+        "tests/**"
+      ]
+    },
+    "deployment": {
+      "path": ".",
+      "include": [
+        "compose.yml",
+        "compose.*.yml"
+      ]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "roots": {
+    "library": "src/helpdesk",
+    "standalone": "standalone",
+    "demo": "demodesk"
+  }
+}

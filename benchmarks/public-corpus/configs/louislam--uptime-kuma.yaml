@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "roots": {
+    "monitor": {
+      "path": ".",
+      "exclude": [
+        "test/**",
+        "extra/**"
+      ]
+    }
+  }
+}

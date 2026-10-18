@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "roots": {
+    "web": {
+      "path": ".",
+      "exclude": [
+        "tests/**",
+        "cypress/**"
+      ]
+    }
+  }
+}

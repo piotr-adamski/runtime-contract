@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "baseline": "0.1.2",
+  "frozen_on": "2026-10-18",
+  "repositories": [
+    {
+      "repository": "fastapi/full-stack-fastapi-template",
+      "url": "https://github.com/fastapi/full-stack-fastapi-template",
+      "sha": "b1125d8839482cb7bbae603ddc6d0081bf87532e",
+      "commit_date": "2026-10-15T16:04:31Z",
+      "license": "MIT",
+      "stars": 46033,
+      "language": "TypeScript",
+      "archived": false,
+      "stack": "mixed",
+      "features": [
+        "python",
+        "javascript-typescript",
+        "dockerfile",
+        "compose",
+        "env-example"
+      ],
+      "reason": "Active, licensed project with static consumers and deployment declarations; selected before scan results."
+    },
+    {
+      "repository": "umami-software/umami",
+      "url": "https://github.com/umami-software/umami",
+      "sha": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+      "commit_date": "2026-09-17T04:02:41Z",
+      "license": "MIT",
+      "stars": 39452,
+      "language": "TypeScript",
+      "archived": false,
+      "stack": "javascript-typescript",
+      "features": [
+        "javascript-typescript",
+        "dockerfile",
+        "compose"
+      ],
+      "reason": "Active, licensed project with static consumers and deployment declarations; selected before scan results."
+    },
+    {
+      "repository": "louislam/dockge",
+      "url": "https://github.com/louislam/dockge",
+      "sha": "f809ae192b571944ad773e9866d3e67064ae8043",
+      "commit_date": "2026-04-19T00:12:17Z",
+      "license": "MIT",
+      "stars": 24636,
+      "language": "TypeScript",
+      "archived": false,
+      "stack": "javascript-typescript",
+      "features": [
+        "javascript-typescript",
+        "dockerfile",
+        "compose"
+      ],
+      "reason": "Active, licensed project with static consumers and deployment declarations; selected before scan results."
+    },
+    {
+      "repository": "louislam/uptime-kuma",
+      "url": "https://github.com/louislam/uptime-kuma",
+      "sha": "b092505f894d66669b67f46e1da72b51016eceab",
+      "commit_date": "2026-10-13T17:16:20Z",
+      "license": "MIT",
+      "stars": 92607,
+      "language": "JavaScript",
+      "archived": false,
+      "stack": "javascript-typescript",
+      "features": [
+        "javascript-typescript",
+        "dockerfile",
+        "compose"
+      ],
+      "reason": "Active, licensed project with static consumers and deployment declarations; selected before scan results."
+    },
+    {
+      "repository": "GoogleCloudPlatform/microservices-demo",
+      "url": "https://github.com/GoogleCloudPlatform/microservices-demo",
+      "sha": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
+      "commit_date": "2026-09-18T15:38:26Z",
+      "license": "Apache-2.0",
+      "stars": 21061,
+      "language": "Go",
+      "archived": false,
+      "stack": "mixed",
+      "features": [
+        "python",
+        "javascript-typescript",
+        "dockerfile",
+        "kubernetes"
+      ],
+      "reason": "Active, licensed project with static consumers and deployment declarations; selected before scan results."
+    },
+    {
+      "repository": "docmost/docmost",
+      "url": "https://github.com/docmost/docmost",
+      "sha": "744c82bdf86f454ca44a2e19dc150900e884a11e",
+      "commit_date": "2026-10-16T11:53:55Z",
+      "license": "AGPL-3.0",
+      "stars": 22023,
+      "language": "TypeScript",
+      "archived": false,
+      "stack": "javascript-typescript",
+      "features": [
+        "javascript-typescript",
+        "dockerfile",
+        "compose",
+        "env-example"
+      ],
+      "reason": "Active, licensed project with static consumers and deployment declarations; selected before scan results."
+    },
+    {
+      "repository": "healthchecks/healthchecks",
+      "url": "https://github.com/healthchecks/healthchecks",
+      "sha": "b932fc404aa2868c6be46e90e803d9b35f460cc0",
+      "commit_date": "2026-10-16T14:01:37Z",
+      "license": "BSD-3-Clause",
+      "stars": 10427,
+      "language": "Python",
+      "archived": false,
+      "stack": "python",
+      "features": [
+        "python",
+        "dockerfile",
+        "compose"
+      ],
+      "reason": "Active, licensed project with static consumers and deployment declarations; selected before scan results."
+    },
+    {
+      "repository": "paperless-ngx/paperless-ngx",
+      "url": "https://github.com/paperless-ngx/paperless-ngx",
+      "sha": "41498113d31331409cebcc97508313f0cbdec4f4",
+      "commit_date": "2026-10-18T14:29:34Z",
+      "license": "GPL-3.0",
+      "stars": 46843,
+      "language": "Python",
+      "archived": false,
+      "stack": "mixed",
+      "features": [
+        "python",
+        "javascript-typescript",
+        "dockerfile",
+        "compose"
+      ],
+      "reason": "Active, licensed project with static consumers and deployment declarations; selected before scan results."
+    },
+    {
+      "repository": "django-helpdesk/django-helpdesk",
+      "url": "https://github.com/django-helpdesk/django-helpdesk",
+      "sha": "25bcad9c02a6eee2f95ed6070e46cbed47cb1e7e",
+      "commit_date": "2026-10-17T17:56:02Z",
+      "license": "BSD-3-Clause",
+      "stars": 1691,
+      "language": "Python",
+      "archived": false,
+      "stack": "python",
+      "features": [
+        "python",
+        "dockerfile",
+        "compose"
+      ],
+      "reason": "Active, licensed project with static consumers and deployment declarations; selected before scan results."
+    },
+    {
+      "repository": "wagtail/bakerydemo",
+      "url": "https://github.com/wagtail/bakerydemo",
+      "sha": "c9b38d7a7170dba8bb84254beb7e5dc5a955e024",
+      "commit_date": "2026-10-15T07:38:18Z",
+      "license": "BSD-3-Clause",
+      "stars": 1085,
+      "language": "Python",
+      "archived": false,
+      "stack": "python",
+      "features": [
+        "python",
+        "dockerfile",
+        "compose"
+      ],
+      "reason": "Active Python application with deployment declarations; replaces an over-budget acquisition before scanner results."
+    }
+  ]
+}
