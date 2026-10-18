@@ -7,7 +7,6 @@ import hashlib
 import json
 import os
 import platform
-import resource
 import shutil
 import statistics
 import subprocess
@@ -18,6 +17,8 @@ from common import BASE, corpus, slug, tree_digest, write_json
 
 
 def limits() -> None:
+    import resource
+
     resource.setrlimit(resource.RLIMIT_AS, (1_073_741_824, 1_073_741_824))
     resource.setrlimit(resource.RLIMIT_CPU, (30, 30))
     resource.setrlimit(resource.RLIMIT_FSIZE, (134_217_728, 134_217_728))

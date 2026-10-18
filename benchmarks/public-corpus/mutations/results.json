@@ -1,0 +1,220 @@
+[
+  {
+    "control_excludes_expected_rule": true,
+    "expectation_met": true,
+    "expected_rule": "RTC001",
+    "expected_status": "complete",
+    "id": "missing-delivery",
+    "observed": {
+      "after": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 0,
+        "rules": [
+          "RTC001"
+        ],
+        "status": "complete"
+      },
+      "before": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [],
+        "status": "complete"
+      }
+    }
+  },
+  {
+    "control_excludes_expected_rule": true,
+    "expectation_met": false,
+    "expected_rule": "RTC010",
+    "expected_status": "complete",
+    "id": "wrong-phase",
+    "observed": {
+      "after": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [
+          "RTC001"
+        ],
+        "status": "complete"
+      },
+      "before": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [],
+        "status": "complete"
+      }
+    }
+  },
+  {
+    "control_excludes_expected_rule": true,
+    "expectation_met": true,
+    "expected_rule": "RTC002",
+    "expected_status": "complete",
+    "id": "sensitive-literal",
+    "observed": {
+      "after": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [
+          "RTC002"
+        ],
+        "status": "complete"
+      },
+      "before": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [],
+        "status": "complete"
+      }
+    }
+  },
+  {
+    "control_excludes_expected_rule": true,
+    "expectation_met": true,
+    "expected_rule": "RTC001",
+    "expected_status": "complete",
+    "id": "pydantic-alias",
+    "observed": {
+      "after": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [
+          "RTC001",
+          "RTC005"
+        ],
+        "status": "complete"
+      },
+      "before": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [],
+        "status": "complete"
+      }
+    }
+  },
+  {
+    "control_excludes_expected_rule": true,
+    "expectation_met": true,
+    "expected_rule": "RTC006",
+    "expected_status": "partial",
+    "id": "dynamic-name",
+    "observed": {
+      "after": {
+        "consumers": 0,
+        "diagnostics": [
+          "dynamic_name"
+        ],
+        "exit_code": 2,
+        "providers": 1,
+        "rules": [
+          "RTC006"
+        ],
+        "status": "partial"
+      },
+      "before": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [],
+        "status": "complete"
+      }
+    }
+  },
+  {
+    "control_excludes_expected_rule": true,
+    "expectation_met": false,
+    "expected_rule": "RTC009",
+    "expected_status": "complete",
+    "id": "unresolved-envfrom",
+    "observed": {
+      "after": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [],
+        "status": "complete"
+      },
+      "before": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [],
+        "status": "complete"
+      }
+    }
+  },
+  {
+    "control_excludes_expected_rule": true,
+    "expectation_met": true,
+    "expected_rule": "RTC001",
+    "expected_status": "complete",
+    "id": "cross-component-delivery",
+    "observed": {
+      "after": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [
+          "RTC001",
+          "RTC005"
+        ],
+        "status": "complete"
+      },
+      "before": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [],
+        "status": "complete"
+      }
+    }
+  },
+  {
+    "control_excludes_expected_rule": true,
+    "expectation_met": true,
+    "expected_rule": "RTC007",
+    "expected_status": "complete",
+    "id": "conflicting-default",
+    "observed": {
+      "after": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 2,
+        "rules": [
+          "RTC007"
+        ],
+        "status": "complete"
+      },
+      "before": {
+        "consumers": 1,
+        "diagnostics": [],
+        "exit_code": 0,
+        "providers": 1,
+        "rules": [],
+        "status": "complete"
+      }
+    }
+  }
+]

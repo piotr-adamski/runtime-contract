@@ -26,6 +26,18 @@ class ReportMetadata(ScanModel):
     tool_version: str | None
     command: Literal["scan", "check"] = "scan"
     policy: tuple["PolicyRecord", ...] = ()
+    analysis_fingerprint: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    baseline: "BaselineAssessment | None" = None
+
+
+class BaselineAssessment(ScanModel):
+    """Current finding identities grouped by their relationship to a trusted baseline."""
+
+    report_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    new: tuple[str, ...] = ()
+    worsened: tuple[str, ...] = ()
+    existing: tuple[str, ...] = ()
+    resolved: tuple[str, ...] = ()
 
 
 class PolicyRecord(ScanModel):

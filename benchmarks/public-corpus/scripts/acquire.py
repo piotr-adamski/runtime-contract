@@ -26,11 +26,15 @@ def acquire(item: dict[str, object], destination: Path) -> dict[str, object]:
     if len(raw) > MAX_ARCHIVE or destination.exists():
         raise ValueError("archive budget exceeded or destination already exists")
     expected = repository.split("/")[1] + "-" + sha
-    total, count = 0, 0
+    total, count, expanded, members = 0, 0, 0, 0
     excluded: dict[str, int] = {}
     destination.mkdir(parents=True)
     with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
         for member in archive:
+            expanded += member.size
+            members += 1
+            if member.size < 0 or expanded > MAX_TREE or members > MAX_FILES:
+                raise ValueError("expanded archive budget exceeded")
             parts = PurePosixPath(member.name).parts
             if not parts or parts[0] != expected or ".." in parts or "\\" in member.name:
                 raise ValueError("archive identity or containment mismatch")

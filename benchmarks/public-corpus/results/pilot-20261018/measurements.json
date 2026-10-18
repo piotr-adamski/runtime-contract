@@ -1,0 +1,1455 @@
+[
+  {
+    "acquisition": {
+      "archive_sha256": "95ec61b80d51c427c96c5004a987f6240edceddefdd8e5b70b1e5750d4393a94",
+      "bytes": 1885823,
+      "excluded": {
+        "non_regular": 4,
+        "private_or_generated": 2
+      },
+      "files": 246,
+      "hooks_executed": false,
+      "repository": "fastapi/full-stack-fastapi-template",
+      "sha": "b1125d8839482cb7bbae603ddc6d0081bf87532e",
+      "submodules_initialized": false,
+      "tree_sha256": "7cc88b9e35660f55b99c0ea14dcc3a0b33dde02e2c05663fe388251f1e9747aa"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 0.813174,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 46420,
+    "public_raw": true,
+    "report_sha256": "035f925d0bdb7dd24787bcd3afec11157ddc8aef40f87800bec2745ee6cfd57d",
+    "repository": "fastapi/full-stack-fastapi-template",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 46420,
+        "seconds": 0.813174
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 46244,
+        "seconds": 0.872894
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 46300,
+        "seconds": 0.808927
+      }
+    ],
+    "sha": "b1125d8839482cb7bbae603ddc6d0081bf87532e",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 171,
+      "candidate_kinds": {
+        "compose": 3,
+        "dockerfile": 2,
+        "javascript": 109,
+        "kubernetes": 14,
+        "python": 43
+      },
+      "candidates": 171,
+      "complete_files": 165,
+      "config_keys": 33,
+      "consumers": 31,
+      "diagnostics": 6,
+      "failed_files": 4,
+      "findings": 60,
+      "flow_edges": 93,
+      "flow_nodes": 102,
+      "partial_files": 2,
+      "precedence_conflicts": 3,
+      "precedence_providers": 31,
+      "providers": 31,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "95ec61b80d51c427c96c5004a987f6240edceddefdd8e5b70b1e5750d4393a94",
+      "bytes": 1885823,
+      "excluded": {
+        "non_regular": 4,
+        "private_or_generated": 2
+      },
+      "files": 246,
+      "hooks_executed": false,
+      "repository": "fastapi/full-stack-fastapi-template",
+      "sha": "b1125d8839482cb7bbae603ddc6d0081bf87532e",
+      "submodules_initialized": false,
+      "tree_sha256": "7cc88b9e35660f55b99c0ea14dcc3a0b33dde02e2c05663fe388251f1e9747aa"
+    },
+    "config_sha256": "c6c7191de418780dd46afa8538faeb246ed1b92be5824f4e6a4b68471f58a82c",
+    "deterministic": true,
+    "median_seconds": 0.77929,
+    "mode": "configured",
+    "peak_rss_kib": 46476,
+    "public_raw": true,
+    "report_sha256": "b366069e946344e10c12f2381f8e3884461ae1d9b7ea63a000e064bd4bcbcd40",
+    "repository": "fastapi/full-stack-fastapi-template",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 46156,
+        "seconds": 0.77929
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 46476,
+        "seconds": 0.728329
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 46316,
+        "seconds": 0.810921
+      }
+    ],
+    "sha": "b1125d8839482cb7bbae603ddc6d0081bf87532e",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 125,
+      "candidate_kinds": {
+        "compose": 3,
+        "dockerfile": 2,
+        "javascript": 89,
+        "kubernetes": 6,
+        "python": 25
+      },
+      "candidates": 125,
+      "complete_files": 122,
+      "config_keys": 52,
+      "consumers": 28,
+      "diagnostics": 3,
+      "failed_files": 2,
+      "findings": 8,
+      "flow_edges": 90,
+      "flow_nodes": 119,
+      "partial_files": 1,
+      "precedence_conflicts": 2,
+      "precedence_providers": 31,
+      "providers": 31,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "dfdc154f23fe52ffd8fbf13c0544ea880e5ef01463f57d06954512b41c50a93a",
+      "bytes": 9083336,
+      "excluded": {},
+      "files": 2026,
+      "hooks_executed": false,
+      "repository": "umami-software/umami",
+      "sha": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+      "submodules_initialized": false,
+      "tree_sha256": "5424ce0706b66f4cd886906dc311ab80bc4f1fbdf911f6edf2d3bc64dd864c44"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 14.164235,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 77252,
+    "public_raw": false,
+    "report_sha256": "515cf7b9e2de339a816253adc27889d987176890ecafc53f1fdc8f2c76079b22",
+    "repository": "umami-software/umami",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 77212,
+        "seconds": 13.592017
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 77252,
+        "seconds": 14.164235
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 77232,
+        "seconds": 14.398847
+      }
+    ],
+    "sha": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 1568,
+      "candidate_kinds": {
+        "compose": 2,
+        "dockerfile": 1,
+        "javascript": 1386,
+        "kubernetes": 179
+      },
+      "candidates": 1568,
+      "complete_files": 1562,
+      "config_keys": 89,
+      "consumers": 232,
+      "diagnostics": 161,
+      "failed_files": 1,
+      "findings": 158,
+      "flow_edges": 276,
+      "flow_nodes": 345,
+      "partial_files": 5,
+      "precedence_conflicts": 8,
+      "precedence_providers": 22,
+      "providers": 22,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "dfdc154f23fe52ffd8fbf13c0544ea880e5ef01463f57d06954512b41c50a93a",
+      "bytes": 9083336,
+      "excluded": {},
+      "files": 2026,
+      "hooks_executed": false,
+      "repository": "umami-software/umami",
+      "sha": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+      "submodules_initialized": false,
+      "tree_sha256": "5424ce0706b66f4cd886906dc311ab80bc4f1fbdf911f6edf2d3bc64dd864c44"
+    },
+    "config_sha256": "bf957be805229dd346c3d6cf122eb60a8da2d175a1d326d1247426819a7acc76",
+    "deterministic": true,
+    "median_seconds": 14.364979,
+    "mode": "configured",
+    "peak_rss_kib": 77136,
+    "public_raw": false,
+    "report_sha256": "b65963729f5a003e2aea950838e5f2522626bff05d6317e4d4aef00a70412d1c",
+    "repository": "umami-software/umami",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 77080,
+        "seconds": 14.407254
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 77136,
+        "seconds": 13.640515
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 76884,
+        "seconds": 14.364979
+      }
+    ],
+    "sha": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 1519,
+      "candidate_kinds": {
+        "compose": 2,
+        "dockerfile": 1,
+        "javascript": 1338,
+        "kubernetes": 178
+      },
+      "candidates": 1519,
+      "complete_files": 1513,
+      "config_keys": 83,
+      "consumers": 224,
+      "diagnostics": 161,
+      "failed_files": 1,
+      "findings": 146,
+      "flow_edges": 268,
+      "flow_nodes": 331,
+      "partial_files": 5,
+      "precedence_conflicts": 8,
+      "precedence_providers": 22,
+      "providers": 22,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "36b5d7653916224524cba5ce7794e1a0e5b5d0ed2735758c4c7b2c2e37cfd305",
+      "bytes": 1120320,
+      "excluded": {},
+      "files": 152,
+      "hooks_executed": false,
+      "repository": "louislam/dockge",
+      "sha": "f809ae192b571944ad773e9866d3e67064ae8043",
+      "submodules_initialized": false,
+      "tree_sha256": "b10c06997417ad2a226a7b31f611933503403d4fc05bdf89590e048c22a7938c"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 2.085599,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 58432,
+    "public_raw": false,
+    "report_sha256": "7e7b44d38456ae83876d335618618f705615201fb64de3596375b7c16f243a46",
+    "repository": "louislam/dockge",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 58300,
+        "seconds": 2.065334
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 58348,
+        "seconds": 2.085599
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 58432,
+        "seconds": 2.089811
+      }
+    ],
+    "sha": "f809ae192b571944ad773e9866d3e67064ae8043",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 90,
+      "candidate_kinds": {
+        "compose": 4,
+        "dockerfile": 1,
+        "javascript": 48,
+        "kubernetes": 37
+      },
+      "candidates": 90,
+      "complete_files": 89,
+      "config_keys": 22,
+      "consumers": 32,
+      "diagnostics": 653,
+      "failed_files": 1,
+      "findings": 100,
+      "flow_edges": 38,
+      "flow_nodes": 62,
+      "partial_files": 0,
+      "precedence_conflicts": 0,
+      "precedence_providers": 3,
+      "providers": 3,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "36b5d7653916224524cba5ce7794e1a0e5b5d0ed2735758c4c7b2c2e37cfd305",
+      "bytes": 1120320,
+      "excluded": {},
+      "files": 152,
+      "hooks_executed": false,
+      "repository": "louislam/dockge",
+      "sha": "f809ae192b571944ad773e9866d3e67064ae8043",
+      "submodules_initialized": false,
+      "tree_sha256": "b10c06997417ad2a226a7b31f611933503403d4fc05bdf89590e048c22a7938c"
+    },
+    "config_sha256": "d89a3340e56bd447e8abc355ef49d9b45532f258e43dc641da2ec6ae6b9a6930",
+    "deterministic": true,
+    "median_seconds": 2.08078,
+    "mode": "configured",
+    "peak_rss_kib": 58340,
+    "public_raw": true,
+    "report_sha256": "02fda9700709863847933814cf00862245d9c13ba15729f0c85ecb6f255446dc",
+    "repository": "louislam/dockge",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 58172,
+        "seconds": 2.08078
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 57964,
+        "seconds": 2.112473
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 58340,
+        "seconds": 2.05417
+      }
+    ],
+    "sha": "f809ae192b571944ad773e9866d3e67064ae8043",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 87,
+      "candidate_kinds": {
+        "compose": 1,
+        "dockerfile": 1,
+        "javascript": 48,
+        "kubernetes": 37
+      },
+      "candidates": 87,
+      "complete_files": 86,
+      "config_keys": 21,
+      "consumers": 32,
+      "diagnostics": 653,
+      "failed_files": 1,
+      "findings": 39,
+      "flow_edges": 36,
+      "flow_nodes": 57,
+      "partial_files": 0,
+      "precedence_conflicts": 0,
+      "precedence_providers": 2,
+      "providers": 2,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "78b74193eee6a6202a8fcc384ca706f93b7595bbb4f46701431c83b6b41b344d",
+      "bytes": 8715784,
+      "excluded": {
+        "private_or_generated": 1
+      },
+      "files": 818,
+      "hooks_executed": false,
+      "repository": "louislam/uptime-kuma",
+      "sha": "b092505f894d66669b67f46e1da72b51016eceab",
+      "submodules_initialized": false,
+      "tree_sha256": "e94cf173f3d12e6153a954e2b87a61c04342eaa5fb0572ea29bce32d74824a43"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 12.992097,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 75048,
+    "public_raw": true,
+    "report_sha256": "c216787cc98880e3094cf9e5fef8f3b19c844d5c106d7f40e2cb074dd3104ee7",
+    "repository": "louislam/uptime-kuma",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 74668,
+        "seconds": 12.836781
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 75048,
+        "seconds": 13.091212
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 74832,
+        "seconds": 12.992097
+      }
+    ],
+    "sha": "b092505f894d66669b67f46e1da72b51016eceab",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 493,
+      "candidate_kinds": {
+        "compose": 4,
+        "dockerfile": 2,
+        "javascript": 396,
+        "kubernetes": 90,
+        "python": 1
+      },
+      "candidates": 493,
+      "complete_files": 491,
+      "config_keys": 67,
+      "consumers": 150,
+      "diagnostics": 1714,
+      "failed_files": 1,
+      "findings": 199,
+      "flow_edges": 152,
+      "flow_nodes": 221,
+      "partial_files": 1,
+      "precedence_conflicts": 0,
+      "precedence_providers": 1,
+      "providers": 1,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "78b74193eee6a6202a8fcc384ca706f93b7595bbb4f46701431c83b6b41b344d",
+      "bytes": 8715784,
+      "excluded": {
+        "private_or_generated": 1
+      },
+      "files": 818,
+      "hooks_executed": false,
+      "repository": "louislam/uptime-kuma",
+      "sha": "b092505f894d66669b67f46e1da72b51016eceab",
+      "submodules_initialized": false,
+      "tree_sha256": "e94cf173f3d12e6153a954e2b87a61c04342eaa5fb0572ea29bce32d74824a43"
+    },
+    "config_sha256": "881874623998911c76d66330eba4cf4145a5ace7d01b37ae84202351a8e8c9ac",
+    "deterministic": true,
+    "median_seconds": 12.606591,
+    "mode": "configured",
+    "peak_rss_kib": 74204,
+    "public_raw": true,
+    "report_sha256": "a88b0f599ab57c9df923eabae546070cac4747cfa475fe5bb9a15c73d3ec90c9",
+    "repository": "louislam/uptime-kuma",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 74196,
+        "seconds": 12.606591
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 74072,
+        "seconds": 13.286097
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 74204,
+        "seconds": 12.426442
+      }
+    ],
+    "sha": "b092505f894d66669b67f46e1da72b51016eceab",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 387,
+      "candidate_kinds": {
+        "compose": 2,
+        "javascript": 301,
+        "kubernetes": 84
+      },
+      "candidates": 387,
+      "complete_files": 385,
+      "config_keys": 46,
+      "consumers": 89,
+      "diagnostics": 1714,
+      "failed_files": 1,
+      "findings": 47,
+      "flow_edges": 89,
+      "flow_nodes": 136,
+      "partial_files": 1,
+      "precedence_conflicts": 0,
+      "precedence_providers": 0,
+      "providers": 0,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "b937195d72b5ac55198f750d687127e597abf410d6886ccc9377af328d4a8dd6",
+      "bytes": 8023004,
+      "excluded": {
+        "oversized_file": 1
+      },
+      "files": 363,
+      "hooks_executed": false,
+      "repository": "GoogleCloudPlatform/microservices-demo",
+      "sha": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
+      "submodules_initialized": false,
+      "tree_sha256": "56f86e1e9fec7f45c2f29a4ee3491abe440214b705479e620224ae55cb665fe0"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 1.834424,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 52896,
+    "public_raw": false,
+    "report_sha256": "f4b3da75cb6740f888e94b5b4c87734cde56117eb7634b6a9c7034e670587e7e",
+    "repository": "GoogleCloudPlatform/microservices-demo",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 52716,
+        "seconds": 1.909812
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 52768,
+        "seconds": 1.794859
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 52896,
+        "seconds": 1.834424
+      }
+    ],
+    "sha": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 125,
+      "candidate_kinds": {
+        "dockerfile": 13,
+        "javascript": 6,
+        "kubernetes": 93,
+        "python": 13
+      },
+      "candidates": 125,
+      "complete_files": 89,
+      "config_keys": 40,
+      "consumers": 27,
+      "diagnostics": 138,
+      "failed_files": 36,
+      "findings": 217,
+      "flow_edges": 359,
+      "flow_nodes": 248,
+      "partial_files": 0,
+      "precedence_conflicts": 819,
+      "precedence_providers": 166,
+      "providers": 166,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "b937195d72b5ac55198f750d687127e597abf410d6886ccc9377af328d4a8dd6",
+      "bytes": 8023004,
+      "excluded": {
+        "oversized_file": 1
+      },
+      "files": 363,
+      "hooks_executed": false,
+      "repository": "GoogleCloudPlatform/microservices-demo",
+      "sha": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
+      "submodules_initialized": false,
+      "tree_sha256": "56f86e1e9fec7f45c2f29a4ee3491abe440214b705479e620224ae55cb665fe0"
+    },
+    "config_sha256": "f5eba362b048a09b4f4a5fe19334221461263ba5a9e0a780c4826bdadba1cbca",
+    "deterministic": true,
+    "median_seconds": 0.963728,
+    "mode": "configured",
+    "peak_rss_kib": 49056,
+    "public_raw": true,
+    "report_sha256": "58845d932e92b846efd27e96481b2fe0b98b3ea66dcaf6fe9c76fb15be86375d",
+    "repository": "GoogleCloudPlatform/microservices-demo",
+    "samples": [
+      {
+        "exit_code": 0,
+        "peak_rss_kib": 49056,
+        "seconds": 0.963728
+      },
+      {
+        "exit_code": 0,
+        "peak_rss_kib": 49052,
+        "seconds": 1.059569
+      },
+      {
+        "exit_code": 0,
+        "peak_rss_kib": 48628,
+        "seconds": 0.94329
+      }
+    ],
+    "sha": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
+    "source_unchanged": true,
+    "status": "complete",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 22,
+      "candidate_kinds": {
+        "dockerfile": 4,
+        "javascript": 4,
+        "kubernetes": 3,
+        "python": 11
+      },
+      "candidates": 22,
+      "complete_files": 22,
+      "config_keys": 43,
+      "consumers": 15,
+      "diagnostics": 23,
+      "failed_files": 0,
+      "findings": 63,
+      "flow_edges": 125,
+      "flow_nodes": 129,
+      "partial_files": 0,
+      "precedence_conflicts": 64,
+      "precedence_providers": 55,
+      "providers": 55,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "b9cdd564a07235963b7cd80c5e749c339d06907b64aa6df331fc0d36fae66c84",
+      "bytes": 7637091,
+      "excluded": {},
+      "files": 1779,
+      "hooks_executed": false,
+      "repository": "docmost/docmost",
+      "sha": "744c82bdf86f454ca44a2e19dc150900e884a11e",
+      "submodules_initialized": false,
+      "tree_sha256": "cd00c6082f0bc97dbc729d16063858d752b0ef073f7f47a249deca44a6c45a02"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 6.90644,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 54744,
+    "public_raw": false,
+    "report_sha256": "460707aa5df4cf1b8f6263fe8de46ffc3b4439bfde1f6b0beb5d198513f1c66d",
+    "repository": "docmost/docmost",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 54744,
+        "seconds": 6.90644
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 54704,
+        "seconds": 6.875765
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 54680,
+        "seconds": 7.143899
+      }
+    ],
+    "sha": "744c82bdf86f454ca44a2e19dc150900e884a11e",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 1629,
+      "candidate_kinds": {
+        "compose": 1,
+        "dockerfile": 1,
+        "env_example": 1,
+        "javascript": 1597,
+        "kubernetes": 29
+      },
+      "candidates": 1629,
+      "complete_files": 1619,
+      "config_keys": 52,
+      "consumers": 76,
+      "diagnostics": 16,
+      "failed_files": 1,
+      "findings": 60,
+      "flow_edges": 129,
+      "flow_nodes": 173,
+      "partial_files": 9,
+      "precedence_conflicts": 0,
+      "precedence_providers": 42,
+      "providers": 42,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "b9cdd564a07235963b7cd80c5e749c339d06907b64aa6df331fc0d36fae66c84",
+      "bytes": 7637091,
+      "excluded": {},
+      "files": 1779,
+      "hooks_executed": false,
+      "repository": "docmost/docmost",
+      "sha": "744c82bdf86f454ca44a2e19dc150900e884a11e",
+      "submodules_initialized": false,
+      "tree_sha256": "cd00c6082f0bc97dbc729d16063858d752b0ef073f7f47a249deca44a6c45a02"
+    },
+    "config_sha256": "40051c69718d31fd9ff422d8f5a920fb40ccacc3ced24dafa864a57a8a90d896",
+    "deterministic": true,
+    "median_seconds": 6.943472,
+    "mode": "configured",
+    "peak_rss_kib": 54640,
+    "public_raw": false,
+    "report_sha256": "5410c8cd26445e07e8f7409bcb74803acd97fa8ec80ec4111e8391992335188c",
+    "repository": "docmost/docmost",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 54172,
+        "seconds": 6.943472
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 54176,
+        "seconds": 7.012012
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 54640,
+        "seconds": 6.758742
+      }
+    ],
+    "sha": "744c82bdf86f454ca44a2e19dc150900e884a11e",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 1460,
+      "candidate_kinds": {
+        "compose": 1,
+        "dockerfile": 1,
+        "env_example": 1,
+        "javascript": 1436,
+        "kubernetes": 21
+      },
+      "candidates": 1460,
+      "complete_files": 1450,
+      "config_keys": 59,
+      "consumers": 76,
+      "diagnostics": 16,
+      "failed_files": 1,
+      "findings": 25,
+      "flow_edges": 129,
+      "flow_nodes": 182,
+      "partial_files": 9,
+      "precedence_conflicts": 0,
+      "precedence_providers": 42,
+      "providers": 42,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "363bc2b50baec94fdd762f7e74d04e71f4c6d636ce75426e08b057943ab8ff17",
+      "bytes": 9914107,
+      "excluded": {},
+      "files": 1273,
+      "hooks_executed": false,
+      "repository": "healthchecks/healthchecks",
+      "sha": "b932fc404aa2868c6be46e90e803d9b35f460cc0",
+      "submodules_initialized": false,
+      "tree_sha256": "2a5978889fe8d55504dae0be19a033dbfd58da24cf18b498b4a6f106c1953876"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 10.318044,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 136344,
+    "public_raw": true,
+    "report_sha256": "25d28c1af6204df4d39c36d148a4279c9c84754d11f36f473e342aee9da5824c",
+    "repository": "healthchecks/healthchecks",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 136344,
+        "seconds": 10.318044
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 136332,
+        "seconds": 10.268228
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 136300,
+        "seconds": 11.146337
+      }
+    ],
+    "sha": "b932fc404aa2868c6be46e90e803d9b35f460cc0",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 701,
+      "candidate_kinds": {
+        "compose": 1,
+        "dockerfile": 1,
+        "env_example": 1,
+        "javascript": 42,
+        "kubernetes": 1,
+        "python": 655
+      },
+      "candidates": 701,
+      "complete_files": 699,
+      "config_keys": 91,
+      "consumers": 55,
+      "diagnostics": 259,
+      "failed_files": 1,
+      "findings": 67,
+      "flow_edges": 142,
+      "flow_nodes": 232,
+      "partial_files": 1,
+      "precedence_conflicts": 0,
+      "precedence_providers": 83,
+      "providers": 83,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "363bc2b50baec94fdd762f7e74d04e71f4c6d636ce75426e08b057943ab8ff17",
+      "bytes": 9914107,
+      "excluded": {},
+      "files": 1273,
+      "hooks_executed": false,
+      "repository": "healthchecks/healthchecks",
+      "sha": "b932fc404aa2868c6be46e90e803d9b35f460cc0",
+      "submodules_initialized": false,
+      "tree_sha256": "2a5978889fe8d55504dae0be19a033dbfd58da24cf18b498b4a6f106c1953876"
+    },
+    "config_sha256": "69c2e3671080d490c74cafd9ee1afd8bbf4c7395ef0f9309ee447c5230669fb5",
+    "deterministic": true,
+    "median_seconds": 1.257768,
+    "mode": "configured",
+    "peak_rss_kib": 48604,
+    "public_raw": true,
+    "report_sha256": "ea44b010e2fc8b71e43a0a9cd1930fcb8611f52e509ee4bfc11d1f8f5d362214",
+    "repository": "healthchecks/healthchecks",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 48356,
+        "seconds": 1.257768
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 48604,
+        "seconds": 1.151566
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 48176,
+        "seconds": 1.278712
+      }
+    ],
+    "sha": "b932fc404aa2868c6be46e90e803d9b35f460cc0",
+    "source_unchanged": true,
+    "status": "partial",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 664,
+      "candidate_kinds": {
+        "compose": 1,
+        "dockerfile": 1,
+        "env_example": 1,
+        "javascript": 7,
+        "python": 654
+      },
+      "candidates": 664,
+      "complete_files": 663,
+      "config_keys": 129,
+      "consumers": 55,
+      "diagnostics": 7,
+      "failed_files": 0,
+      "findings": 34,
+      "flow_edges": 142,
+      "flow_nodes": 271,
+      "partial_files": 1,
+      "precedence_conflicts": 0,
+      "precedence_providers": 83,
+      "providers": 83,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "e6c1cb65b686db67b4499c39f8b91bcb6107cfae71e10477752e5b4a68eb619f",
+      "bytes": 93034005,
+      "excluded": {
+        "private_or_generated": 2
+      },
+      "files": 1564,
+      "hooks_executed": false,
+      "repository": "paperless-ngx/paperless-ngx",
+      "sha": "41498113d31331409cebcc97508313f0cbdec4f4",
+      "submodules_initialized": false,
+      "tree_sha256": "6efdb72ce64b87cf53efb502a6a498cb45a16c8147551a4dc881d0720f5b45b2"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 4.626125,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 62696,
+    "public_raw": false,
+    "report_sha256": "c64ee326afadbe1138b16898dd86122a91a1785d0ff676b70792f189c8a0467e",
+    "repository": "paperless-ngx/paperless-ngx",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 62444,
+        "seconds": 4.710321
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 62696,
+        "seconds": 4.626125
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 62672,
+        "seconds": 4.573851
+      }
+    ],
+    "sha": "41498113d31331409cebcc97508313f0cbdec4f4",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 873,
+      "candidate_kinds": {
+        "compose": 9,
+        "dockerfile": 2,
+        "javascript": 435,
+        "kubernetes": 17,
+        "python": 410
+      },
+      "candidates": 873,
+      "complete_files": 861,
+      "config_keys": 113,
+      "consumers": 107,
+      "diagnostics": 53,
+      "failed_files": 5,
+      "findings": 464,
+      "flow_edges": 192,
+      "flow_nodes": 275,
+      "partial_files": 7,
+      "precedence_conflicts": 74,
+      "precedence_providers": 46,
+      "providers": 46,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "e6c1cb65b686db67b4499c39f8b91bcb6107cfae71e10477752e5b4a68eb619f",
+      "bytes": 93034005,
+      "excluded": {
+        "private_or_generated": 2
+      },
+      "files": 1564,
+      "hooks_executed": false,
+      "repository": "paperless-ngx/paperless-ngx",
+      "sha": "41498113d31331409cebcc97508313f0cbdec4f4",
+      "submodules_initialized": false,
+      "tree_sha256": "6efdb72ce64b87cf53efb502a6a498cb45a16c8147551a4dc881d0720f5b45b2"
+    },
+    "config_sha256": "665cb31e9490e1a264befa53888a6bc6a938737d1ac45fa5196e880665b9fa96",
+    "deterministic": true,
+    "median_seconds": 3.045918,
+    "mode": "configured",
+    "peak_rss_kib": 60952,
+    "public_raw": false,
+    "report_sha256": "ae0b07b941fd465fac98d0ef20e413470df7314908ada3e932e4ce21b2bcb2bf",
+    "repository": "paperless-ngx/paperless-ngx",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 60692,
+        "seconds": 2.986015
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 60952,
+        "seconds": 3.045918
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 60752,
+        "seconds": 3.062392
+      }
+    ],
+    "sha": "41498113d31331409cebcc97508313f0cbdec4f4",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 670,
+      "candidate_kinds": {
+        "compose": 8,
+        "dockerfile": 2,
+        "javascript": 434,
+        "kubernetes": 8,
+        "python": 218
+      },
+      "candidates": 670,
+      "complete_files": 661,
+      "config_keys": 118,
+      "consumers": 107,
+      "diagnostics": 42,
+      "failed_files": 2,
+      "findings": 66,
+      "flow_edges": 180,
+      "flow_nodes": 275,
+      "partial_files": 7,
+      "precedence_conflicts": 70,
+      "precedence_providers": 40,
+      "providers": 40,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "1583c2ac179e82a72f3f42485ecaa069727619537c2373f4550e0423eae00269",
+      "bytes": 7637612,
+      "excluded": {},
+      "files": 534,
+      "hooks_executed": false,
+      "repository": "django-helpdesk/django-helpdesk",
+      "sha": "25bcad9c02a6eee2f95ed6070e46cbed47cb1e7e",
+      "submodules_initialized": false,
+      "tree_sha256": "e8874f581e51ef8eb0d061d9434f2a31b84d689f5699360314772404732ad504"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 1.267195,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 50612,
+    "public_raw": true,
+    "report_sha256": "cca7e33f3f7333577f530288d95e712968c60c7109d16f8e78b6b602bcf3fe11",
+    "repository": "django-helpdesk/django-helpdesk",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 50360,
+        "seconds": 1.267195
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 50612,
+        "seconds": 1.265314
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 50216,
+        "seconds": 1.367777
+      }
+    ],
+    "sha": "25bcad9c02a6eee2f95ed6070e46cbed47cb1e7e",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 191,
+      "candidate_kinds": {
+        "compose": 2,
+        "dockerfile": 2,
+        "javascript": 9,
+        "kubernetes": 6,
+        "python": 172
+      },
+      "candidates": 191,
+      "complete_files": 187,
+      "config_keys": 32,
+      "consumers": 31,
+      "diagnostics": 4,
+      "failed_files": 2,
+      "findings": 14,
+      "flow_edges": 41,
+      "flow_nodes": 74,
+      "partial_files": 2,
+      "precedence_conflicts": 0,
+      "precedence_providers": 7,
+      "providers": 7,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "1583c2ac179e82a72f3f42485ecaa069727619537c2373f4550e0423eae00269",
+      "bytes": 7637612,
+      "excluded": {},
+      "files": 534,
+      "hooks_executed": false,
+      "repository": "django-helpdesk/django-helpdesk",
+      "sha": "25bcad9c02a6eee2f95ed6070e46cbed47cb1e7e",
+      "submodules_initialized": false,
+      "tree_sha256": "e8874f581e51ef8eb0d061d9434f2a31b84d689f5699360314772404732ad504"
+    },
+    "config_sha256": "73ee4aad4b7c8ffbd64ab3c63501b41835b9f33662a5392b1a1ce31560a70d87",
+    "deterministic": true,
+    "median_seconds": 1.151628,
+    "mode": "configured",
+    "peak_rss_kib": 50676,
+    "public_raw": true,
+    "report_sha256": "a438d9b9405f69d7b7216f40dc1fb6bf1ba444a64cb3225cbf00ec5844880c2c",
+    "repository": "django-helpdesk/django-helpdesk",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 50240,
+        "seconds": 1.114768
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 50676,
+        "seconds": 1.151628
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 50340,
+        "seconds": 1.223127
+      }
+    ],
+    "sha": "25bcad9c02a6eee2f95ed6070e46cbed47cb1e7e",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 119,
+      "candidate_kinds": {
+        "compose": 2,
+        "dockerfile": 2,
+        "javascript": 8,
+        "kubernetes": 2,
+        "python": 105
+      },
+      "candidates": 119,
+      "complete_files": 115,
+      "config_keys": 32,
+      "consumers": 30,
+      "diagnostics": 4,
+      "failed_files": 2,
+      "findings": 11,
+      "flow_edges": 40,
+      "flow_nodes": 75,
+      "partial_files": 2,
+      "precedence_conflicts": 0,
+      "precedence_providers": 7,
+      "providers": 7,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "0c7fcc39d341f89d61a44444011b89aad0d15caaea5f06ba7d8fd02943bef171",
+      "bytes": 10708919,
+      "excluded": {},
+      "files": 252,
+      "hooks_executed": false,
+      "repository": "wagtail/bakerydemo",
+      "sha": "c9b38d7a7170dba8bb84254beb7e5dc5a955e024",
+      "submodules_initialized": false,
+      "tree_sha256": "9f4a5ed1bf92e5581aa61114f5e948edd0440f50586dfeb2a8b2036beec64efa"
+    },
+    "config_sha256": null,
+    "deterministic": true,
+    "median_seconds": 2.497607,
+    "mode": "out-of-the-box",
+    "peak_rss_kib": 64728,
+    "public_raw": false,
+    "report_sha256": "2421b2d19a06665f83d7717015eec19f71b13d47d4d88f24b5bd23560d63091a",
+    "repository": "wagtail/bakerydemo",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 64728,
+        "seconds": 2.497607
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 64636,
+        "seconds": 2.54954
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 64576,
+        "seconds": 2.495555
+      }
+    ],
+    "sha": "c9b38d7a7170dba8bb84254beb7e5dc5a955e024",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 125,
+      "candidate_kinds": {
+        "compose": 1,
+        "dockerfile": 1,
+        "env_example": 1,
+        "javascript": 4,
+        "kubernetes": 6,
+        "python": 112
+      },
+      "candidates": 125,
+      "complete_files": 122,
+      "config_keys": 56,
+      "consumers": 43,
+      "diagnostics": 300,
+      "failed_files": 1,
+      "findings": 102,
+      "flow_edges": 75,
+      "flow_nodes": 120,
+      "partial_files": 2,
+      "precedence_conflicts": 1,
+      "precedence_providers": 17,
+      "providers": 17,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  },
+  {
+    "acquisition": {
+      "archive_sha256": "0c7fcc39d341f89d61a44444011b89aad0d15caaea5f06ba7d8fd02943bef171",
+      "bytes": 10708919,
+      "excluded": {},
+      "files": 252,
+      "hooks_executed": false,
+      "repository": "wagtail/bakerydemo",
+      "sha": "c9b38d7a7170dba8bb84254beb7e5dc5a955e024",
+      "submodules_initialized": false,
+      "tree_sha256": "9f4a5ed1bf92e5581aa61114f5e948edd0440f50586dfeb2a8b2036beec64efa"
+    },
+    "config_sha256": "33d07dad9b8cdbf0fc13af0aa62d054c732fec1be4fa64248b7e34c39e406449",
+    "deterministic": true,
+    "median_seconds": 2.499848,
+    "mode": "configured",
+    "peak_rss_kib": 64780,
+    "public_raw": false,
+    "report_sha256": "c87ceea36bf57707d2f74ef40cb42f62e26c3f9555e12d54d81b60409f851bc9",
+    "repository": "wagtail/bakerydemo",
+    "samples": [
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 64516,
+        "seconds": 2.499848
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 64780,
+        "seconds": 2.540914
+      },
+      {
+        "exit_code": 2,
+        "peak_rss_kib": 64564,
+        "seconds": 2.469737
+      }
+    ],
+    "sha": "c9b38d7a7170dba8bb84254beb7e5dc5a955e024",
+    "source_unchanged": true,
+    "status": "failed",
+    "stderr_bytes": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "summary": {
+      "analyzed": 125,
+      "candidate_kinds": {
+        "compose": 1,
+        "dockerfile": 1,
+        "env_example": 1,
+        "javascript": 4,
+        "kubernetes": 6,
+        "python": 112
+      },
+      "candidates": 125,
+      "complete_files": 122,
+      "config_keys": 56,
+      "consumers": 43,
+      "diagnostics": 300,
+      "failed_files": 1,
+      "findings": 102,
+      "flow_edges": 75,
+      "flow_nodes": 120,
+      "partial_files": 2,
+      "precedence_conflicts": 1,
+      "precedence_providers": 17,
+      "providers": 17,
+      "skipped": 0,
+      "skipped_reasons": {}
+    }
+  }
+]

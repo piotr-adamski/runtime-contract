@@ -53,6 +53,7 @@ only for a complete result containing at least one active finding at or above `-
 | `--output PATH` | stdout | Atomic output path. |
 | `--fail-on LEVEL` | `error`; `error/warning/info/never` | Failure threshold after suppressions and severity overrides. |
 | `--report PATH` | none | Relative report path override from execution configuration. Mutually exclusive with `--output`. |
+| `--baseline PATH` | none | Trusted complete JSON report, relative to `PATH` or absolute. Gate new or worsened findings; incompatible inputs exit `2`. See [baseline guide](baseline.md). |
 | `--color MODE` | `auto`; `auto/always/never` | Text ANSI policy. |
 | `--no-emoji` | false | Disable TTY symbols. |
 | `--width N` | terminal width; `40..240` | Text wrapping width. |

@@ -11,6 +11,11 @@ _FIXED_MESSAGES = frozenset(
         "project path is inaccessible",
         "project path must be a readable directory",
         "unknown environment",
+        "baseline must be a readable, bounded runtime-contract JSON report",
+        "baseline comparison requires two complete analyses",
+        "baseline version, analysis scope, environment, or policy is incompatible",
+        "baseline is supported only by check",
+        "output must not overwrite the baseline",
     }
 )
 _UNKNOWN_ROOT = re.compile(

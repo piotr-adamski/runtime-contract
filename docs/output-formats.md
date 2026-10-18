@@ -13,6 +13,11 @@ quiet mode, and width affect only text. Non-TTY output is plain by default.
 
 ## Canonical JSON
 
+The source version adds `metadata.analysis_fingerprint` and optional `metadata.baseline` to v1
+reports. Earlier reports remain readable; baseline acceptance requires the new fingerprint.
+See the [baseline comparison contract](baseline.md) for identity matching, compatibility and SARIF
+`baselineState`. This is an additive writer change; older strict-schema readers need an upgrade.
+
 Scan and check emit `schema_id: runtime-contract/v1`, integer `schema_version: 1`, metadata,
 inputs, summary, facts-only contract, findings, file completeness, diagnostics, flow graph, and
 precedence analysis. Diff uses the same envelope plus left/right metadata and semantic changes.

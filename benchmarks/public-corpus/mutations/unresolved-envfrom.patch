@@ -1,0 +1,7 @@
+--- before/config.yaml
++++ after/config.yaml
+@@ -1,4 +0,0 @@
+-apiVersion: v1
+-kind: ConfigMap
+-metadata: {name: absent}
+-data: {DATABASE_URL: ""}

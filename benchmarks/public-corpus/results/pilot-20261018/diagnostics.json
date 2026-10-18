@@ -1,0 +1,8 @@
+{
+  "dynamic_name": 45,
+  "partial_analysis": 30,
+  "safety_limit": 5891,
+  "syntax_error": 106,
+  "unsupported_construct": 30,
+  "unsupported_k8s_resource": 125
+}

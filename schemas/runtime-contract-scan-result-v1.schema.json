@@ -63,6 +63,54 @@
       "title": "AnalysisDiagnostic",
       "type": "object"
     },
+    "BaselineAssessment": {
+      "additionalProperties": false,
+      "description": "Current finding identities grouped by their relationship to a trusted baseline.",
+      "properties": {
+        "existing": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Existing",
+          "type": "array"
+        },
+        "new": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "New",
+          "type": "array"
+        },
+        "report_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Report Sha256",
+          "type": "string"
+        },
+        "resolved": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Resolved",
+          "type": "array"
+        },
+        "worsened": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Worsened",
+          "type": "array"
+        }
+      },
+      "required": [
+        "report_sha256"
+      ],
+      "title": "BaselineAssessment",
+      "type": "object"
+    },
     "ConfigKey": {
       "additionalProperties": false,
       "properties": {
@@ -904,6 +952,30 @@
     "ReportMetadata": {
       "additionalProperties": false,
       "properties": {
+        "analysis_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Analysis Fingerprint"
+        },
+        "baseline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaselineAssessment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "command": {
           "default": "scan",
           "enum": [

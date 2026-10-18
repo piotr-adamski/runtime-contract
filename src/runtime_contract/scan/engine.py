@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import date
+from hashlib import sha256
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Literal
@@ -58,6 +60,7 @@ from runtime_contract.flow import build_flow_graph
 from runtime_contract.kubernetes import MAX_KUBERNETES_BYTES
 from runtime_contract.normalization import NormalizationError, normalize_observations
 from runtime_contract.precedence import analyze_precedence
+from runtime_contract.scan.baseline import blocks, compare_baseline
 from runtime_contract.scan.models import (
     PolicyRecord,
     ReportInputs,
@@ -89,6 +92,7 @@ class ScanRequest:
     terminal_color: bool = False
     terminal_emoji: bool = False
     terminal_width: int = 100
+    baseline: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -503,6 +507,19 @@ def run_scan(request: ScanRequest) -> ScanRun:
             tool_version=tool_version,
             command=request.command,
             policy=policy_records,
+            analysis_fingerprint=sha256(
+                json.dumps(
+                    {
+                        "config": document.config.model_dump(mode="json", exclude={"execution"}),
+                        "expired": sorted(
+                            item.id
+                            for item in policy.expired_suppression_warnings(on_date=date.today())
+                        ),
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).hexdigest(),
         ),
         inputs=ReportInputs(
             config=config_label,
@@ -521,6 +538,25 @@ def run_scan(request: ScanRequest) -> ScanRun:
         findings=findings,
         files=tuple(sorted(files, key=lambda item: item.path.encode("utf-8"))),
     )
+    active_findings = findings
+    if request.baseline is not None:
+        if request.command != "check":
+            raise PublicError("baseline is supported only by check")
+        baseline_path = (
+            request.baseline if request.baseline.is_absolute() else root / request.baseline
+        )
+        assessment = compare_baseline(baseline_path, scan_result)
+        scan_result = scan_result.model_copy(
+            update={"metadata": scan_result.metadata.model_copy(update={"baseline": assessment})}
+        )
+        active_ids = set(assessment.new + assessment.worsened)
+        active_findings = tuple(item for item in findings if item.id in active_ids)
+        selected_output = request.output or execution.value.report
+        if (
+            selected_output is not None
+            and (root / selected_output).resolve() == baseline_path.resolve()
+        ):
+            raise PublicError("output must not overwrite the baseline")
     output_format = execution.value.format.value
     rendered = render(
         scan_result,
@@ -537,7 +573,7 @@ def run_scan(request: ScanRequest) -> ScanRun:
     if (
         exit_code == 0
         and request.command == "check"
-        and any(item.severity is Severity.ERROR for item in findings)
+        and blocks(active_findings, execution.value.fail_on.value)
     ):
         exit_code = 1
     return ScanRun(scan_result, rendered, output, exit_code)

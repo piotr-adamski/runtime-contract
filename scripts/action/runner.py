@@ -69,6 +69,9 @@ def build_cli_arguments(executable: Path) -> list[str]:
     left = _input("LEFT")
     right = _input("RIGHT")
     environment = _input("ENVIRONMENT")
+    baseline = _input("BASELINE")
+    if baseline and command != "check":
+        raise ActionError("baseline is valid only for check")
     arguments = [str(executable), command]
 
     if command in {"scan", "check"}:
@@ -78,6 +81,8 @@ def build_cli_arguments(executable: Path) -> list[str]:
         if environment:
             arguments.extend(("--environment", environment))
         arguments.extend(("--format", output_format, "--fail-on", fail_on))
+        if baseline:
+            arguments.extend(("--baseline", baseline))
         if rule or left or right:
             raise ActionError("rule, left, and right are not valid for scan/check")
     elif command == "explain":

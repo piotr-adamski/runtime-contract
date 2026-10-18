@@ -1,0 +1,33 @@
+{
+  "address_space_bytes": 1073741824,
+  "architecture": "x86_64",
+  "cli": "runtime-contract 0.1.2",
+  "cpu_count": 16,
+  "cpu_seconds": 30,
+  "installed_distributions": {
+    "PyYAML": "6.0.3",
+    "Pygments": "2.21.0",
+    "annotated-doc": "0.0.5",
+    "annotated-types": "0.8.0",
+    "markdown-it-py": "4.2.0",
+    "mdurl": "0.1.2",
+    "pathspec": "1.1.1",
+    "pydantic": "2.14.1",
+    "pydantic_core": "2.50.1",
+    "rich": "15.0.0",
+    "runtime-contract": "0.1.2",
+    "shellingham": "1.5.4",
+    "tree-sitter": "0.26.0",
+    "tree-sitter-javascript": "0.25.0",
+    "tree-sitter-typescript": "0.23.2",
+    "typer": "0.27.3",
+    "typing-inspection": "0.4.4",
+    "typing_extensions": "4.16.0"
+  },
+  "manifest_sha256": "2a908902db36b3ff7ef95fa82527adedc815453acbf5b41748f025a3f1fbb294",
+  "measured_runs": 3,
+  "os": "Linux",
+  "python": "Python 3.11.15",
+  "timeout_seconds": 45,
+  "warmups": 1
+}
