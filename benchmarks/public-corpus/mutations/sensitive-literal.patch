@@ -1,0 +1,8 @@
+--- before/compose.yaml
++++ after/compose.yaml
+@@ -1,4 +1,4 @@
+ services:
+   app:
+     environment:
+-      SECRET_TOKEN: ${SECRET_TOKEN}
++      SECRET_TOKEN: controlled-nonsecret-mutation-witness

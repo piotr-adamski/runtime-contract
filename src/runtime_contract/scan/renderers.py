@@ -149,6 +149,16 @@ def render_text(
                         get_rule(finding.rule_id).remediation,
                         width,
                     )
+    if result.metadata.baseline is not None:
+        baseline = result.metadata.baseline
+        lines.extend(
+            [
+                "",
+                "Baseline",
+                f"  New: {len(baseline.new)}; worsened: {len(baseline.worsened)}; "
+                f"existing: {len(baseline.existing)}; resolved: {len(baseline.resolved)}",
+            ]
+        )
     if result.metadata.policy:
         lines.extend(["", "Policy"])
         for record in result.metadata.policy:
@@ -287,6 +297,19 @@ def render_sarif(result: ScanResult) -> str:
                     "config_key_id": finding.config_key_id or "",
                     "phase": finding.phase.value,
                 },
+                **(
+                    {
+                        "baselineState": (
+                            "new"
+                            if finding.id in result.metadata.baseline.new
+                            else "updated"
+                            if finding.id in result.metadata.baseline.worsened
+                            else "unchanged"
+                        )
+                    }
+                    if result.metadata.baseline is not None
+                    else {}
+                ),
             }
         )
     sarif_results.sort(
@@ -295,7 +318,7 @@ def render_sarif(result: ScanResult) -> str:
             item["locations"][0]["physicalLocation"]["artifactLocation"]["uri"],
         )
     )
-    document = {
+    document: dict[str, Any] = {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
         "version": "2.1.0",
         "runs": [
@@ -319,6 +342,10 @@ def render_sarif(result: ScanResult) -> str:
             }
         ],
     }
+    if result.metadata.baseline is not None:
+        document["runs"][0]["properties"]["baseline"] = result.metadata.baseline.model_dump(
+            mode="json"
+        )
     return json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n"
 
 

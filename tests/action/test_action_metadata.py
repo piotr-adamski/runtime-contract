@@ -40,6 +40,7 @@ def test_metadata_exposes_the_stable_public_contract() -> None:
         "left",
         "right",
         "environment",
+        "baseline",
     }
     assert set(outputs) == {"exit-code", "result-file", "runtime-contract-version"}
     assert action["branding"] == {"icon": "shield", "color": "blue"}

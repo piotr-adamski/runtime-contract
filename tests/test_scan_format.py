@@ -125,6 +125,8 @@ def test_canonical_shape_metadata_inputs_null_empty_and_no_host_data() -> None:
         "policy": [],
         "tool": "runtime-contract",
         "tool_version": "0.1.2",
+        "analysis_fingerprint": "096995012d5fc7d50ac2ff77eef3a5355faa800bbcc7d8b924b76d2c81e0b581",
+        "baseline": None,
     }
     inputs = value["inputs"]
     assert isinstance(inputs, dict)

@@ -25,13 +25,14 @@ def set_inputs(monkeypatch: pytest.MonkeyPatch, **values: str) -> None:
         "LEFT": "",
         "RIGHT": "",
         "ENVIRONMENT": "",
+        "BASELINE": "",
     }
     defaults.update(values)
     for name, value in defaults.items():
         monkeypatch.setenv(f"RUNTIME_CONTRACT_ACTION_{name}", value)
 
 
-@pytest.mark.parametrize("name", ["PATH", "CONFIG", "OUTPUT", "ENVIRONMENT"])
+@pytest.mark.parametrize("name", ["PATH", "CONFIG", "OUTPUT", "ENVIRONMENT", "BASELINE"])
 def test_scan_and_check_text_inputs_are_single_argv_elements(
     monkeypatch: pytest.MonkeyPatch, name: str
 ) -> None:
@@ -120,3 +121,10 @@ def test_runner_never_uses_a_shell_or_eval() -> None:
             and node.func.attr == "run"
         ):
             assert all(keyword.arg != "shell" for keyword in node.keywords)
+
+
+@pytest.mark.parametrize("command", ["scan", "diff", "explain"])
+def test_baseline_is_check_only(monkeypatch: pytest.MonkeyPatch, command: str) -> None:
+    set_inputs(monkeypatch, COMMAND=command, BASELINE="trusted.json")
+    with pytest.raises(runner.ActionError, match="only for check"):
+        runner.build_cli_arguments(Path("runtime-contract"))

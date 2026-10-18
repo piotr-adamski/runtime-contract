@@ -47,6 +47,10 @@ inputs:
     description: Optional environment profile for scan, check, or diff.
     required: false
     default: ""
+  baseline:
+    description: Trusted JSON baseline relative to path or absolute (check only).
+    required: false
+    default: ""
 
 outputs:
   exit-code:
@@ -83,6 +87,7 @@ runs:
         RUNTIME_CONTRACT_ACTION_LEFT: ${{ inputs.left }}
         RUNTIME_CONTRACT_ACTION_RIGHT: ${{ inputs.right }}
         RUNTIME_CONTRACT_ACTION_ENVIRONMENT: ${{ inputs.environment }}
+        RUNTIME_CONTRACT_ACTION_BASELINE: ${{ inputs.baseline }}
       run: uv run --no-project --python 3.11.15 python "$GITHUB_ACTION_PATH/scripts/action/runner.py"
 
 branding:

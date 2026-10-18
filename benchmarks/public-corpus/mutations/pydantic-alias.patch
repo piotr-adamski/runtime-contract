@@ -1,0 +1,8 @@
+--- before/app.py
++++ after/app.py
+@@ -1,4 +1,4 @@
+ from pydantic_settings import BaseSettings
+ from pydantic import Field
+ class Settings(BaseSettings):
+-    connection: str = Field(..., validation_alias="DATABASE_URL")
++    connection: str = Field(..., validation_alias="ALIAS_CHANGED")

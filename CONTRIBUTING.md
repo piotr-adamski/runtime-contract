@@ -1,8 +1,8 @@
 # Contributing to runtime-contract
 
-Thank you for helping improve `runtime-contract`. The project currently provides an installable CLI
-skeleton and analyzer library APIs, but CLI analysis integration is not implemented and there is no
-release.
+The project provides a released static-analysis CLI and GitHub Action. Source changes can add
+features ahead of the next PyPI release; document that distinction and retain the fail-closed
+contract for partial analysis. The public-corpus pilot uses a separately installed frozen 0.1.2.
 
 ## Before contributing
 

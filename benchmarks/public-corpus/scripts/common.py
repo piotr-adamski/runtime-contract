@@ -12,6 +12,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 BASE = Path(__file__).resolve().parents[1]
+SECURITY_REASON = "Sensitive-source finding requires private maintainer security triage; no value was inspected and no vulnerability is asserted. All source identifiers are withheld."
 
 
 def write_json(path: Path, value: Any) -> None:

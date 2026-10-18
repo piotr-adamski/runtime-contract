@@ -1,0 +1,30 @@
+{
+  "by_rule": {
+    "RTC001": 1845,
+    "RTC002": 16,
+    "RTC005": 54,
+    "RTC006": 12,
+    "RTC007": 55
+  },
+  "decision": "HOLD",
+  "findings": 1982,
+  "human_review_pending": 1982,
+  "mutation_cases": 8,
+  "mutation_exact_expectations_met": 6,
+  "population_recall": null,
+  "repositories": 10,
+  "runs": 20,
+  "second_technical_reviewed": 1894,
+  "statuses": {
+    "complete": 1,
+    "failed": 18,
+    "partial": 1
+  },
+  "validated_precision": null,
+  "verdicts": {
+    "cannot_determine": 1758,
+    "false_positive": 212,
+    "unsupported_pattern": 12
+  },
+  "withheld_raw_reports": 10
+}

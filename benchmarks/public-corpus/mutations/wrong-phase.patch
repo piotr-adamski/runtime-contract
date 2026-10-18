@@ -1,0 +1,6 @@
+--- before/Dockerfile
++++ after/Dockerfile
+@@ -1,2 +1,2 @@
+ FROM python
+-ENV DATABASE_URL=${DATABASE_URL}
++ARG DATABASE_URL

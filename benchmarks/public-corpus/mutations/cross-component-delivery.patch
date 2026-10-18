@@ -1,0 +1,14 @@
+--- before/app/compose.yaml
++++ after/app/compose.yaml
+@@ -1,4 +0,0 @@
+-services:
+-  app:
+-    environment:
+-      DATABASE_URL: ${DATABASE_URL}
+--- before/other/compose.yaml
++++ after/other/compose.yaml
+@@ -0,0 +1,4 @@
++services:
++  app:
++    environment:
++      DATABASE_URL: ${DATABASE_URL}

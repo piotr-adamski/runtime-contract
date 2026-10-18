@@ -41,6 +41,10 @@ def check(
         typer.Option(help="Failure threshold: error, warning, info, or never (default: error)."),
     ] = None,
     report: Annotated[Path | None, typer.Option(help="Relative report path override.")] = None,
+    baseline: Annotated[
+        Path | None,
+        typer.Option("--baseline", help="Trusted JSON baseline, relative to PATH or absolute."),
+    ] = None,
     color: Annotated[str, typer.Option(help="Terminal color: auto, always, or never.")] = "auto",
     no_emoji: Annotated[bool, typer.Option("--no-emoji", help="Disable terminal symbols.")] = False,
     width: Annotated[
@@ -73,6 +77,7 @@ def check(
                 report=report,
                 fail_on=fail_on,
                 command="check",
+                baseline=baseline,
                 terminal_color=terminal_color,
                 terminal_emoji=is_tty and not no_emoji,
                 terminal_width=terminal_width,

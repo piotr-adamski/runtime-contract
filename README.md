@@ -90,6 +90,7 @@ steps:
 | `left` | empty | Left project directory or saved JSON report required by `diff`. |
 | `right` | empty | Right project directory or saved JSON report required by `diff`. |
 | `environment` | empty | Optional environment profile for `scan`, `check`, or `diff`. |
+| `baseline` | empty | Trusted JSON report for `check`; requires a CLI release supporting `--baseline`. |
 
 ### Action outputs
 
@@ -210,6 +211,14 @@ runtime-contract explain RTC001
 runtime-contract diff BEFORE AFTER
 runtime-contract config validate PATH
 ```
+
+The source version also supports `runtime-contract check . --baseline accepted-runtime-contract.json`.
+All current findings remain visible while new or worsened findings block CI. Read the
+[baseline guide](docs/baseline.md) for compatibility and trusted PR input; public 0.1.2 predates it.
+
+The reproducible [ten-repository pilot](benchmarks/public-corpus/README.md) measures public 0.1.2
+separately from feature development. It distinguishes partial/failed scans and provisional
+technical annotations from independent human validation.
 
 Use JSON or SARIF for integrations:
 

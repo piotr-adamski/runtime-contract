@@ -1,0 +1,5 @@
+--- before/Dockerfile.alternative
++++ after/Dockerfile.alternative
+@@ -0,0 +1,2 @@
++FROM python
++ENV MODE=two

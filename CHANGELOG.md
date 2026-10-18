@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- Add `check --baseline` with version/scope/policy compatibility, line-independent occurrence
+  matching, severity-regression gating, full current reports and SARIF baseline states.
+- Add the Action `baseline` input and document trusted PR baselines and package requirements.
+- Apply the documented error/warning/info/never threshold without rewriting finding severity.
+- Add the frozen ten-repository 0.1.2 pilot, bounded acquisition/measurement tools, technical
+  annotations, controlled mutations and a reproducible report with explicit limitations.
+
 ## [0.1.2] - 2026-07-14
 
 - Add a root composite GitHub Action that installs the exact public PyPI release in an isolated,

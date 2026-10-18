@@ -1,0 +1,14 @@
+{
+  "frozen_manifest_commit": "77976f67dbf6dc32e064d75627f77bd9f3ff012f",
+  "measurement_inputs_changed": false,
+  "corrections": [
+    {
+      "repository": "fastapi/full-stack-fastapi-template",
+      "field": "features",
+      "remove": "env-example",
+      "reason": "Acquired immutable tree contains no exact .env.example. The initial feature inventory was mistaken; no source, configuration, SHA or run is changed."
+    }
+  ],
+  "candidate_count": 16,
+  "candidate_count_reason": "The original fifteen candidates gained Bakerydemo after Immich exceeded the predeclared archive budget, before any scanner results."
+}
