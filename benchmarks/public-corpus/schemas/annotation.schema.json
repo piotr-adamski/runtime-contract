@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "repository",
+    "sha",
+    "mode",
+    "finding_id",
+    "rule_id",
+    "severity",
+    "component",
+    "phase",
+    "location",
+    "key",
+    "verdict",
+    "confidence",
+    "reason",
+    "reviewer",
+    "reviewed_on",
+    "second_review",
+    "security_withheld"
+  ],
+  "properties": {
+    "repository": {
+      "type": "string"
+    },
+    "sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "mode": {
+      "enum": [
+        "out-of-the-box",
+        "configured"
+      ]
+    },
+    "finding_id": {
+      "type": "string"
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^RTC0[0-9]{2}$"
+    },
+    "severity": {
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "component": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "phase": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "location": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "verdict": {
+      "enum": [
+        "confirmed_error",
+        "probable_error",
+        "false_positive",
+        "unsupported_pattern",
+        "intentional_configuration",
+        "cannot_determine"
+      ]
+    },
+    "confidence": {
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 25
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 3
+    },
+    "reviewed_on": {
+      "type": "string"
+    },
+    "second_review": {
+      "enum": [
+        "pending",
+        "technical-reviewed",
+        "human-reviewed"
+      ]
+    },
+    "security_withheld": {
+      "type": "boolean"
+    }
+  }
+}

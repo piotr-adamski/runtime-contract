@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "roots": {
+    "application": {
+      "path": ".",
+      "exclude": [
+        "tests/**"
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "roots": {
+    "application": {
+      "path": "src",
+      "exclude": [
+        "**/tests/**"
+      ]
+    },
+    "frontend": "src-ui",
+    "deployment": {
+      "path": ".",
+      "include": [
+        "Dockerfile",
+        "docker/compose/**",
+        "docker/docker-compose*"
+      ]
+    }
+  }
+}

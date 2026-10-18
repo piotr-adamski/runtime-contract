@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "roots": {
+    "email": "src/emailservice",
+    "recommendations": "src/recommendationservice",
+    "loadgenerator": "src/loadgenerator",
+    "payment": "src/paymentservice",
+    "deployment": {
+      "path": "release",
+      "include": [
+        "kubernetes-manifests.yaml"
+      ]
+    }
+  }
+}

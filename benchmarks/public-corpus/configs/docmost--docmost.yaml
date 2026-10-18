@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "roots": {
+    "server": "apps/server",
+    "client": "apps/client",
+    "deployment": {
+      "path": ".",
+      "include": [
+        "Dockerfile",
+        "docker-compose.yml",
+        ".env.example"
+      ]
+    }
+  }
+}
